@@ -173,10 +173,20 @@ node e2e/verify-setup.js
 ### **Licencia:** MIT
 
 ### **Contribuciones:**
-Las contribuciones son bienvenidas siguiendo el **REFACTORING_MANIFESTO.md**. Priorizamos la simplicidad (KISS) y la estabilidad.
+Las contribuciones son bienvenidas siguiendo el **[CONTRIBUTING.md](CONTRIBUTING.md)**. Priorizamos la simplicidad (KISS) y la estabilidad.
+
+## 🧪 Beta Testing - ¡Tu Feedback es Importante!
+
+Este proyecto está en **beta pública**. Agradecemos tu ayuda para mejorarlo:
+
+| Tipo | Cómo Reportar |
+|------|---------------|
+| 🐛 **Bugs** | [Crear Issue](https://github.com/JantonioFC/ai-code-mentor-beta-test/issues/new?template=bug_report.md) |
+| 💡 **Mejoras** | [Sugerir Feature](https://github.com/JantonioFC/ai-code-mentor-beta-test/issues/new?template=feature_request.md) |
+| ❓ **Preguntas** | [Hacer Pregunta](https://github.com/JantonioFC/ai-code-mentor-beta-test/issues/new?template=question.md) |
 
 ---
 
-**Última actualización:** Diciembre 7, 2025  
-**Versión:** v19.2 - Multi-Domain & Plugins  
-**Estado:** ✅ **CERTIFICADO** - Monolito Next.js con Router IA, Multi-Dominio, Sistema de Plugins, y 88 tests pasando.
+**Última actualización:** Diciembre 10, 2025  
+**Versión:** v1.0-beta  
+**Estado:** ✅ **BETA PÚBLICA** - Listo para testers
