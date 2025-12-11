@@ -1,0 +1,292 @@
+# CONFIGURACIÓN DE ALERTAS - MOTOR RAG v5.0
+#
+# Archivo de configuración de alertas para Prometheus/Grafana
+# Monitoreo específico del Motor RAG del AI Code Mentor
+#
+# Autor: Mentor Coder
+# Fecha: 2025-09-16
+# Versión: v1.0
+
+groups:
+  - name: motor_rag_alerts
+    rules:
+    
+    # ================================
+    # ALERTAS CRÍTICAS (P1)
+    # ================================
+    
+    - alert: MotorRAG_HighErrorRate
+      expr: |
+        (
+          rate(http_requests_errors_total{endpoint="/api/generate-lesson"}[5m]) 
+          / 
+          rate(http_requests_total{endpoint="/api/generate-lesson"}[5m])
+        ) * 100 > 10
+      for: 2m
+      labels:
+        severity: critical
+        service: motor-rag
+        priority: P1
+      annotations:
+        summary: "Motor RAG - Tasa de errores crítica"
+        description: "La tasa de errores del Motor RAG es {{ $value }}%, superando el umbral crítico de 10%"
+        impact: "Funcionalidad de generación de lecciones comprometida"
+        action: "Investigar logs de errores inmediatamente y considerar rollback si es necesario"
+        runbook: "https://docs.ai-code-mentor.com/runbooks/motor-rag-errors"
+        
+    - alert: MotorRAG_SystemDown
+      expr: up{job="ai-code-mentor"} == 0
+      for: 1m
+      labels:
+        severity: critical
+        service: motor-rag
+        priority: P1
+      annotations:
+        summary: "Motor RAG - Sistema completamente caído"
+        description: "El sistema AI Code Mentor no responde"
+        impact: "Plataforma educativa completamente inaccesible"
+        action: "Reiniciar servicio inmediatamente y verificar infraestructura"
+        
+    - alert: MotorRAG_CurriculumNotLoaded
+      expr: rag_curriculum_loaded == 0
+      for: 30s
+      labels:
+        severity: critical
+        service: motor-rag
+        priority: P1
+      annotations:
+        summary: "Motor RAG - Curriculum no cargado"
+        description: "El archivo curriculum.json no está disponible"
+        impact: "Motor RAG no puede generar contenido contextual"
+        action: "Verificar disponibilidad del archivo curriculum.json y reiniciar si es necesario"
+        
+    # ================================
+    # ALERTAS DE ADVERTENCIA (P2)
+    # ================================
+    
+    - alert: MotorRAG_HighLatency
+      expr: |
+        histogram_quantile(0.95, 
+          rate(http_request_duration_seconds_bucket{endpoint="/api/generate-lesson"}[5m])
+        ) * 1000 > 1500
+      for: 5m
+      labels:
+        severity: warning
+        service: motor-rag
+        priority: P2
+      annotations:
+        summary: "Motor RAG - Latencia alta P95"
+        description: "La latencia P95 es {{ $value }}ms, superando el umbral de 1500ms"
+        impact: "Experiencia de usuario degradada, generación lenta de lecciones"
+        action: "Investigar performance del sistema y optimizar si es necesario"
+        
+    - alert: MotorRAG_ExcessiveFallback
+      expr: |
+        rate(rag_fallback_legacy_total[5m]) 
+        / 
+        rate(http_requests_total{endpoint="/api/generate-lesson"}[5m]) * 100 > 10
+      for: 5m
+      labels:
+        severity: warning
+        service: motor-rag
+        priority: P2
+      annotations:
+        summary: "Motor RAG - Uso excesivo de fallback legacy"
+        description: "{{ $value }}% de las requests están usando fallback legacy"
+        impact: "Calidad de contenido degradada, retorno a sistema genérico"
+        action: "Investigar por qué retrieve_sources() está fallando frecuentemente"
+        
+    - alert: MotorRAG_LowCacheHitRate
+      expr: |
+        rate(rag_cache_hits_total[5m]) 
+        / 
+        (rate(rag_cache_hits_total[5m]) + rate(rag_cache_misses_total[5m])) * 100 < 70
+      for: 10m
+      labels:
+        severity: warning
+        service: motor-rag
+        priority: P2
+      annotations:
+        summary: "Motor RAG - Baja tasa de aciertos de cache"
+        description: "Cache hit rate es {{ $value }}%, por debajo del 70% esperado"
+        impact: "Performance degradada, mayor latencia en retrieve_sources()"
+        action: "Revisar configuración de cache y patrones de uso"
+        
+    # ================================
+    # ALERTAS INFORMATIVAS (P3)
+    # ================================
+    
+    - alert: MotorRAG_HighRequestVolume
+      expr: |
+        rate(http_requests_total{endpoint="/api/generate-lesson"}[1m]) * 60 > 100
+      for: 2m
+      labels:
+        severity: info
+        service: motor-rag
+        priority: P3
+      annotations:
+        summary: "Motor RAG - Volumen alto de requests"
+        description: "{{ $value }} requests/min, superando patrón normal"
+        impact: "Posible necesidad de scaling, monitoreo de recursos"
+        action: "Monitorear recursos del sistema y considerar auto-scaling"
+        
+    - alert: MotorRAG_SlowRetrieveSources
+      expr: |
+        rate(rag_retrieve_sources_duration_seconds_sum[5m]) 
+        / 
+        rate(rag_retrieve_sources_duration_seconds_count[5m]) * 1000 > 100
+      for: 5m
+      labels:
+        severity: info
+        service: motor-rag
+        priority: P3
+      annotations:
+        summary: "Motor RAG - retrieve_sources() lento"
+        description: "Tiempo promedio de retrieve_sources() es {{ $value }}ms"
+        impact: "Contribuye a latencia general del sistema"
+        action: "Optimizar acceso a curriculum.json o cache strategy"
+        
+    - alert: MotorRAG_UnusualWeekDistribution
+      expr: |
+        stddev_over_time(
+          sum by (week_id) (rate(rag_requests_by_week_total[1h]))[6h:]
+        ) > 10
+      for: 30m
+      labels:
+        severity: info
+        service: motor-rag
+        priority: P3
+      annotations:
+        summary: "Motor RAG - Distribución inusual de semanas solicitadas"
+        description: "Patrón anómalo en las semanas más solicitadas"
+        impact: "Posible cambio en patrones de uso de estudiantes"
+        action: "Analizar tendencias educativas y ajustar cache strategy"
+
+# ================================
+# CONFIGURACIÓN DE INHIBITION
+# ================================
+inhibit_rules:
+  # Si el sistema está caído, no alertar sobre métricas específicas
+  - source_match:
+      alertname: MotorRAG_SystemDown
+    target_match_re:
+      alertname: MotorRAG_.*
+    equal: ['service']
+    
+  # Si hay errores críticos, silenciar alertas de latencia
+  - source_match:
+      alertname: MotorRAG_HighErrorRate
+      severity: critical
+    target_match:
+      alertname: MotorRAG_HighLatency
+    equal: ['service']
+
+# ================================
+# CONFIGURACIÓN DE ROUTING
+# ================================
+route:
+  group_by: ['alertname', 'service']
+  group_wait: 10s
+  group_interval: 10s
+  repeat_interval: 1h
+  receiver: 'motor-rag-alerts'
+  routes:
+  
+  # Alertas críticas -> notificación inmediata
+  - match:
+      severity: critical
+      service: motor-rag
+    receiver: 'motor-rag-critical'
+    group_wait: 0s
+    repeat_interval: 15m
+    
+  # Alertas de warning -> notificación agrupada
+  - match:
+      severity: warning
+      service: motor-rag
+    receiver: 'motor-rag-warning'
+    group_interval: 5m
+    repeat_interval: 4h
+    
+  # Alertas informativas -> notificación diaria
+  - match:
+      severity: info
+      service: motor-rag
+    receiver: 'motor-rag-info'
+    group_interval: 1h
+    repeat_interval: 24h
+
+# ================================
+# RECEIVERS DE NOTIFICACIÓN
+# ================================
+receivers:
+
+- name: 'motor-rag-critical'
+  slack_configs:
+  - api_url: 'SLACK_WEBHOOK_URL_HERE'
+    channel: '#alerts-critical'
+    username: 'Motor RAG Monitor'
+    color: 'danger'
+    title: '🚨 CRÍTICO: Motor RAG v5.0'
+    text: |
+      *Alert:* {{ .GroupLabels.alertname }}
+      *Severity:* {{ .CommonLabels.severity }}
+      *Service:* {{ .CommonLabels.service }}
+      
+      *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+      *Description:* {{ range .Alerts }}{{ .Annotations.description }}{{ end }}
+      *Impact:* {{ range .Alerts }}{{ .Annotations.impact }}{{ end }}
+      *Action Required:* {{ range .Alerts }}{{ .Annotations.action }}{{ end }}
+      
+      *Runbook:* {{ range .Alerts }}{{ .Annotations.runbook }}{{ end }}
+      
+      <!channel>
+      
+  webhook_configs:
+  - url: 'http://localhost:3000/api/webhook/alerts'
+    send_resolved: true
+
+- name: 'motor-rag-warning'
+  slack_configs:
+  - api_url: 'SLACK_WEBHOOK_URL_HERE'
+    channel: '#alerts-warning'
+    username: 'Motor RAG Monitor'
+    color: 'warning'
+    title: '⚠️ WARNING: Motor RAG v5.0'
+    text: |
+      *Alert:* {{ .GroupLabels.alertname }}
+      *Severity:* {{ .CommonLabels.severity }}
+      
+      *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+      *Impact:* {{ range .Alerts }}{{ .Annotations.impact }}{{ end }}
+      *Action:* {{ range .Alerts }}{{ .Annotations.action }}{{ end }}
+
+- name: 'motor-rag-info'
+  slack_configs:
+  - api_url: 'SLACK_WEBHOOK_URL_HERE'
+    channel: '#monitoring-info'
+    username: 'Motor RAG Monitor'
+    color: 'good'
+    title: 'ℹ️ INFO: Motor RAG v5.0'
+    text: |
+      *Alert:* {{ .GroupLabels.alertname }}
+      *Summary:* {{ range .Alerts }}{{ .Annotations.summary }}{{ end }}
+
+- name: 'motor-rag-alerts'
+  webhook_configs:
+  - url: 'http://localhost:3000/api/webhook/alerts'
+    send_resolved: true
+
+# ================================
+# CONFIGURACIÓN GLOBAL
+# ================================
+global:
+  smtp_smarthost: 'localhost:587'
+  smtp_from: 'alerts@ai-code-mentor.com'
+  resolve_timeout: 5m
+
+# ================================
+# TEMPLATES PERSONALIZADOS
+# ================================
+templates:
+  - '/etc/alertmanager/templates/*.tmpl'
