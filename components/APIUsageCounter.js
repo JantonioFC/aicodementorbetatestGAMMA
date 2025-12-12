@@ -19,6 +19,11 @@ import { useAPITracking } from '../contexts/APITrackingContext';
 const APIUsageCounter = ({ position = 'top-right', expanded = false }) => {
   const [isExpanded, setIsExpanded] = useState(expanded);
   const [showDetails, setShowDetails] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const {
     remainingCalls,
@@ -141,10 +146,10 @@ const APIUsageCounter = ({ position = 'top-right', expanded = false }) => {
         <span className="text-lg">{alertStyles.icon}</span>
         <div className="flex flex-col">
           <div className="font-bold text-sm leading-tight">
-            {remainingCalls.toLocaleString()}
+            {mounted ? remainingCalls.toLocaleString() : remainingCalls}
           </div>
           <div className="text-xs opacity-90 leading-tight">
-            / {dailyLimit.toLocaleString()}
+            / {mounted ? dailyLimit.toLocaleString() : dailyLimit}
           </div>
         </div>
         <div className="hidden sm:block text-xs opacity-90">
@@ -191,16 +196,16 @@ const APIUsageCounter = ({ position = 'top-right', expanded = false }) => {
             Llamadas Restantes
           </span>
           <span className="text-lg font-bold text-gray-900 dark:text-white">
-            {remainingCalls.toLocaleString()} / {dailyLimit.toLocaleString()}
+            {mounted ? remainingCalls.toLocaleString() : remainingCalls} / {mounted ? dailyLimit.toLocaleString() : dailyLimit}
           </span>
         </div>
 
         <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 mb-2">
           <div
             className={`h-3 rounded-full transition-all duration-500 ${alertLevel === 'exhausted' ? 'bg-red-500' :
-                alertLevel === 'critical' ? 'bg-orange-500' :
-                  alertLevel === 'warning' ? 'bg-yellow-500' :
-                    'bg-green-500'
+              alertLevel === 'critical' ? 'bg-orange-500' :
+                alertLevel === 'warning' ? 'bg-yellow-500' :
+                  'bg-green-500'
               }`}
             style={{ width: `${Math.max(0, 100 - usagePercentage)}%` }}
           />

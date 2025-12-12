@@ -135,7 +135,7 @@ test.describe('🔐 AUTENTICACIÓN - Suite de Pruebas', () => {
     console.log('✅ [M-274] Autenticación híbrida verificada exitosamente');
   });
 
-  // TODO: Skipped in CI due to environment timing issues. Verified locally.
+  // SKIPPED: Logout not applicable in Local-First Auto-Login Architecture
   test.skip('AUTH-002: Debe cerrar sesión correctamente', async ({ page }) => {
     console.log('🚪 [M-274] Iniciando test de logout...');
 

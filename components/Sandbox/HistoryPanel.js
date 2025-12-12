@@ -41,7 +41,7 @@ export default function HistoryPanel({ onRestoreGeneration }) {
       setFilteredGenerations(generations);
     } else {
       const query = searchQuery.toLowerCase().trim();
-      const filtered = generations.filter(gen => 
+      const filtered = generations.filter(gen =>
         gen.title.toLowerCase().includes(query)
       );
       setFilteredGenerations(filtered);
@@ -52,10 +52,10 @@ export default function HistoryPanel({ onRestoreGeneration }) {
   const fetchHistory = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       console.log('📜 [HISTORY] Cargando historial...');
-      
+
       // 🆕 MISIÓN 218.0: Usar token de Supabase (session.access_token)
       // Este endpoint es del SISTEMA PRINCIPAL, NO del microservicio IRP
       const response = await fetch('/api/v1/sandbox/history', {
@@ -66,13 +66,23 @@ export default function HistoryPanel({ onRestoreGeneration }) {
       });
 
       if (!response.ok) {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
+        let errorMessage = `Error ${response.status}: ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorData.error || errorMessage;
+          if (errorData.details) {
+            console.error('❌ [HISTORY] Detalles del error:', errorData.details);
+          }
+        } catch (e) {
+          // Si no es JSON, mantener el error original
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
       console.log('✅ [HISTORY] Historial cargado:', data.data.count, 'generaciones');
       setGenerations(data.data.generations || []);
-      
+
     } catch (error) {
       console.error('❌ [HISTORY] Error:', error);
       setError(error.message);
@@ -112,7 +122,7 @@ export default function HistoryPanel({ onRestoreGeneration }) {
 
       // Actualizar estado local sin recargar
       setGenerations(prev => prev.filter(gen => gen.id !== generationId));
-      
+
       // Si la generación expandida fue eliminada, colapsar
       if (expandedId === generationId) {
         setExpandedId(null);
@@ -178,10 +188,10 @@ export default function HistoryPanel({ onRestoreGeneration }) {
             className="p-1 hover:bg-white/20 rounded transition-colors"
             title="Recargar historial"
           >
-            <svg 
-              className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} 
-              fill="none" 
-              stroke="currentColor" 
+            <svg
+              className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`}
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -189,7 +199,7 @@ export default function HistoryPanel({ onRestoreGeneration }) {
           </button>
         </div>
         <p className="text-purple-100 text-xs mt-1">
-          {generations.length > 0 
+          {generations.length > 0
             ? `${generations.length} generación${generations.length !== 1 ? 'es' : ''}`
             : 'Sin generaciones aún'
           }
@@ -208,10 +218,10 @@ export default function HistoryPanel({ onRestoreGeneration }) {
               placeholder="Buscar en mi historial..."
               className="w-full px-3 py-2 pl-9 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             />
-            <svg 
+            <svg
               className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"
-              fill="none" 
-              stroke="currentColor" 
+              fill="none"
+              stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -247,7 +257,7 @@ export default function HistoryPanel({ onRestoreGeneration }) {
               <span>⚠️</span>
               <span>Error: {error}</span>
             </div>
-            <button 
+            <button
               onClick={fetchHistory}
               className="mt-2 text-xs text-red-600 hover:text-red-800 underline"
             >
@@ -288,13 +298,13 @@ export default function HistoryPanel({ onRestoreGeneration }) {
         {!isLoading && !error && filteredGenerations.length > 0 && (
           <div className="divide-y divide-gray-200">
             {filteredGenerations.map((generation) => (
-              <div 
-                key={generation.id} 
+              <div
+                key={generation.id}
                 className="p-3 hover:bg-gray-50 transition-colors"
               >
                 {/* Title and Controls */}
                 <div className="flex items-start justify-between gap-2 mb-2">
-                  <h4 
+                  <h4
                     className="text-sm font-semibold text-gray-800 line-clamp-2 flex-1 cursor-pointer"
                     onClick={() => setExpandedId(expandedId === generation.id ? null : generation.id)}
                   >
@@ -322,10 +332,10 @@ export default function HistoryPanel({ onRestoreGeneration }) {
                         setExpandedId(expandedId === generation.id ? null : generation.id);
                       }}
                     >
-                      <svg 
+                      <svg
                         className={`w-4 h-4 transition-transform ${expandedId === generation.id ? 'rotate-180' : ''}`}
-                        fill="none" 
-                        stroke="currentColor" 
+                        fill="none"
+                        stroke="currentColor"
                         viewBox="0 0 24 24"
                       >
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />

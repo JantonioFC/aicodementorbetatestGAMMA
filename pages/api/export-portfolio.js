@@ -4,15 +4,15 @@
  * Handles PDF, HTML, and GitHub export generation
  */
 
-import { getProjectDashboard, getRecentEntries, getAllModules } from '../../lib/database';
+import db from '../../lib/db';
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
-    return res.status(405).json({ 
-      success: false, 
-      error: 'Method not allowed. Use POST.' 
+    return res.status(405).json({
+      success: false,
+      error: 'Method not allowed. Use POST.'
     });
   }
 
@@ -21,13 +21,13 @@ export default async function handler(req, res) {
 
     // Step 1: Collect portfolio data
     const portfolioData = await collectPortfolioData();
-    
+
     // Step 2: Compile evidence
     const evidenceCompilation = await compileEvidence(portfolioData);
-    
+
     // Step 3: Generate document
     const document = await generatePortfolioDocument(evidenceCompilation, config);
-    
+
     // Step 4: Process export based on format
     let result;
     switch (format) {
@@ -65,16 +65,25 @@ export default async function handler(req, res) {
 async function collectPortfolioData() {
   try {
     // Get dashboard data
-    const dashboardResult = await getProjectDashboard();
-    
+    const countResult = db.get('SELECT COUNT(*) as count FROM portfolio_entries');
+    const totalEntries = countResult ? countResult.count : 0;
+
+    const recentEntries = db.query('SELECT * FROM portfolio_entries ORDER BY created_at DESC LIMIT 5');
+
+    const dashboardResult = {
+      success: true,
+      entryCounts: { total: totalEntries },
+      recentEntries: recentEntries || []
+    };
+
     // Get all template entries
-    const templatesResult = await getRecentEntries(null, 100); // Get all entries
-    
+    const templatesResult = db.query('SELECT * FROM portfolio_entries ORDER BY created_at DESC LIMIT 100');
+
     // Get all modules
-    const modules = await getAllModules();
-    
+    const modules = db.query('SELECT * FROM modules');
+
     return {
-      dashboard: dashboardResult.success ? dashboardResult : { entryCounts: {}, recentEntries: [] },
+      dashboard: dashboardResult,
       templates: templatesResult || [],
       modules: modules || [],
       timestamp: new Date().toISOString(),
@@ -91,16 +100,16 @@ async function compileEvidence(data) {
   try {
     const evidenceByType = {};
     const competencyMapping = {};
-    
+
     // Process template entries as evidence
     data.templates.forEach(entry => {
       const category = getTemplateCategory(entry.entry_type);
       const competencies = getCompetencyContribution(entry.entry_type);
-      
+
       if (!evidenceByType[category]) {
         evidenceByType[category] = [];
       }
-      
+
       evidenceByType[category].push({
         id: entry.id,
         type: entry.entry_type,
@@ -109,7 +118,7 @@ async function compileEvidence(data) {
         evidenceType: getEvidenceType(entry.entry_type),
         competencies: competencies
       });
-      
+
       // Map to competencies
       competencies.forEach(comp => {
         if (!competencyMapping[comp]) {
@@ -118,14 +127,14 @@ async function compileEvidence(data) {
         competencyMapping[comp].push(entry.id);
       });
     });
-    
+
     // Calculate competency level
     const totalEntries = data.templates.length;
     const competencyLevel = calculateCompetencyLevel(totalEntries);
-    
+
     // Calculate phase progress
     const phaseProgress = calculatePhaseProgress(data.modules, totalEntries);
-    
+
     return {
       ...data,
       evidenceCompilation: evidenceByType,
@@ -193,7 +202,7 @@ async function generatePortfolioDocument(data, config = {}) {
       }
     ]
   };
-  
+
   return portfolioStructure;
 }
 
@@ -201,7 +210,7 @@ async function generatePortfolioDocument(data, config = {}) {
 async function generatePDFExport(document) {
   try {
     const pdf = new jsPDF();
-    
+
     // Add title page
     pdf.setFontSize(20);
     pdf.text(document.metadata.title, 20, 30);
@@ -209,7 +218,7 @@ async function generatePDFExport(document) {
     pdf.text(document.metadata.subtitle, 20, 45);
     pdf.setFontSize(12);
     pdf.text(`Generado: ${document.metadata.generatedAt}`, 20, 60);
-    
+
     // Add summary
     pdf.addPage();
     pdf.setFontSize(16);
@@ -218,22 +227,22 @@ async function generatePDFExport(document) {
     pdf.text(`Total de Evidencias: ${document.summary.totalEvidences}`, 20, 50);
     pdf.text(`Nivel de Competencia: ${document.summary.competencyLevel.name}`, 20, 65);
     pdf.text(`Progreso de Fase: Fase ${document.summary.phaseProgress.currentPhase}`, 20, 80);
-    
+
     // Add sections
     document.sections.forEach((section, index) => {
       pdf.addPage();
       pdf.setFontSize(16);
       pdf.text(section.title, 20, 30);
-      
+
       pdf.setFontSize(10);
       const splitText = pdf.splitTextToSize(section.content, 170);
       pdf.text(splitText, 20, 50);
     });
-    
+
     // Generate blob URL for download
     const pdfBlob = pdf.output('blob');
     const downloadUrl = URL.createObjectURL(pdfBlob);
-    
+
     return {
       downloadUrl,
       metadata: {
@@ -304,7 +313,7 @@ async function generateHTMLExport(document) {
     // Create blob for download
     const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
     const downloadUrl = URL.createObjectURL(htmlBlob);
-    
+
     return {
       downloadUrl,
       metadata: {
@@ -323,19 +332,19 @@ async function generateHTMLExport(document) {
 async function generateGitHubPagesExport(document) {
   try {
     const zip = new JSZip();
-    
+
     // Create index.html
     const htmlContent = await generateHTMLExport(document);
-    
+
     // Add files to ZIP
     zip.file("index.html", htmlContent);
     zip.file("README.md", generateReadmeContent(document));
     zip.file("_config.yml", `title: ${document.metadata.title}\ndescription: ${document.metadata.subtitle}`);
-    
+
     // Generate ZIP blob
     const zipBlob = await zip.generateAsync({ type: "blob" });
     const downloadUrl = URL.createObjectURL(zipBlob);
-    
+
     return {
       downloadUrl,
       metadata: {

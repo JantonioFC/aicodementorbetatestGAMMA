@@ -1,6 +1,51 @@
 {
-  "lastUpdated": "2025-12-11T03:33:26.902Z",
+  "lastUpdated": "2025-12-12T05:30:41.595Z",
   "models": [
+    {
+      "name": "gemini-2.5-flash",
+      "displayName": "Gemini 2.5 Flash",
+      "description": "Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "priority": 1,
+      "discoveredAt": "2025-12-12T05:30:41.594Z"
+    },
+    {
+      "name": "gemini-2.5-flash-preview-09-2025",
+      "displayName": "Gemini 2.5 Flash Preview Sep 2025",
+      "description": "Gemini 2.5 Flash Preview Sep 2025",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "priority": 1,
+      "discoveredAt": "2025-12-12T05:30:41.594Z"
+    },
+    {
+      "name": "gemini-2.5-pro",
+      "displayName": "Gemini 2.5 Pro",
+      "description": "Stable release (June 17th, 2025) of Gemini 2.5 Pro",
+      "inputTokenLimit": 1048576,
+      "outputTokenLimit": 65536,
+      "supportedGenerationMethods": [
+        "generateContent",
+        "countTokens",
+        "createCachedContent",
+        "batchGenerateContent"
+      ],
+      "priority": 2,
+      "discoveredAt": "2025-12-12T05:30:41.594Z"
+    },
     {
       "name": "gemini-2.0-flash-exp",
       "displayName": "Gemini 2.0 Flash Experimental",
@@ -13,7 +58,7 @@
         "bidiGenerateContent"
       ],
       "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.900Z"
+      "discoveredAt": "2025-12-12T05:30:41.594Z"
     },
     {
       "name": "gemini-2.0-flash",
@@ -28,341 +73,8 @@
         "batchGenerateContent"
       ],
       "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.900Z"
-    },
-    {
-      "name": "gemini-2.0-flash-001",
-      "displayName": "Gemini 2.0 Flash 001",
-      "description": "Stable version of Gemini 2.0 Flash, our fast and versatile multimodal model for scaling across diverse tasks, released in January of 2025.",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 8192,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.900Z"
-    },
-    {
-      "name": "gemini-2.0-flash-exp-image-generation",
-      "displayName": "Gemini 2.0 Flash (Image Generation) Experimental",
-      "description": "Gemini 2.0 Flash (Image Generation) Experimental",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 8192,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "bidiGenerateContent"
-      ],
-      "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.900Z"
-    },
-    {
-      "name": "gemini-2.0-flash-lite-001",
-      "displayName": "Gemini 2.0 Flash-Lite 001",
-      "description": "Stable version of Gemini 2.0 Flash-Lite",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 8192,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.900Z"
-    },
-    {
-      "name": "gemini-2.0-flash-lite",
-      "displayName": "Gemini 2.0 Flash-Lite",
-      "description": "Gemini 2.0 Flash-Lite",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 8192,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.0-flash-lite-preview-02-05",
-      "displayName": "Gemini 2.0 Flash-Lite Preview 02-05",
-      "description": "Preview release (February 5th, 2025) of Gemini 2.0 Flash-Lite",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 8192,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.0-flash-lite-preview",
-      "displayName": "Gemini 2.0 Flash-Lite Preview",
-      "description": "Preview release (February 5th, 2025) of Gemini 2.0 Flash-Lite",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 8192,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 3,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-pro",
-      "displayName": "Gemini 2.5 Pro",
-      "description": "Stable release (June 17th, 2025) of Gemini 2.5 Pro",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 4,
-      "discoveredAt": "2025-12-11T03:33:26.900Z"
-    },
-    {
-      "name": "gemini-2.5-pro-preview-tts",
-      "displayName": "Gemini 2.5 Pro Preview TTS",
-      "description": "Gemini 2.5 Pro Preview TTS",
-      "inputTokenLimit": 8192,
-      "outputTokenLimit": 16384,
-      "supportedGenerationMethods": [
-        "countTokens",
-        "generateContent"
-      ],
-      "priority": 4,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-pro-latest",
-      "displayName": "Gemini Pro Latest",
-      "description": "Latest release of Gemini Pro",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 4,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-3-pro-preview",
-      "displayName": "Gemini 3 Pro Preview",
-      "description": "Gemini 3 Pro Preview",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 4,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-3-pro-image-preview",
-      "displayName": "Nano Banana Pro",
-      "description": "Gemini 3 Pro Image Preview",
-      "inputTokenLimit": 131072,
-      "outputTokenLimit": 32768,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "batchGenerateContent"
-      ],
-      "priority": 4,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-flash",
-      "displayName": "Gemini 2.5 Flash",
-      "description": "Stable version of Gemini 2.5 Flash, our mid-size multimodal model that supports up to 1 million tokens, released in June of 2025.",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.900Z"
-    },
-    {
-      "name": "gemini-2.5-flash-preview-tts",
-      "displayName": "Gemini 2.5 Flash Preview TTS",
-      "description": "Gemini 2.5 Flash Preview TTS",
-      "inputTokenLimit": 8192,
-      "outputTokenLimit": 16384,
-      "supportedGenerationMethods": [
-        "countTokens",
-        "generateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-flash-latest",
-      "displayName": "Gemini Flash Latest",
-      "description": "Latest release of Gemini Flash",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-flash-lite-latest",
-      "displayName": "Gemini Flash-Lite Latest",
-      "description": "Latest release of Gemini Flash-Lite",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-flash-lite",
-      "displayName": "Gemini 2.5 Flash-Lite",
-      "description": "Stable version of Gemini 2.5 Flash-Lite, released in July of 2025",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-flash-image-preview",
-      "displayName": "Nano Banana",
-      "description": "Gemini 2.5 Flash Preview Image",
-      "inputTokenLimit": 32768,
-      "outputTokenLimit": 32768,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-flash-image",
-      "displayName": "Nano Banana",
-      "description": "Gemini 2.5 Flash Preview Image",
-      "inputTokenLimit": 32768,
-      "outputTokenLimit": 32768,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-flash-preview-09-2025",
-      "displayName": "Gemini 2.5 Flash Preview Sep 2025",
-      "description": "Gemini 2.5 Flash Preview Sep 2025",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-flash-lite-preview-09-2025",
-      "displayName": "Gemini 2.5 Flash-Lite Preview Sep 2025",
-      "description": "Preview release (Septempber 25th, 2025) of Gemini 2.5 Flash-Lite",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 5,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-exp-1206",
-      "displayName": "Gemini Experimental 1206",
-      "description": "Experimental release (March 25th, 2025) of Gemini 2.5 Pro",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens",
-        "createCachedContent",
-        "batchGenerateContent"
-      ],
-      "priority": 10,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-robotics-er-1.5-preview",
-      "displayName": "Gemini Robotics-ER 1.5 Preview",
-      "description": "Gemini Robotics-ER 1.5 Preview",
-      "inputTokenLimit": 1048576,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens"
-      ],
-      "priority": 10,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
-    },
-    {
-      "name": "gemini-2.5-computer-use-preview-10-2025",
-      "displayName": "Gemini 2.5 Computer Use Preview 10-2025",
-      "description": "Gemini 2.5 Computer Use Preview 10-2025",
-      "inputTokenLimit": 131072,
-      "outputTokenLimit": 65536,
-      "supportedGenerationMethods": [
-        "generateContent",
-        "countTokens"
-      ],
-      "priority": 10,
-      "discoveredAt": "2025-12-11T03:33:26.901Z"
+      "discoveredAt": "2025-12-12T05:30:41.594Z"
     }
   ],
-  "cacheValidUntil": "2025-12-12T03:33:26.902Z"
+  "cacheValidUntil": "2025-12-13T05:30:41.595Z"
 }

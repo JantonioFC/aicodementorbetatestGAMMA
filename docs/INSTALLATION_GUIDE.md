@@ -1,7 +1,7 @@
 # ⚙️ GUÍA DE INSTALACIÓN TÉCNICA - AI CODE MENTOR
 
-**Versión:** 1.0 (Arquitectura v19.3)  
-**Stack:** Next.js Monolith + Supabase + Google Gemini AI  
+**Versión:** 20.0 (Local First / SQLite Edition)
+**Stack:** Next.js Monolith + SQLite + Google Gemini AI
 **Entorno:** Local Development (Windows/Linux/Mac)
 
 ---
@@ -16,8 +16,6 @@
 ### **Servicios Externos (Gratuitos):**
 1. **Google AI Studio:** Para obtener la `GEMINI_API_KEY`.
    - [Conseguir API Key](https://aistudio.google.com/)
-2. **Supabase:** Para Base de Datos y Autenticación.
-   - [Crear Proyecto Supabase](https://supabase.com/)
 
 ---
 
@@ -37,7 +35,6 @@ Utilizamos `npm` para gestionar las dependencias del monorepo unificado.
 ```bash
 npm install
 ```
-> **Nota:** Si encuentras errores de dependencias peer, usa `npm install --legacy-peer-deps`.
 
 ### 3. Configuración de Variables de Entorno
 
@@ -51,37 +48,23 @@ cp .env.example .env.local
 **Edita `.env.local` con tus credenciales reales:**
 
 ```env
-# --- SUPABASE (Base de Datos & Auth) ---
-NEXT_PUBLIC_SUPABASE_URL="https://tu-proyecto.supabase.co"
-NEXT_PUBLIC_SUPABASE_ANON_KEY="tu-clave-anonima-publica"
-SUPABASE_SERVICE_ROLE_KEY="tu-clave-servicio-secreta" (Solo necesaria para scripts admin)
-
 # --- GOOGLE AI (Inteligencia Artificial) ---
 GEMINI_API_KEY="AIzaSy..."
 GEMINI_MODEL_NAME="gemini-2.5-flash" (Opcional, default: gemini-2.5-flash)
 
 # --- SEGURIDAD ---
-JWT_SECRET="tu-secreto-super-seguro-para-tokens"
+JWT_SECRET="tu-secreto-local-aleatorio-para-tokens"
 ```
 
 ### 4. Inicialización de Base de Datos
 
-Debes crear las tablas necesarias en tu proyecto de Supabase.
+**¡Automático!** 
+No necesitas ejecutar scripts SQL manualmente ni configurar bases de datos externas.
+Al arrancar el servidor en modo desarrollo (`npm run dev`), el sistema:
 
-1. Ve al **SQL Editor** en tu dashboard de Supabase.
-2. Abre el archivo local: `supabase/migrations/irp_migration.sql`.
-3. Copia el contenido del SQL y ejecútalo en Supabase.
-4. **Verifica:** Deberías ver tablas como `users`, `irp_reviews`, `sandbox_history`.
-
-### 4.1 Crear Usuario Demo (Obligatorio para Testing)
-
-1. Abre el archivo local: `supabase/seed.sql`.
-2. Copia el SQL y ejecútalo en el **SQL Editor** de Supabase.
-3. **Credenciales del usuario demo:**
-   - **Email:** `demo@aicodementor.com`
-   - **Password:** `demo123`
-
-> **Nota:** Este usuario es necesario para los tests E2E y para probar la aplicación.
+1. Verifica la existencia de `lib/db/curriculum.db` (SQLite).
+2. Si no existe, la crea e inicializa con el esquema y datos semilla.
+3. Asegura que el usuario demo exista.
 
 ### 5. Iniciar Servidor de Desarrollo
 
@@ -114,9 +97,8 @@ Una vez corriendo, realiza estas pruebas para confirmar que todo funciona:
 - Asegúrate de haber reiniciado el servidor (`Ctrl+C` -> `npm run dev`) tras cambiar el .env.
 
 ### **Error: "Auth session missing" (401)**
-- Revisa `NEXT_PUBLIC_SUPABASE_URL` y `ANON_KEY`.
-- Asegúrate de que las cookies del navegador no estén bloqueadas.
-- Limpia LocalStorage y Cookies e intenta loguearte de nuevo.
+- Limpia las cookies del navegador (especialmente `token`).
+- Intenta hacer login nuevamente.
 
 ### **Error: Dependencias de "microservicio-irp"**
 - **Solución:** La arquitectura actual es monolítica. Si ves referencias a carpetas antiguas, ignóralas. Todo corre desde la raíz.
@@ -125,5 +107,6 @@ Una vez corriendo, realiza estas pruebas para confirmar que todo funciona:
 
 ## 📚 RECURSOS ADICIONALES
 
-- [Arquitectura Viva (Técnica)](../ARQUITECTURA_VIVA/ARQUITECTURA_VIVA_v19.3.md)
+- [Arquitectura Viva (Técnica)](../docs/architecture/ARQUITECTURA_VIVA_v20.0.md)
 - [Guía de Sandbox](../docs/USER_GUIDE_SANDBOX.md)
+

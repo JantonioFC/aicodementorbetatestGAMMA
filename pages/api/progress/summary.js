@@ -3,7 +3,8 @@
 // Objetivo: Endpoint de progreso usando SQLite + Supabase (eliminando dependencia de archivos JSON)
 
 import { withRequiredAuth } from '../../../utils/authMiddleware';
-import { getAuthenticatedSupabaseFromRequest } from '../../../lib/supabaseServerAuth.js';
+// import { getAuthenticatedSupabaseFromRequest } from '../../../lib/supabaseServerAuth.js'; // REMOVED
+import db from '../../../lib/db';
 import { getCurriculumSummary } from '../../../lib/curriculum-sqlite.js';
 
 /**
@@ -45,36 +46,42 @@ async function progressSummaryHandler(req, res) {
 
     console.log(`[PROGRESS-ANALYTICS] Currículo cargado desde SQLite: ${curriculumData.totalPhases} fases, ${curriculumData.totalWeeks} semanas`);
 
-    // PASO 2: Consultar progreso del usuario desde Supabase
-    console.log(`[PROGRESS-ANALYTICS] Consultando progreso del usuario desde Supabase...`);
-    const authenticatedSupabase = getAuthenticatedSupabaseFromRequest(req);
+    // PASO 2: Consultar progreso del usuario desde SQLite
+    console.log(`[PROGRESS-ANALYTICS] Consultando progreso del usuario desde SQLite...`);
 
-    const { data: estProgressData, error: estError } = await authenticatedSupabase
-      .from('est_progress')
-      .select('semana_id, checked_state, updated_at')
-      .eq('user_id', userId)
-      .order('semana_id', { ascending: true });
+    // Obtener registros ordenados por semana_id
+    // Nota: db.query devuelve un array directamente
+    const estProgressData = db.query(
+      `SELECT semana_id, checked_state, updated_at 
+       FROM est_progress 
+       WHERE user_id = ? 
+       ORDER BY semana_id ASC`,
+      [userId]
+    );
 
-    if (estError) {
-      console.error('[PROGRESS-ANALYTICS] Error obteniendo est_progress:', estError);
-      throw estError;
-    }
+    // Parsear checked_state de JSON string a objeto (SQLite guarda como texto)
+    const parsedProgressData = estProgressData.map(record => ({
+      ...record,
+      checked_state: typeof record.checked_state === 'string'
+        ? JSON.parse(record.checked_state)
+        : record.checked_state
+    }));
 
-    console.log(`[PROGRESS-ANALYTICS] Registros EST encontrados: ${estProgressData?.length || 0}`);
+    console.log(`[PROGRESS-ANALYTICS] Registros EST encontrados: ${parsedProgressData.length}`);
 
-    // PASO 3: Calcular métricas cruzando datos SQLite + Supabase
-    console.log(`[PROGRESS-ANALYTICS] Calculando métricas con arquitectura híbrida...`);
-    const metrics = calculateProgressMetrics(estProgressData || [], curriculumData);
+    // PASO 3: Calcular métricas cruzando datos
+    console.log(`[PROGRESS-ANALYTICS] Calculando métricas con arquitectura local...`);
+    const metrics = calculateProgressMetrics(parsedProgressData || [], curriculumData);
 
-    // PASO 4: Estructurar respuesta según contrato de datos exacto
+    // PASO 4: Estructurar respuesta
     const analyticsResponse = {
       metadata: {
         userId: userId,
         generatedAt: new Date().toISOString(),
-        architecture: 'hybrid-v10.0',
+        architecture: 'local-sqlite-v1',
         dataSources: {
           curriculum: 'sqlite',
-          progress: 'supabase'
+          progress: 'sqlite'
         }
       },
       summary: {
@@ -91,21 +98,20 @@ async function progressSummaryHandler(req, res) {
       iniciadas: metrics.totalSemanasIniciadas,
       completadas: metrics.totalSemanasCompletadas,
       fases: metrics.progresoPorFase.length,
-      dataSource: 'SQLite + Supabase'
+      dataSource: 'Pure SQLite'
     });
 
     return res.status(200).json(analyticsResponse);
 
   } catch (error) {
-    console.error('[PROGRESS-ANALYTICS] Error en endpoint (arquitectura híbrida):', error);
+    console.error('[PROGRESS-ANALYTICS] Error en endpoint (local):', error);
     return res.status(500).json({
       success: false,
       error: 'Error interno del servidor al calcular analíticas de progreso',
-      architecture: 'hybrid-v10.0',
+      architecture: 'local-sqlite-v1',
       details: process.env.NODE_ENV === 'development' ? {
         message: error.message,
-        endpoint: 'progress/summary',
-        mission: '182.2'
+        endpoint: 'progress/summary'
       } : undefined
     });
   }

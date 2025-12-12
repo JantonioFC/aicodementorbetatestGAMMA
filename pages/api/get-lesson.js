@@ -3,21 +3,21 @@
 // Endpoint para obtener contenido educativo previamente generado por IA
 
 import { withOptionalAuth } from '../../utils/authMiddleware';
-import { getAuthenticatedSupabaseFromRequest } from '../../lib/supabaseServerAuth.js';
+import db from '../../lib/db';
 
 // Handler principal para recuperar lecciones
 async function handler(req, res) {
   // Verificar método HTTP
   if (req.method !== 'GET') {
-    return res.status(405).json({ 
+    return res.status(405).json({
       error: 'Método no permitido',
-      message: 'Este endpoint solo acepta solicitudes GET' 
+      message: 'Este endpoint solo acepta solicitudes GET'
     });
   }
 
   try {
     const { semanaId, dia, diaIndex, pomodoroIndex } = req.query;
-    
+
     // Compatibilidad: Aceptar tanto 'dia' como 'diaIndex'
     const diaFinal = dia || (diaIndex !== undefined ? parseInt(diaIndex) + 1 : null);
     const { isAuthenticated, userId } = req.authContext;
@@ -68,35 +68,20 @@ async function handler(req, res) {
 
     // Convertir dia (1-based) a diaIndex (0-based) para la base de datos
     const diaIndexForDB = diaNum - 1;
-    
+
     console.log(`🔍 Buscando lección guardada para usuario ${userId}: semana ${semanaNum}, día ${diaNum} (índice ${diaIndexForDB}), pomodoro ${pomodoroNum}`);
 
-    // Obtener cliente autenticado para consultar BD con RLS
-    const authenticatedSupabase = getAuthenticatedSupabaseFromRequest(req);
-
     // Buscar contenido en la base de datos (usando diaIndex 0-based)
-    const { data: savedContent, error: fetchError } = await authenticatedSupabase
-      .from('generated_content')
-      .select('*')
-      .eq('user_id', userId)
-      .eq('semana_id', semanaNum)
-      .eq('dia_index', diaIndexForDB) // BD usa índices 0-based
-      .eq('pomodoro_index', pomodoroNum)
-      .order('created_at', { ascending: false })
-      .limit(1);
-
-    if (fetchError) {
-      console.error('❌ Error consultando BD:', fetchError);
-      return res.status(500).json({
-        error: 'Error de base de datos',
-        message: 'No se pudo consultar el contenido guardado'
-      });
-    }
+    // Using simple query via db.query or db.get (not db.select as it doesn't exist)
+    const savedContent = db.query(
+      'SELECT * FROM generated_content WHERE user_id = ? AND semana_id = ? AND dia_index = ? AND pomodoro_index = ? ORDER BY created_at DESC LIMIT 1',
+      [userId, semanaNum, diaIndexForDB, pomodoroNum]
+    );
 
     // Verificar si se encontró contenido
     if (!savedContent || savedContent.length === 0) {
       console.log(`📭 No se encontró lección para semana ${semanaNum}, día ${diaNum} (índice ${diaIndexForDB}), pomodoro ${pomodoroNum}`);
-      
+
       return res.status(404).json({
         error: 'Contenido no encontrado',
         message: 'No existe lección generada para esta ubicación',
@@ -111,7 +96,12 @@ async function handler(req, res) {
     }
 
     const contentRecord = savedContent[0];
-    const lessonContent = contentRecord.content;
+    let lessonContent = contentRecord.content;
+
+    // Parse content if it's a string (likely in SQLite)
+    if (typeof lessonContent === 'string') {
+      try { lessonContent = JSON.parse(lessonContent); } catch (e) { }
+    }
 
     // Enriquecer respuesta con metadatos
     const enrichedResponse = {
@@ -135,7 +125,7 @@ async function handler(req, res) {
 
   } catch (error) {
     console.error('❌ Error interno en get-lesson:', error);
-    
+
     return res.status(500).json({
       error: 'Error interno del servidor',
       message: 'Ocurrió un error inesperado al recuperar la lección'

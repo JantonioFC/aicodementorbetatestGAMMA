@@ -1,7 +1,8 @@
 // AI CODE MENTOR - Get Module Details Endpoint
 // FASE 2: Recupera un módulo específico con sus lecciones y ejercicios
+// MIGRATED TO SQLITE
 
-const db = require('../../lib/database');
+const db = require('../../lib/db');
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -10,27 +11,27 @@ export default async function handler(req, res) {
 
   try {
     const { moduleId } = req.query;
-    
+
     if (!moduleId) {
       return res.status(400).json({ error: 'moduleId es requerido' });
     }
-    
+
     console.log(`📖 Recuperando módulo ${moduleId}...`);
-    
+
     // Obtener módulo
-    const module = db.getModule(moduleId);
-    
+    const module = db.findOne('modules', { id: moduleId });
+
     if (!module) {
       return res.status(404).json({ error: 'Módulo no encontrado' });
     }
-    
+
     // Obtener lecciones del módulo
-    const lessons = db.getModuleLessons(moduleId);
-    
+    const lessons = db.find('lessons', { module_id: moduleId });
+
     // Obtener ejercicios para cada lección
     const lessonsWithExercises = lessons.map(lesson => {
-      const exercises = db.getLessonExercises(lesson.id);
-      
+      const exercises = db.find('exercises', { lesson_id: lesson.id });
+
       return {
         id: lesson.id,
         lessonNumber: lesson.lesson_number,
@@ -50,12 +51,17 @@ export default async function handler(req, res) {
         }))
       };
     });
-    
-    // Obtener progreso
-    const progress = db.getProgress(moduleId);
-    
+
+    // Calcular progreso
+    const totalLessons = lessons.length;
+    const completedLessons = lessons.filter(l => l.completed === 1).length;
+
+    const allExercises = lessonsWithExercises.flatMap(l => l.exercises);
+    const totalExercises = allExercises.length;
+    const completedExercises = allExercises.filter(e => e.completed === true).length;
+
     console.log(`✅ Módulo encontrado con ${lessons.length} lecciones`);
-    
+
     res.json({
       success: true,
       module: {
@@ -70,23 +76,19 @@ export default async function handler(req, res) {
       },
       lessons: lessonsWithExercises,
       progress: {
-        totalLessons: progress?.total_lessons || 0,
-        completedLessons: progress?.completed_lessons || 0,
-        totalExercises: progress?.total_exercises || 0,
-        completedExercises: progress?.completed_exercises || 0,
-        lastActivity: progress?.last_activity,
-        lessonProgress: progress?.total_lessons > 0 
-          ? Math.round((progress.completed_lessons / progress.total_lessons) * 100) 
-          : 0,
-        exerciseProgress: progress?.total_exercises > 0
-          ? Math.round((progress.completed_exercises / progress.total_exercises) * 100)
-          : 0
+        totalLessons: totalLessons,
+        completedLessons: completedLessons,
+        totalExercises: totalExercises,
+        completedExercises: completedExercises,
+        lastActivity: null, // Not tracked trivially
+        lessonProgress: totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0,
+        exerciseProgress: totalExercises > 0 ? Math.round((completedExercises / totalExercises) * 100) : 0
       }
     });
 
   } catch (error) {
     console.error('❌ Error recuperando módulo:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Error interno recuperando módulo',
       details: error.message
     });

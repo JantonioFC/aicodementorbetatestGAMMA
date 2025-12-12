@@ -6,42 +6,40 @@
 
 Combina un currículo estructurado de 24 meses (8 fases: F0-F7) con herramientas profesionales de gestión de portfolio, plantillas educativas y analíticas de progreso avanzadas.
 
-## 🏗️ Arquitectura Actual: v19.3 - Sandbox Improvements
+## 🏗️ Arquitectura Actual: v20.0 - Local First / SQLite Edition
 
-**Sistema Operacional:** Plataforma educativa completa basada en **Next.js Monolith** con **Supabase** integrado, **Router IA Resiliente**, **Soporte Multi-Dominio** y **Sistema de Plugins**.
+**Sistema Operacional:** Plataforma educativa completa basada en **Next.js Monolith** con **SQLite Local**, **Autenticación Nativa (JWT)**, **Router IA Resiliente**, **Soporte Multi-Dominio** y **Sistema de Plugins**.
 
 ### Características Principales:
+- ✅ **Local-First Architecture:** Eliminación total de dependencias externas críticas (Supabase). 🆕
+- ✅ **SQLite Backend:** Base de datos relacional local de alto rendimiento (`lib/db.js`). 🆕
+- ✅ **Autenticación Nativa:** Sistema de JWT seguro sin proveedores externos. 🆕
 - ✅ **Currículo Completo:** 100 semanas, 8 fases, múltiples módulos estructurados
 - ✅ **Soporte Multi-Dominio:** Programación, Lógica, Bases de Datos, Matemáticas
-- ✅ **Sandbox Mejorado:** Selector de dominio contextual, historial persistente 🆕
-- ✅ **API Counter Local:** Reset a medianoche hora local del usuario 🆕
+- ✅ **Sandbox Contextual:** Historial y preferencias persistentes en BD local
+- ✅ **API Counter Local:** Tracking preciso de uso de IA
 - ✅ **Sistema de Plugins:** Arquitectura extensible con PluginManager
-- ✅ **Base de Datos Unificada:** Supabase (Auth + IRP) + SQLite (Curriculum)
 - ✅ **API Estable v2.1:** API Routes Integradas (v1 legacy + v2 resiliente)
-- ✅ **Serverless Ready:** Arquitectura de puerto único (3000), lista para Vercel
+- ✅ **Serverless Ready:** Arquitectura de puerto único (3000)
 - ✅ **Router IA Resiliente v19.1:** Fallback automático Gemini Pro → Flash
 - ✅ **Auto-Discovery de Modelos:** Detección automática de modelos Google AI
-- ✅ **Sistema IRP Integrado v19.0:** Revisión por Pares (IA) sin microservicios externos
-- ✅ **Analíticas Dedicadas:** Ruta `/analiticas` con Dashboard de Progreso y Logros
-- ✅ **Persistencia Local:** IndexedDB para historial y borradores
+- ✅ **Sistema IRP Integrado v20.0:** Revisión por Pares (IA) local
 
-### Stack Tecnológico (v19.2):
+### Stack Tecnológico (v20.0):
 - **Frontend:** Next.js 15+ + React 18 + TailwindCSS
 - **Backend:** Next.js API Routes (Serverless Functions)
-- **Base de Datos:** 
-  - **Supabase (PostgreSQL):** Usuarios, Perfiles, IRP, Métricas
-  - **SQLite:** Contenido estático del currículo (Performance optimizada)
+- **Base de Datos:**
+  - **SQLite (better-sqlite3):** Base de datos unificada (Usuarios, Progreso, IRP, Currículo)
   - **IndexedDB (Cliente):** Historial de análisis, borradores
-- **Autenticación:** Supabase Auth (@supabase/ssr) + JWT Bearer Tokens
-- **Testing:** Jest + Playwright E2E Integration Suite 🆕
+- **Autenticación:** JWT (Local Implementation)
+- **Testing:** Jest + Playwright E2E Integration Suite
 - **IA Integration:** Gemini 1.5 Pro/Flash (via Router Resiliente)
-- **Extensibilidad:** Sistema de Plugins (IPlugin + PluginManager) 🆕
+- **Extensibilidad:** Sistema de Plugins (IPlugin + PluginManager)
 
 ## 🚀 Instalación y Configuración
 
 ### Prerrequisitos:
 - Node.js 18+ instalado
-- Cuenta de Supabase (URL y Anon Key)
 - API key de Gemini (Google AI Studio)
 
 ### Pasos de Instalación:
@@ -54,7 +52,6 @@ cd ai-code-mentor-v5
 
 2. **Instalar dependencias:**
 ```bash
-# Solo se requiere una instalación en la raíz (Arquitectura Unificada)
 npm install
 ```
 
@@ -65,20 +62,16 @@ cp .env.example .env.local
 
 Configura las variables esenciales:
 ```bash
-# Supabase
-NEXT_PUBLIC_SUPABASE_URL=tu-supabase-url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-supabase-anon-key
-
 # AI Services
 GEMINI_API_KEY=tu-gemini-api-key
 
 # Auth & Security
-JWT_SECRET=tu-secreto-compartido
+JWT_SECRET=tu-secreto-local-aleatorio
 ```
 
-4. **Inicializar Base de Datos (una sola vez):**
-   - Ve al **SQL Editor** de tu proyecto Supabase
-   - Ejecuta el contenido de: `supabase/migrations/irp_migration.sql`
+4. **Inicialización Automática:**
+   - La base de datos SQLite se inicializa automáticamente al arrancar el servidor.
+   - Se crea/restaura el esquema y los datos iniciales.
 
 5. **Iniciar el ecosistema:**
 ```bash
@@ -86,7 +79,8 @@ npm run dev
 ```
 
 > **🔧 Auto-Setup:** Al ejecutar `npm run dev`, el sistema automáticamente:
-> - ✅ Verifica que las tablas existen
+> - ✅ Inicializa `curriculum.db` (SQLite)
+> - ✅ Aplica migraciones necesarias
 > - ✅ Crea el usuario demo (`demo@aicodementor.com` / `demo123`)
 
 6. **Verificar instalación:**
@@ -94,15 +88,12 @@ npm run dev
    - Login: `demo@aicodementor.com` / `demo123`
    - Health Check IA: `http://localhost:3000/api/v2/health`
 
-## 🧪 Testing y Validación (Actualizado v19.0)
+## 🧪 Testing y Validación (Actualizado v20.0)
 
 ### Testing E2E:
-Validación completa de integración UI + API + Auth.
+Validación completa de integración UI + API + Auth Local.
 
 ```bash
-# Ejecutar suite de integración IRP
-npx playwright test e2e/irp-integration.spec.js
-
 # Ejecutar suite completa
 npx playwright test
 ```
@@ -114,32 +105,37 @@ node e2e/verify-setup.js
 
 ## 🎯 Funcionalidades Implementadas
 
-### ✅ **Router IA Resiliente (v19.1)** 🆕
+### ✅ **Local-First Core (v20.0)** 🆕
+- **Eliminación de Supabase:** Migración completa a SQLite (`better-sqlite3`).
+- **Autenticación Local:** Control total de sesiones y usuarios sin terceros.
+- **Rendimiento Mejorado:** Latencia cero en consultas a base de datos.
+- **Privacidad:** Datos sensibles almacenados localmente.
+
+### ✅ **Router IA Resiliente (v19.1)**
 - **Fallback Automático:** Gemini Pro → Flash → Error con reintentos
 - **Auto-Discovery:** Detecta modelos disponibles via Google AI API
 - **Cache Inteligente:** Respuestas cacheadas 1 hora
 - **Prompts Dinámicos:** Personalizados por fase del estudiante (F0-F7)
 - **API v2:** Nuevos endpoints resilientes (`/api/v2/analyze`, `/api/v2/health`)
 
-### ✅ **Persistencia Local (v19.1)**
+### ✅ **Persistencia Cliente (v19.1)**
 - **IndexedDB:** Almacenamiento de historial de análisis
 - **Borradores Auto-guardados:** Nunca pierdas tu código
 - **Backups:** Sistema de respaldo automático semanal
 
-### ✅ **Soporte Multi-Dominio (v19.2)** 🆕
+### ✅ **Soporte Multi-Dominio (v19.2)**
 - **Dominios:** Programación, Lógica, Bases de Datos, Matemáticas
-- **Selector UI:** Dropdown en header de zona privada
-- **Persistencia:** localStorage para preferencia de dominio
+- **Selector UI:** Dropdown en Sandbox
+- **Persistencia:** BD Local para preferencia de dominio
 - **Constraints Dinámicos:** Restricciones pedagógicas por nivel
 
-### ✅ **Sistema de Plugins (v19.2)** 🆕
+### ✅ **Sistema de Plugins (v19.2)**
 - **Interfaz IPlugin:** Contrato estándar para extensiones
 - **PluginManager:** Registro, ciclo de vida, dependencias
 - **Pipeline:** preProcess → analyze → postProcess
 
-### ✅ **Sistema IRP Integrado (v19.0)**
-- **Arquitectura:** Módulo interno de Next.js (`lib/services/irp`). Elimina microservicios complejos.
-- **Base de Datos:** Tablas nativas en Supabase.
+### ✅ **Sistema IRP Integrado (v20.0)**
+- **Arquitectura:** Módulo interno. Datos en SQLite.
 - **IA Reviewer:** Motor de revisión automática con Gemini 1.5.
 - **API Unificada:** Endpoints estandarizados en `/api/v1/irp/*`.
 
