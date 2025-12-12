@@ -26,14 +26,12 @@ jobs:
           cache: 'npm'
 
       - name: Install Dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Build Application
         run: npm run build
         env:
           # Placeholders para build (no requieren valores reales)
-          NEXT_PUBLIC_SUPABASE_URL: "https://placeholder.supabase.co"
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: "placeholder-anon-key"
           NEXT_PUBLIC_E2E_TEST_MODE: 'false'
           NEXT_PUBLIC_GEMINI_MODEL_NAME: 'gemini-2.5-flash'
           NEXT_PUBLIC_ENABLE_PERF_MONITOR: 'false'
