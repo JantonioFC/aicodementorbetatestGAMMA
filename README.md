@@ -186,6 +186,6 @@ Este proyecto está en **beta pública**. Agradecemos tu ayuda para mejorarlo:
 
 ---
 
-**Última actualización:** Diciembre 10, 2025  
-**Versión:** v1.0-beta  
-**Estado:** ✅ **BETA PÚBLICA** - Listo para testers
+**Última actualización:** Enero 31, 2026  
+**Versión:** v20.0-rc  
+**Estado:** ✅ **RELEASE CANDIDATE** - Migración a SQLite completa

@@ -487,6 +487,10 @@ test.describe('🔬 SANDBOX DE APRENDIZAJE - Generación Libre', () => {
 
     const testInput = 'Explícame los conceptos básicos de JavaScript ES6, incluyendo arrow functions y destructuring.';
 
+    // Verificación preliminar de carga del widget (dynamic import)
+    await expect(page.locator('text=Sandbox de Aprendizaje')).toBeVisible({ timeout: 30000 });
+    console.log('✅ Widget Sandbox cargado');
+
     const inputElement = page.locator('#sandbox-input');
     await expect(inputElement).toBeVisible({ timeout: 10000 });
     console.log('✅ Campo de entrada #sandbox-input encontrado');

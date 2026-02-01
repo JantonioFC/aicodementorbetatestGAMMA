@@ -29,43 +29,44 @@ const TEST_CONFIG = {
 };
 
 /**
- * AUTENTICACIÓN SIMPLIFICADA (AUTO-LOGIN)
+ * AUTENTICACIÓN SIMPLIFICADA (AUTO-LOGIN / UI LOGIN)
  * 
  * @param {Page} page - Instancia de Playwright
  * @param {string} targetPath - Ruta destino (default: /panel-de-control)
  */
 async function authenticateDemo(page, targetPath = '/panel-de-control') {
-  console.log('🔐 [AUTH-LOCAL] Verificando auto-login...');
+  console.log('🔐 [AUTH-LOCAL] Verificando login...');
 
-  // 1. Navegar a la ruta destino directamente
-  // La aplicación redigirá automáticamente o cargará la página si ya está "logueado" (hardcoded)
+  // 1. Navegar a la ruta destino
   await page.goto(targetPath, {
     waitUntil: 'domcontentloaded',
     timeout: TEST_CONFIG.NAVIGATION_TIMEOUT
   });
 
-  // 2. Establecer flag de test por si acaso la app lo usa para algo visual
-  await page.evaluate(() => {
-    window.PLAYWRIGHT_TEST = true;
-  });
+  // 1b. Esperar a que la navegación realmente termine y no estemos en una redirección intermedia
+  await page.waitForLoadState('networkidle', { timeout: 5000 }).catch(() => { });
 
-  // 3. Verificar que NO estamos en login (aunque no debería existir login page accesible fácilmente)
-  const currentUrl = page.url();
-  if (currentUrl.includes('/login')) {
-    console.warn('⚠️ [AUTH-LOCAL] Inesperadamente en /login. Intentando navegar nuevamente...');
-    await page.goto(targetPath);
+  // 2. Verificar si hemos sido redirigidos a /login
+  if (page.url().includes('/login')) {
+    console.log('🔒 [AUTH-LOCAL] Redirigido a Login. Iniciando sesión...');
+
+    // Esperar a que el formulario sea visible
+    await page.waitForSelector('form', { state: 'visible', timeout: 5000 });
+
+    // Llenar formulario
+    await page.fill('input[type="email"]', TEST_CONFIG.DEMO_EMAIL);
+    await page.fill('input[type="password"]', 'demo123'); // Password hardcoded for now, or use config
+
+    // Click en botón de login (buscar por texto o tipo submit)
+    await page.click('button[type="submit"]');
+
+    // Esperar navegación o feedback
+    // La redirección a panel debería ocurrir automáticamente
+    console.log('🔒 [AUTH-LOCAL] Formulario enviado. Esperando redirección...');
+    await page.waitForURL(url => url.includes('panel-de-control'), { timeout: 15000 });
   }
 
-  // 4. Esperar carga de contenido principal
-  try {
-    await page.waitForSelector('h1, main, [data-testid], h2', {
-      state: 'visible',
-      timeout: TEST_CONFIG.LOAD_TIMEOUT
-    });
-  } catch (e) {
-    console.log('⚠️ [AUTH-LOCAL] Timeout esperando selector, pero continuando...');
-  }
-
+  // 3. Verificar que estamos en la página correcta (o panel)
   console.log('✅ [AUTH-LOCAL] Navegación completada. URL:', page.url());
 }
 

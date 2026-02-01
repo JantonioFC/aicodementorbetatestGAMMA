@@ -1,20 +1,14 @@
 // core/services/AnonymousUserMigration.js
 /**
- * 🔄 SERVICIO DE MIGRACIÓN DE USUARIOS ANÓNIMOS
+ * 🔄 SERVICIO DE MIGRACIÓN DE USUARIOS ANÓNIMOS (SQLite Version)
  * 
  * Maneja la conversión de usuarios anónimos a usuarios registrados,
  * preservando todo el progreso y datos de quiz.
  * 
- * Arquitectura: 100% Supabase con funciones PostgreSQL
+ * Arquitectura: SQLite Transactional
  */
 
-import { createClient } from '@supabase/supabase-js';
-
-// Cliente con privilegios de servicio para migraciones
-const supabaseService = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
+import db from '../../lib/db';
 
 export class AnonymousUserMigrationService {
   static ANONYMOUS_USER_ID = '00000000-0000-0000-0000-000000000000';
@@ -27,22 +21,45 @@ export class AnonymousUserMigrationService {
   static async getAnonymousStats() {
     try {
       console.log('📊 Obteniendo estadísticas de usuario anónimo...');
-      
-      const { data, error } = await supabaseService
-        .rpc('get_anonymous_user_stats', {
-          anonymous_user_id: this.ANONYMOUS_USER_ID
-        });
 
-      if (error) {
-        console.error('❌ Error obteniendo estadísticas:', error);
-        throw error;
+      const stats = {
+        lessons_started: 0,
+        lessons_completed: 0,
+        quizzes_attempted: 0,
+        exercises_completed: 0,
+        has_data: false
+      };
+
+      // Consultar progreso de lecciones
+      const lessonStats = db.get(`
+        SELECT COUNT(*) as total, SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed
+        FROM user_lesson_progress
+        WHERE user_id = ?
+      `, [this.ANONYMOUS_USER_ID]);
+
+      if (lessonStats) {
+        stats.lessons_started = lessonStats.total || 0;
+        stats.lessons_completed = lessonStats.completed || 0;
       }
 
-      console.log('✅ Estadísticas obtenidas:', data);
+      // Consultar intentos de quiz
+      const quizStats = db.get(`
+        SELECT COUNT(*) as total
+        FROM quiz_attempts
+        WHERE user_id = ?
+      `, [this.ANONYMOUS_USER_ID]);
+
+      if (quizStats) {
+        stats.quizzes_attempted = quizStats.total || 0;
+      }
+
+      stats.has_data = (stats.lessons_started > 0) || (stats.quizzes_attempted > 0);
+
+      console.log('✅ Estadísticas obtenidas:', stats);
       return {
         success: true,
-        stats: data,
-        hasData: data?.has_data || false
+        stats: stats,
+        hasData: stats.has_data || false
       };
 
     } catch (error) {
@@ -87,28 +104,78 @@ export class AnonymousUserMigrationService {
         };
       }
 
-      // Ejecutar migración usando función PostgreSQL
-      const { data, error } = await supabaseService
-        .rpc('migrate_anonymous_data', {
-          anonymous_user_id: this.ANONYMOUS_USER_ID,
-          real_user_id: realUserId
-        });
+      let migratedLessons = 0;
+      let migratedAttempts = 0;
 
-      if (error) {
-        console.error('❌ Error en migración:', error);
-        throw error;
-      }
+      // PROCESO TRANSACCIONAL
+      db.transaction(() => {
+        // 1. Eliminar datos existentes del usuario real que puedan causar conflicto (Estrategia: El usuario nuevo prevalece o se fusiona?
+        // En este MVP, asumimos que el usuario real es NUEVO, así que no tiene datos, o si tiene, borramos de anónimo los que chocan.
+        // Mejor estrategia: UPDATE OR IGNORE no existe tal cual, así que haremos:
+        // UPDATE tabla SET user_id = real WHERE user_id = anon
+        // Pero si unique constraint falla (el real ya tenia ese lesson), entonces ignoramos el del anonimo (el real prevalece)
 
-      if (data.error) {
-        console.error('❌ Error reportado por función:', data.error);
-        throw new Error(data.error);
-      }
+        // MIGRAR LECCIONES
+        // Para SQLite, manejamos conflictos uno a uno o con INSERT OR IGNORE si fuera insert.
+        // Al ser UPDATE, si hay conflicto de UNIQUE(user_id, lesson_id), fallará.
+        // Así que primero borramos del anónimo lo que el real YA tenga.
 
-      console.log('✅ Migración completada exitosamente:', data);
-      
+        db.run(`
+            DELETE FROM user_lesson_progress 
+            WHERE user_id = ? 
+            AND lesson_id IN (SELECT lesson_id FROM user_lesson_progress WHERE user_id = ?)
+        `, [this.ANONYMOUS_USER_ID, realUserId]);
+
+        const resLessons = db.run(`
+            UPDATE user_lesson_progress 
+            SET user_id = ? 
+            WHERE user_id = ?
+        `, [realUserId, this.ANONYMOUS_USER_ID]);
+        migratedLessons = resLessons.changes;
+
+        // MIGRAR EJERCICIOS
+        db.run(`
+            DELETE FROM user_exercise_progress 
+            WHERE user_id = ? 
+            AND exercise_id IN (SELECT exercise_id FROM user_exercise_progress WHERE user_id = ?)
+        `, [this.ANONYMOUS_USER_ID, realUserId]);
+
+        db.run(`
+            UPDATE user_exercise_progress
+            SET user_id = ?
+            WHERE user_id = ?
+        `, [realUserId, this.ANONYMOUS_USER_ID]);
+
+        // MIGRAR QUIZ ATTEMPTS (No tienen unique constraint problemático usualmente, salvo ID pero son UUIDs nuevos)
+        const resQuiz = db.run(`
+            UPDATE quiz_attempts
+            SET user_id = ?
+            WHERE user_id = ?
+        `, [realUserId, this.ANONYMOUS_USER_ID]);
+        migratedAttempts = resQuiz.changes;
+
+        // MIGRAR ACHIVEMENTS
+        db.run(`
+            UPDATE user_achievements
+            SET user_id = ?
+            WHERE user_id = ?
+            AND achievement_id NOT IN (SELECT achievement_id FROM user_achievements WHERE user_id = ?)
+        `, [realUserId, this.ANONYMOUS_USER_ID, realUserId]);
+
+        // Limpiar remanentes de anónimo si quedaron (por conflictos ignorados)
+        this.clearAnonymousDataSync();
+
+      })();
+
+      console.log('✅ Migración completada exitosamente');
+
       return {
         success: true,
-        migration: data,
+        migration: {
+          migrated_lessons: migratedLessons,
+          migrated_attempts: migratedAttempts,
+          migration_timestamp: new Date().toISOString()
+        },
         stats: statsResult.stats
       };
 
@@ -134,14 +201,14 @@ export class AnonymousUserMigrationService {
 
       // Paso 1: Obtener estadísticas previas
       const preStats = await this.getAnonymousStats();
-      
+
       if (!preStats.success) {
         throw new Error('No se pudieron obtener estadísticas previas');
       }
 
       // Paso 2: Ejecutar migración
       const migrationResult = await this.migrateAnonymousData(realUserId);
-      
+
       if (!migrationResult.success) {
         throw new Error(`Migración falló: ${migrationResult.error}`);
       }
@@ -155,16 +222,16 @@ export class AnonymousUserMigrationService {
         conversion: {
           userId: realUserId,
           anonymousUserId: this.ANONYMOUS_USER_ID,
-          
+
           // Estadísticas antes de la migración
           beforeMigration: preStats.stats,
-          
+
           // Datos migrados
           migration: migrationResult.migration,
-          
+
           // Estadísticas después (debería ser cero)
           afterMigration: postStats.stats,
-          
+
           // Resumen
           summary: {
             lessonsTransferred: migrationResult.migration.migrated_lessons,
@@ -176,7 +243,7 @@ export class AnonymousUserMigrationService {
       };
 
       console.log('🏆 Conversión completada exitosamente:', result.conversion.summary);
-      
+
       return result;
 
     } catch (error) {
@@ -201,63 +268,24 @@ export class AnonymousUserMigrationService {
   }
 
   /**
-   * 🧹 Limpia datos residuales del usuario anónimo (solo para testing)
-   * 
-   * @returns {Promise<Object>} Resultado de la limpieza
+   * 🧹 Limpia datos residuales del usuario anónimo
    */
   static async clearAnonymousData() {
     try {
-      console.log('🧹 Limpiando datos de usuario anónimo (TESTING)...');
-
-      // Eliminar intentos de quiz
-      const { error: quizError } = await supabaseService
-        .from('quiz_attempts')
-        .delete()
-        .eq('user_id', this.ANONYMOUS_USER_ID);
-
-      if (quizError) throw quizError;
-
-      // Eliminar progreso de lecciones
-      const { error: progressError } = await supabaseService
-        .from('lesson_progress')
-        .delete()
-        .eq('user_id', this.ANONYMOUS_USER_ID);
-
-      if (progressError) throw progressError;
-
-      console.log('✅ Datos anónimos limpiados');
-      
+      this.clearAnonymousDataSync();
       return { success: true };
-
-    } catch (error) {
-      console.error('❌ Error limpiando datos:', error);
-      return { success: false, error: error.message };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
+  }
+
+  static clearAnonymousDataSync() {
+    db.run('DELETE FROM quiz_attempts WHERE user_id = ?', [this.ANONYMOUS_USER_ID]);
+    db.run('DELETE FROM user_lesson_progress WHERE user_id = ?', [this.ANONYMOUS_USER_ID]);
+    db.run('DELETE FROM user_exercise_progress WHERE user_id = ?', [this.ANONYMOUS_USER_ID]);
+    db.run('DELETE FROM user_achievements WHERE user_id = ?', [this.ANONYMOUS_USER_ID]);
   }
 }
 
 export default AnonymousUserMigrationService;
 
-/**
- * 📝 EJEMPLO DE USO:
- * 
- * // En el proceso de registro/login:
- * import AnonymousUserMigrationService from '@/core/services/AnonymousUserMigration';
- * 
- * // Verificar si hay datos anónimos
- * const stats = await AnonymousUserMigrationService.getAnonymousStats();
- * 
- * if (stats.hasData) {
- *   // Mostrar mensaje al usuario sobre migración
- *   const confirm = window.confirm('Tienes progreso anónimo. ¿Transferir a tu cuenta?');
- *   
- *   if (confirm) {
- *     const result = await AnonymousUserMigrationService.convertAnonymousUser(userId);
- *     
- *     if (result.success) {
- *       console.log(`Transferidas ${result.conversion.summary.lessonsTransferred} lecciones`);
- *       console.log(`Transferidos ${result.conversion.summary.attemptsTransferred} intentos`);
- *     }
- *   }
- * }
- */

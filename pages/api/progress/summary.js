@@ -49,23 +49,47 @@ async function progressSummaryHandler(req, res) {
     // PASO 2: Consultar progreso del usuario desde SQLite
     console.log(`[PROGRESS-ANALYTICS] Consultando progreso del usuario desde SQLite...`);
 
-    // Obtener registros ordenados por semana_id
-    // Nota: db.query devuelve un array directamente
-    const estProgressData = db.query(
-      `SELECT semana_id, checked_state, updated_at 
-       FROM est_progress 
-       WHERE user_id = ? 
-       ORDER BY semana_id ASC`,
+    // Obtener registros de user_lesson_progress (tabla nativa SQLite)
+    const lessonProgressData = db.query(
+      `SELECT lesson_id, completed, progress_data, updated_at 
+       FROM user_lesson_progress 
+       WHERE user_id = ?`,
       [userId]
     );
 
-    // Parsear checked_state de JSON string a objeto (SQLite guarda como texto)
-    const parsedProgressData = estProgressData.map(record => ({
-      ...record,
-      checked_state: typeof record.checked_state === 'string'
-        ? JSON.parse(record.checked_state)
-        : record.checked_state
-    }));
+    // Mapear a formato esperado por calculateProgressMetrics
+    const parsedProgressData = lessonProgressData.map(record => {
+      let checkedState = {};
+      try {
+        const data = typeof record.progress_data === 'string'
+          ? JSON.parse(record.progress_data)
+          : record.progress_data;
+
+        // Si data tiene check_state, usarlo, si no usar data como checked_state
+        checkedState = data?.checked_state || data || {};
+      } catch (e) {
+        console.error('[PROGRESS-ANALYTICS] Error parsing progress_data:', e);
+      }
+
+      // Intentar extraer número de semana del lesson_id
+      let semanaId = record.lesson_id;
+      if (typeof semanaId === 'string' && semanaId.includes('-')) {
+        // Si es formato "week-1", intentar extraer el 1
+        // O si es "1-5" (modulo-semana)? 
+        // Por seguridad, si es numérico lo dejamos, si no intentamos parsear
+        const match = semanaId.match(/\d+/);
+        if (match) semanaId = parseInt(match[0]);
+      } else if (!isNaN(semanaId)) {
+        semanaId = parseInt(semanaId);
+      }
+
+      return {
+        semana_id: semanaId,
+        checked_state: checkedState,
+        updated_at: record.updated_at,
+        original_lesson_id: record.lesson_id
+      };
+    });
 
     console.log(`[PROGRESS-ANALYTICS] Registros EST encontrados: ${parsedProgressData.length}`);
 
