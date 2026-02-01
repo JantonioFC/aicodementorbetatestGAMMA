@@ -22,6 +22,7 @@ Combina un currículo estructurado de 24 meses (8 fases: F0-F7) con herramientas
 | ⚖️ **LLM Evaluation** | "LLM-as-Judge" + Métricas (ROUGE/BLEU) |
 | 🔄 **Prompt Versioning** | A/B Testing y gestión de versiones de prompts |
 | 💾 **Advanced Memory** | Entity Memory + Memory Consolidation + Decay |
+| 🛡️ **AI Resilience** | Clarity Gate (Anti-Hallucination) + Smart Retry Agent |
 | 📊 **Observability** | Dashboard de métricas y Tracing distribuido |
 | 🎨 **Multimodal** | Imágenes (Fal.ai), Diagramas (Mermaid), TTS |
 
@@ -126,7 +127,7 @@ lib/
 ├── prompts/            # PromptVersionManager, Versions
 ├── rag/                # Reranker, SemanticChunker, Retrievers
 ├── repositories/       # SessionRepository, WeekRepository
-├── services/           # LessonService
+├── services/           # LessonService, SmartLessonGenerator
 └── utils/              # TokenBudgetManager, Logger
 ```
 
