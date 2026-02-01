@@ -82,3 +82,8 @@ DEPENDABOT_INVESTIGATION_README.md
 
 # Application logs
 logs/
+
+# SQLite Cache Database (persistent cache, not versioned)
+data/cache.db
+data/cache.db-shm
+data/cache.db-wal

@@ -1,0 +1,113 @@
+[
+    {
+        "name": "Semana1_Introduccion_PC",
+        "context": {
+            "semanaId": 1,
+            "dia": 1,
+            "pomodoroIndex": 0
+        },
+        "expectedTopics": [
+            "pensamiento computacional",
+            "algoritmo",
+            "secuencia",
+            "pasos"
+        ],
+        "forbiddenTerms": [
+            "printf",
+            "scanf",
+            "gcc",
+            "python",
+            "javascript",
+            "java",
+            "variable int",
+            "function(",
+            "def ",
+            "import "
+        ],
+        "description": "Verifica que lección de introducción al PC no tenga código"
+    },
+    {
+        "name": "Semana2_Scratch_Bloques",
+        "context": {
+            "semanaId": 2,
+            "dia": 2,
+            "pomodoroIndex": 1
+        },
+        "expectedTopics": [
+            "scratch",
+            "bloques",
+            "sprite",
+            "arrastrar"
+        ],
+        "forbiddenTerms": [
+            "printf",
+            "scanf",
+            "terminal",
+            "command line",
+            "python"
+        ],
+        "description": "Verifica contenido Scratch sin conceptos avanzados"
+    },
+    {
+        "name": "Semana3_Condicionales",
+        "context": {
+            "semanaId": 3,
+            "dia": 3,
+            "pomodoroIndex": 0
+        },
+        "expectedTopics": [
+            "condicional",
+            "decisión",
+            "si entonces"
+        ],
+        "forbiddenTerms": [
+            "if (",
+            "else {",
+            "printf",
+            "scanf",
+            "boolean"
+        ],
+        "description": "Condicionales explicados sin sintaxis de código"
+    },
+    {
+        "name": "Semana4_Repeticion",
+        "context": {
+            "semanaId": 4,
+            "dia": 1,
+            "pomodoroIndex": 0
+        },
+        "expectedTopics": [
+            "repetición",
+            "ciclo",
+            "veces",
+            "loop"
+        ],
+        "forbiddenTerms": [
+            "for (",
+            "while (",
+            "do {",
+            "printf",
+            "i++"
+        ],
+        "description": "Loops sin sintaxis de programación"
+    },
+    {
+        "name": "Quiz_Format_Validation",
+        "context": {
+            "semanaId": 1,
+            "dia": 1,
+            "pomodoroIndex": 0
+        },
+        "expectedTopics": [
+            "quiz",
+            "pregunta",
+            "opciones"
+        ],
+        "forbiddenTerms": [],
+        "validationRules": {
+            "quizLength": 5,
+            "optionsPerQuestion": 4
+        },
+        "description": "Verifica formato correcto del quiz"
+    }
+]

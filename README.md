@@ -6,104 +6,138 @@
 
 Combina un currículo estructurado de 24 meses (8 fases: F0-F7) con herramientas profesionales de gestión de portfolio, plantillas educativas y analíticas de progreso avanzadas.
 
-## 🏗️ Arquitectura Actual: v21.0 - Operational Excellence Edition 🚀
+## 🏗️ Arquitectura Actual: v23.0 - AI Best Practices Edition 🚀
 
-**Sistema Operacional:** Plataforma educativa completa basada en **Next.js Modular Monolith** con **SQLite Local**, **Autenticación Nativa**, **Resilient AI Router** y **Standardized API v1**.
+**Sistema Operacional:** Plataforma educativa basada en **Next.js Modular Monolith** con:
+- **SQLite Local** + Migraciones automáticas
+- **Búsqueda Semántica Avanzada** (Embeddings + Reranking + Query Expansion)
+- **Evaluación "LLM-as-Judge"** con métricas formales
+- **Observabilidad Completa** (Tracing + Métricas + Alertas)
 
-### Características Principales:
+### ✨ Nuevas Capacidades (v23.0):
 
-*   ✅ **Local-First Architecture:** Sin dependencias externas críticas. SQLite (`lib/db.js`).
-*   ✅ **Standardized API v1:** Endpoints RESTful versionados (`/api/v1`) con validación centralizada. 🆕
-*   ✅ **AI Reliability:** Circuit Breaker pattern para Google Gemini (Fail Fast & Auto-Recovery). 🆕
-*   ✅ **Enterprise Security:** Backups con encriptación **AES-GCM**. 🆕
-*   ✅ **CI/CD Pipeline:** GitHub Actions para testing automático. 🆕
-*   ✅ **Architecture as Code:** Documentación C4 (Mermaid) y OpenAPI Specs. 🆕
-*   ✅ **Autenticación Nativa:** JWT seguro.
-*   ✅ **Currículo Completo:** 100 semanas, 8 fases.
-*   ✅ **Soporte Multi-Dominio:** Programación, Lógica, Bases de Datos.
+| Característica | Descripción |
+|:---------------|:------------|
+| 🧠 **Advanced RAG** | Semantic Chunking + Reranking + Query Expansion |
+| ⚖️ **LLM Evaluation** | "LLM-as-Judge" + Métricas (ROUGE/BLEU) |
+| 🔄 **Prompt Versioning** | A/B Testing y gestión de versiones de prompts |
+| 💾 **Advanced Memory** | Entity Memory + Memory Consolidation + Decay |
+| 📊 **Observability** | Dashboard de métricas y Tracing distribuido |
+| 🎨 **Multimodal** | Imágenes (Fal.ai), Diagramas (Mermaid), TTS |
 
-### Stack Tecnológico (v21.0):
+### Stack Tecnológico:
 
-*   **Frontend:** Next.js 15+ + React 18 + TailwindCSS
-*   **Backend:** Next.js API Routes (v1 Standardized)
-*   **Base de Datos:**
-    *   **SQLite (better-sqlite3):** Datos relacionales.
-    *   **IndexedDB (Cliente):** Caché y borradores.
-*   **Design Pattern:** Controller-Service-Repository. 🆕
-*   **Testing:** Jest + Playwright + GitHub Actions CI.
-*   **IA Integration:** Gemini 1.5 Pro/Flash (via Resilient Router).
+| Capa | Tecnología |
+|:-----|:-----------|
+| **Frontend** | Next.js 15+ + React 18 + TailwindCSS |
+| **Backend** | Next.js API Routes (v1 RESTful) |
+| **Base de Datos** | SQLite (better-sqlite3) + Embeddings Vectoriales |
+| **IA** | Gemini 1.5 Pro/Flash (Resilient Router) |
+| **Testing** | Jest (125+ tests) + Playwright |
+| **Monitoring** | Custom Metrics Collector (Prometheus compatible) |
 
-## 🚀 Instalación y Configuración
+## 🚀 Instalación
 
 ### Prerrequisitos:
+- Node.js 18+
+- API key de Gemini (Google AI Studio)
 
-*   Node.js 18+ instalado
-*   API key de Gemini (Google AI Studio)
+### Pasos:
 
-### Pasos de Instalación:
-
-1.  **Clonar el repositorio:**
-    ```bash
-    git clone https://github.com/tu-usuario/ai-code-mentor-v5.git
-    cd ai-code-mentor-v5
-    ```
-
-2.  **Instalar dependencias:**
-    ```bash
-    npm install
-    ```
-
-3.  **Configurar variables de entorno (.env.local):**
-    ```bash
-    cp .env.example .env.local
-    ```
-
-    Configura las variables esenciales:
-    ```bash
-    # AI Services
-    GEMINI_API_KEY=tu-gemini-api-key
-
-    # Auth & Security
-    JWT_SECRET=tu-secreto-local-aleatorio
-    ```
-
-4.  **Iniciar el ecosistema:**
-    ```bash
-    npm run dev
-    ```
-    > **Auto-Setup:** La base de datos `curriculum.db` se inicializa automáticamente.
-
-5.  **Verificar instalación:**
-    *   Abre `http://localhost:3000`
-    *   Login: `demo@aicodementor.com` / `demo123`
-
-## 🧪 Testing y Calidad
-
-### Unit & Integration (Jest):
-Tests de backend, servicios y lógica de negocio.
 ```bash
+# 1. Clonar
+git clone https://github.com/tu-usuario/ai-code-mentor.git
+cd ai-code-mentor
+
+# 2. Instalar
+npm install
+
+# 3. Configurar
+cp .env.example .env.local
+# Editar .env.local con tu GEMINI_API_KEY y FAL_API_KEY
+
+# 4. Ejecutar migraciones
+node scripts/migrate.js
+
+# 5. Indexar currículo
+node scripts/index-curriculum.js
+
+# 6. Iniciar
+npm run dev
+```
+
+## 🔧 Variables de Entorno
+
+```bash
+# .env.local
+
+# Requeridas
+GEMINI_API_KEY=tu-gemini-api-key
+JWT_SECRET=tu-secreto-aleatorio
+
+# Opcionales (para features avanzados)
+FAL_API_KEY=xxx              # Generación de imágenes (Flux)
+GOOGLE_TTS_API_KEY=xxx       # Text-to-Speech
+```
+
+## 📡 API Endpoints
+
+### Lecciones
+| Método | Endpoint | Descripción |
+|:-------|:---------|:------------|
+| POST | `/api/v1/lessons/generate` | Genera una lección (soporta parámetros v2) |
+| POST | `/api/v1/lessons/feedback` | Envía feedback |
+
+### Monitoring & Metrics (¡Nuevo!)
+| Método | Endpoint | Descripción |
+|:-------|:---------|:------------|
+| GET | `/api/v1/metrics` | Métricas del sistema (JSON) |
+| GET | `/api/v1/metrics?format=prometheus` | Formato Prometheus |
+
+### Multimodal
+| Método | Endpoint | Descripción |
+|:-------|:---------|:------------|
+| POST | `/api/v1/multimodal/diagram` | Genera diagrama Mermaid |
+| POST | `/api/v1/tts/synthesize` | Text-to-Speech |
+
+## 🧪 Testing
+
+El proyecto cuenta con una suite de **125 tests automatizados** cubriendo lógica de negocio, integración IA y nuevos módulos Data/AI.
+
+```bash
+# Ejecutar todos los tests
 npm test
-```
-*Ahora automatizado via GitHub Actions en cada Push.*
 
-### E2E (Playwright):
-Validación visual y de flujos de usuario.
-```bash
-npx playwright test
+# Ejecutar tests de nuevos módulos (RAG/Prompts)
+npm test __tests__/lib/rag/SemanticChunker.test.js
 ```
 
-## 📚 Documentación Técnica (NUEVO)
+## 📁 Estructura del Proyecto
 
-*   **API Reference:** `docs/openapi.yaml` (Especificación OpenAPI 3.0 para endpoints v1).
-*   **Arquitectura:** `docs/architecture/c4-diagrams.md` (Diagramas Mermaid C4).
-*   **Guía de Cambios:** ver `walkthrough.md`.
+```
+lib/
+├── ai/router/          # GeminiRouter con Circuit Breaker
+├── context/            # Context Window Manager
+├── db/                 # SQLite + Migraciones
+├── evaluation/         # LLMJudgeEvaluator, RegressionTester
+├── memory/             # UserEntityMemory, MemoryConsolidator
+├── multimodal/         # Diagramas, Imágenes, TTS
+├── observability/      # Tracer, Metrics, Alerts
+├── prompts/            # PromptVersionManager, Versions
+├── rag/                # Reranker, SemanticChunker, Retrievers
+├── repositories/       # SessionRepository, WeekRepository
+├── services/           # LessonService
+└── utils/              # TokenBudgetManager, Logger
+```
 
 ## 📝 Licencia
 
-**Licencia:** MIT
+**Copyright © 2026 AI Code Mentor Team. All Rights Reserved.**
+
+El uso no autorizado, duplicación o distribución de este software está estrictamente prohibido.
 
 ---
 
-**Última actualización:** Febrero 01, 2026
-**Versión:** v21.0-stable
-**Estado:** ✅ **PRODUCTION READY** - Standardized API & Operational Excellence
+**Última actualización:** Febrero 01, 2026  
+**Versión:** v23.0-stable  
+**Estado:** ✅ **PRODUCTION READY** - 100% Data/AI Best Practices
