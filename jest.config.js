@@ -21,7 +21,7 @@ module.exports = {
 
     // Transform ESM to CommonJS for Jest
     transform: {
-        '^.+\\.(js|jsx)$': 'babel-jest'
+        '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
     },
 
     // Handle module name mapping for imports
@@ -51,7 +51,7 @@ module.exports = {
                 '/99_Archive_Temp/'
             ],
             transform: {
-                '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './.babelrc.jest.js' }]
+                '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './.babelrc.jest.js' }]
             }
         },
         {
@@ -67,7 +67,7 @@ module.exports = {
                 '/99_Archive_Temp/'
             ],
             transform: {
-                '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './.babelrc.jest.js' }]
+                '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './.babelrc.jest.js' }]
             },
             setupFilesAfterEnv: [
                 '@testing-library/jest-dom'
@@ -83,5 +83,5 @@ module.exports = {
     ],
 
     // Module file extensions
-    moduleFileExtensions: ['js', 'jsx', 'json', 'node']
+    moduleFileExtensions: ['js', 'jsx', 'json', 'node', 'ts', 'tsx']
 };

@@ -1,35 +1,38 @@
-name: CI
+
+name: CI Pipeline
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main ]
   pull_request:
-    branches: [ main, master ]
+    branches: [ main ]
 
 jobs:
   test:
     runs-on: ubuntu-latest
-
+    
     strategy:
       matrix:
         node-version: [18.x, 20.x]
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         
-    - name: Install dependencies
+    - name: Install Dependencies
       run: npm ci
       
-    - name: Run tests
+    # Uncomment when lint script is robust
+    # - name: Lint
+    #   run: npm run lint
+      
+    - name: Run Unit Tests
       run: npm test
-      env:
-        CI: true
-        # Providing dummy vars for sensitive envs in testing if needed, though mocking is preferred
-        GEMINI_API_KEY: "dummy-key-for-ci" 
-        DB_VERBOSE: false
+      
+    - name: Run E2E Tests (Dry Run)
+      run: npx playwright install --with-deps && npx playwright test --dry-run

@@ -1,20 +1,58 @@
-const { clarityGate } = require('../../../lib/ai/ClarityGate');
+const { ClarityGate, LowConfidenceError } = require('../../../lib/ai/ClarityGate'); // Import Class
+const geminiRouter = require('../../../lib/ai/router/GeminiRouter');
+
+// Mock Gemini Router to prevent API calls
+jest.mock('../../../lib/ai/router/GeminiRouter', () => ({
+    analyze: jest.fn()
+}));
+
+const { logger } = require('../../../lib/utils/logger');
+// Mock Logger
+jest.mock('../../../lib/utils/logger', () => ({
+    logger: {
+        info: jest.fn(),
+        warn: jest.fn(),
+        error: jest.fn()
+    }
+}));
+
 
 describe('ClarityGate', () => {
-    test('should fail on empty context', async () => {
-        const result = await clarityGate.evaluate('test query', '');
-        expect(result.passed).toBe(false);
-        expect(result.reasoning).toBeDefined();
+    let gate;
+
+    beforeEach(() => {
+        gate = new ClarityGate(0.7);
+        jest.clearAllMocks();
     });
 
-    // Mockeamos la llamada a Gemini para no gastar quota en tests
-    test('should pass valid context (mocked)', async () => {
-        // En un test real usaríamos jest.spyOn(geminiRouter, 'analyze')
-        // Aquí confiamos en el comportamiento default de "fail open" o mockeamos
-        // Para simplicidad en este entorno, probamos que la estructura retorne lo esperado
+    test('should pass valid context (High Score)', async () => {
+        // Mock LLM Response
+        geminiRouter.analyze.mockResolvedValue({
+            relevance_score: 0.9,
+            reasoning: 'Perfect match'
+        });
 
-        const result = await clarityGate.evaluate('query', 'some context longer than 50 chars...');
-        expect(result).toHaveProperty('passed');
-        expect(result).toHaveProperty('score');
+        const result = await gate.checkRelevance('recursion', 'recursion is a function calling itself...');
+        expect(result).toBe(true);
+    });
+
+    test('should throw LowConfidenceError on irrelevant context', async () => {
+        // Mock LLM Response
+        geminiRouter.analyze.mockResolvedValue({
+            relevance_score: 0.2, // Below 0.7
+            reasoning: 'Completely unrelated'
+        });
+
+        await expect(gate.checkRelevance('recursion', 'The weather is nice'))
+            .rejects
+            .toThrow(LowConfidenceError);
+    });
+
+    test('should pass if context is empty (Fail Open/Warn)', async () => {
+        // According to logic, empty context returns true but logs warning
+        const result = await gate.checkRelevance('query', '');
+        expect(result).toBe(true);
+        expect(logger.warn).toHaveBeenCalled();
     });
 });
+

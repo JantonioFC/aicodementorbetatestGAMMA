@@ -1,26 +1,21 @@
+
 ---
-name: 💡 Sugerencia de Mejora
-about: Proponer una nueva funcionalidad o mejora
-title: '[MEJORA] '
+name: Feature request
+about: Suggest an idea for this project
+title: "[FEAT] "
 labels: enhancement
 assignees: ''
+
 ---
 
-## Descripción de la Mejora
-<!-- ¿Qué te gustaría que se agregue o cambie? -->
+**Is your feature request related to a problem? Please describe.**
+A clear and concise description of what the problem is. Ex: I'm always frustrated when [...]
 
+**Describe the solution you'd like**
+A clear and concise description of what you want to happen.
 
-## Problema que Resuelve
-<!-- ¿Qué problema o necesidad aborda esta mejora? -->
+**Describe alternatives you've considered**
+A clear and concise description of any alternative solutions or features you've considered.
 
-
-## Solución Propuesta
-<!-- Si tienes ideas de cómo implementarlo, descríbelas aquí -->
-
-
-## Alternativas Consideradas
-<!-- ¿Hay otras formas de resolver esto? -->
-
-
-## Contexto Adicional
-<!-- Mockups, referencias, ejemplos de otras apps -->
+**Additional context**
+Add any other context or screenshots about the feature request here.
