@@ -1,144 +1,325 @@
-# 🎓 AI Code Mentor - Ecosistema 360 | Plataforma Educativa Completa
+# 🎓 AI Code Mentor
 
-## 📋 Descripción
+**Tu mentor de programación impulsado por IA — Aprende a tu ritmo con lecciones personalizadas.**
 
-**AI Code Mentor - Ecosistema 360** es una plataforma completa de aprendizaje autogestionado que implementa la metodología educativa **Ecosistema 360** con **Simbiosis Crítica Humano-IA**. 
+[![Build Status](https://github.com/JantonioFC/ai-code-mentor-beta-test/actions/workflows/ci.yml/badge.svg)](https://github.com/JantonioFC/ai-code-mentor-beta-test/actions)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red.svg)](LICENSE)
 
-Combina un currículo estructurado de 24 meses (8 fases: F0-F7) con herramientas profesionales de gestión de portfolio, plantillas educativas y analíticas de progreso avanzadas.
+---
 
-## 🏗️ Arquitectura Actual: v23.0 - AI Best Practices Edition 🚀
+## 📋 Tabla de Contenidos
 
-**Sistema Operacional:** Plataforma educativa basada en **Next.js Modular Monolith** con:
-- **SQLite Local** + Migraciones automáticas
-- **Búsqueda Semántica Avanzada** (Embeddings + Reranking + Query Expansion)
-- **Evaluación "LLM-as-Judge"** con métricas formales
-- **Observabilidad Completa** (Tracing + Métricas + Alertas)
+- [Características](#-características)
+- [Tech Stack](#-tech-stack)
+- [Prerrequisitos](#-prerrequisitos)
+- [Instalación](#-instalación)
+- [Variables de Entorno](#-variables-de-entorno)
+- [Scripts Disponibles](#-scripts-disponibles)
+- [Arquitectura](#-arquitectura)
+- [API Endpoints](#-api-endpoints)
+- [Testing](#-testing)
+- [Deployment](#-deployment)
+- [Troubleshooting](#-troubleshooting)
+- [Contribuir](#-contribuir)
 
-### ✨ Nuevas Capacidades (v23.0):
+---
+
+## ✨ Características
 
 | Característica | Descripción |
 |:---------------|:------------|
-| 🧠 **Advanced RAG** | Semantic Chunking + Reranking + Query Expansion |
-| ⚖️ **LLM Evaluation** | "LLM-as-Judge" + Métricas (ROUGE/BLEU) |
-| 🔄 **Prompt Versioning** | A/B Testing y gestión de versiones de prompts |
-| 💾 **Advanced Memory** | Entity Memory + Memory Consolidation + Decay |
-| 🛡️ **AI Resilience** | Clarity Gate (Anti-Hallucination) + Smart Retry Agent |
-| 📊 **Observability** | Dashboard de métricas y Tracing distribuido |
-| 🎨 **Multimodal** | Imágenes (Fal.ai), Diagramas (Mermaid), TTS |
+| 🧠 **Lecciones Personalizadas** | IA genera contenido adaptado a tu nivel y preferencias |
+| 📊 **Seguimiento de Progreso** | Visualiza tu avance con métricas detalladas |
+| 🔄 **RAG Avanzado** | Búsqueda semántica con chunking y reranking |
+| ⚖️ **Evaluación LLM-as-Judge** | Métricas formales de calidad (ROUGE/BLEU) |
+| 📄 **Exportar a PDF** | Descarga lecciones y reportes de progreso |
+| 🎨 **Multimodal** | Genera diagramas Mermaid e imágenes |
+| 🛡️ **Anti-Alucinación** | Clarity Gate para respuestas verificables |
 
-### Stack Tecnológico:
+---
+
+## 🛠 Tech Stack
 
 | Capa | Tecnología |
 |:-----|:-----------|
-| **Frontend** | Next.js 15+ + React 18 + TailwindCSS |
-| **Backend** | Next.js API Routes (v1 RESTful) |
-| **Base de Datos** | SQLite (better-sqlite3) + Embeddings Vectoriales |
-| **IA** | Gemini 1.5 Pro/Flash (Resilient Router) |
-| **Testing** | Jest (125+ tests) + Playwright |
-| **Monitoring** | Custom Metrics Collector (Prometheus compatible) |
+| **Framework** | [Next.js 16](https://nextjs.org/) + React 19 |
+| **Estilos** | [TailwindCSS 3](https://tailwindcss.com/) |
+| **Base de Datos** | SQLite ([better-sqlite3](https://github.com/WiseLibs/better-sqlite3)) |
+| **IA** | [Gemini 2.5](https://ai.google.dev/) (Flash/Pro) |
+| **Auth** | JWT + bcryptjs |
+| **Testing** | Jest (130+ tests) + Playwright |
+| **CI/CD** | GitHub Actions |
+
+---
+
+## 📦 Prerrequisitos
+
+Antes de empezar, asegúrate de tener instalado:
+
+- **Node.js** 18 o superior ([descargar](https://nodejs.org/))
+- **npm** 9+ (incluido con Node.js)
+- **Git** ([descargar](https://git-scm.com/))
+- **API Key de Gemini** ([obtener gratis](https://aistudio.google.com/app/apikey))
+
+---
 
 ## 🚀 Instalación
 
-### Prerrequisitos:
-- Node.js 18+
-- API key de Gemini (Google AI Studio)
-
-### Pasos:
-
 ```bash
-# 1. Clonar
-git clone https://github.com/tu-usuario/ai-code-mentor.git
-cd ai-code-mentor
+# 1. Clonar el repositorio
+git clone https://github.com/JantonioFC/ai-code-mentor-beta-test.git
+cd ai-code-mentor-beta-test
 
-# 2. Instalar
+# 2. Instalar dependencias
 npm install
 
-# 3. Configurar
+# 3. Configurar variables de entorno
 cp .env.example .env.local
-# Editar .env.local con tu GEMINI_API_KEY y FAL_API_KEY
+# Editar .env.local con tu GEMINI_API_KEY
 
-# 4. Ejecutar migraciones
-node scripts/migrate.js
-
-# 5. Indexar currículo
-node scripts/index-curriculum.js
-
-# 6. Iniciar
+# 4. Iniciar servidor de desarrollo
 npm run dev
 ```
 
+Abre [http://localhost:3000](http://localhost:3000) en tu navegador.
+
+> **Nota:** El script `npm run dev` ejecuta automáticamente las migraciones de base de datos.
+
+---
+
 ## 🔧 Variables de Entorno
 
-```bash
-# .env.local
+Crea un archivo `.env.local` basado en `.env.example`:
 
-# Requeridas
-GEMINI_API_KEY=tu-gemini-api-key
-JWT_SECRET=tu-secreto-aleatorio
+### Requeridas
 
-# Opcionales (para features avanzados)
-FAL_API_KEY=xxx              # Generación de imágenes (Flux)
-GOOGLE_TTS_API_KEY=xxx       # Text-to-Speech
+| Variable | Descripción | Cómo obtenerla |
+|----------|-------------|----------------|
+| `GEMINI_API_KEY` | API Key de Google Gemini | [Google AI Studio](https://aistudio.google.com/app/apikey) |
+| `JWT_SECRET` | Secreto para tokens JWT | Ejecutar `openssl rand -hex 32` |
+
+### Opcionales
+
+| Variable | Descripción | Default |
+|----------|-------------|---------|
+| `GEMINI_MODEL_NAME` | Modelo Gemini a usar | `gemini-2.5-flash` |
+| `FAL_API_KEY` | Generación de imágenes | - |
+| `NODE_ENV` | Entorno de ejecución | `development` |
+
+---
+
+## 📜 Scripts Disponibles
+
+| Comando | Descripción |
+|---------|-------------|
+| `npm run dev` | Inicia servidor de desarrollo (incluye migraciones) |
+| `npm run build` | Compila para producción |
+| `npm start` | Inicia servidor de producción |
+| `npm test` | Ejecuta tests unitarios (Jest) |
+| `npm run test:coverage` | Tests con reporte de cobertura |
+| `npm run test:e2e` | Tests end-to-end (Playwright) |
+| `npm run test:e2e:ui` | Tests E2E con interfaz visual |
+| `npm run create:demo-user` | Crea usuario de demo |
+
+---
+
+## 🏗 Arquitectura
+
 ```
+ai-code-mentor/
+├── components/         # Componentes React reutilizables (73)
+├── pages/              # Rutas Next.js + API endpoints
+│   ├── api/v1/         # API RESTful versionada
+│   └── ...             # Páginas de la aplicación
+├── lib/                # Lógica de negocio (95 archivos)
+│   ├── ai/             # Router IA con Circuit Breaker
+│   ├── db/             # SQLite + Migraciones
+│   ├── evaluation/     # LLM-as-Judge, métricas
+│   ├── memory/         # Entity Memory, consolidación
+│   ├── rag/            # Reranker, SemanticChunker
+│   └── services/       # LessonService, SmartGenerator
+├── hooks/              # Custom React hooks
+├── contexts/           # React Context providers
+├── __tests__/          # Tests unitarios (Jest)
+├── e2e/                # Tests E2E (Playwright)
+├── docs/               # Documentación adicional
+└── scripts/            # Scripts de utilidad
+```
+
+### Flujo de Datos
+
+```
+Usuario → Next.js Page → API Route → LessonService → GeminiRouter → Gemini API
+                                          ↓
+                              SQLite ← RAG Pipeline ← Memory System
+```
+
+---
 
 ## 📡 API Endpoints
 
 ### Lecciones
+
 | Método | Endpoint | Descripción |
 |:-------|:---------|:------------|
-| POST | `/api/v1/lessons/generate` | Genera una lección (soporta parámetros v2) |
-| POST | `/api/v1/lessons/feedback` | Envía feedback |
+| POST | `/api/v1/lessons/generate` | Genera una lección personalizada |
+| POST | `/api/v1/lessons/feedback` | Envía feedback de lección |
+| GET | `/api/v1/lessons/:id` | Obtiene una lección por ID |
 
-### Monitoring & Metrics (¡Nuevo!)
+### Autenticación
+
+| Método | Endpoint | Descripción |
+|:-------|:---------|:------------|
+| POST | `/api/v1/auth/login` | Inicia sesión |
+| POST | `/api/v1/auth/register` | Registra usuario |
+| GET | `/api/v1/auth/user` | Obtiene usuario actual |
+
+### Monitoring
+
 | Método | Endpoint | Descripción |
 |:-------|:---------|:------------|
 | GET | `/api/v1/metrics` | Métricas del sistema (JSON) |
 | GET | `/api/v1/metrics?format=prometheus` | Formato Prometheus |
 
-### Multimodal
-| Método | Endpoint | Descripción |
-|:-------|:---------|:------------|
-| POST | `/api/v1/multimodal/diagram` | Genera diagrama Mermaid |
-| POST | `/api/v1/tts/synthesize` | Text-to-Speech |
+---
 
 ## 🧪 Testing
 
-El proyecto cuenta con una suite de **125 tests automatizados** cubriendo lógica de negocio, integración IA y nuevos módulos Data/AI.
+### Tests Unitarios
 
 ```bash
 # Ejecutar todos los tests
 npm test
 
-# Ejecutar tests de nuevos módulos (RAG/Prompts)
-npm test __tests__/lib/rag/SemanticChunker.test.js
+# Con cobertura
+npm run test:coverage
+
+# Watch mode (desarrollo)
+npm run test:watch
 ```
 
-## 📁 Estructura del Proyecto
+### Tests End-to-End
 
+```bash
+# Ejecutar tests E2E
+npm run test:e2e
+
+# Con interfaz visual
+npm run test:e2e:ui
+
+# Modo debug
+npm run test:e2e:debug
 ```
-lib/
-├── ai/router/          # GeminiRouter con Circuit Breaker
-├── context/            # Context Window Manager
-├── db/                 # SQLite + Migraciones
-├── evaluation/         # LLMJudgeEvaluator, RegressionTester
-├── memory/             # UserEntityMemory, MemoryConsolidator
-├── multimodal/         # Diagramas, Imágenes, TTS
-├── observability/      # Tracer, Metrics, Alerts
-├── prompts/            # PromptVersionManager, Versions
-├── rag/                # Reranker, SemanticChunker, Retrievers
-├── repositories/       # SessionRepository, WeekRepository
-├── services/           # LessonService, SmartLessonGenerator
-└── utils/              # TokenBudgetManager, Logger
+
+**Cobertura actual:** 130+ tests cubriendo lógica de negocio e integración IA.
+
+---
+
+## 🚀 Deployment
+
+### Vercel (Recomendado)
+
+```bash
+# Instalar Vercel CLI
+npm i -g vercel
+
+# Deploy
+vercel
 ```
+
+Configura las variables de entorno en el dashboard de Vercel.
+
+### Docker
+
+```bash
+# Build
+docker build -t ai-code-mentor .
+
+# Run
+docker run -p 3000:3000 \
+  -e GEMINI_API_KEY=xxx \
+  -e JWT_SECRET=xxx \
+  ai-code-mentor
+```
+
+### Manual (VPS)
+
+```bash
+npm run build
+npm start
+```
+
+---
+
+## 🔧 Troubleshooting
+
+### Error: "GEMINI_API_KEY not configured"
+
+**Solución:** Verifica que `.env.local` existe y contiene `GEMINI_API_KEY=tu_key`.
+
+```bash
+cat .env.local | grep GEMINI
+```
+
+### Error: "Database is locked"
+
+**Solución:** Solo puede haber una conexión activa a SQLite. Cierra otras instancias del servidor.
+
+```bash
+# Matar procesos en puerto 3000
+kill $(lsof -t -i:3000)
+npm run dev
+```
+
+### Error: "Module not found"
+
+**Solución:** Reinstalar dependencias:
+
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```
+
+### Tests E2E fallan
+
+**Solución:** Instalar navegadores de Playwright:
+
+```bash
+npx playwright install
+```
+
+---
+
+## 🤝 Contribuir
+
+Ver [CONTRIBUTING.md](CONTRIBUTING.md) para guía completa.
+
+```bash
+# 1. Fork y clonar
+git clone https://github.com/TU_USUARIO/ai-code-mentor-beta-test.git
+
+# 2. Crear rama
+git checkout -b feature/mi-feature
+
+# 3. Hacer cambios y testear
+npm test
+
+# 4. Commit y push
+git push origin feature/mi-feature
+
+# 5. Crear Pull Request
+```
+
+---
 
 ## 📝 Licencia
 
 **Copyright © 2026 AI Code Mentor Team. All Rights Reserved.**
 
-El uso no autorizado, duplicación o distribución de este software está estrictamente prohibido.
+Ver [LICENSE](LICENSE) para detalles.
 
 ---
 
-**Última actualización:** Febrero 01, 2026  
 **Versión:** v23.0-stable  
-**Estado:** ✅ **PRODUCTION READY** - 100% Data/AI Best Practices
+**Estado:** ✅ Production Ready  
+**Última actualización:** Febrero 2026
