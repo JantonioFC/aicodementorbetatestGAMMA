@@ -1,90 +1,166 @@
+# Diagramas de Arquitectura - AI Code Mentor
 
-# Architecture Diagrams
-
-## 1. System High-Level Overview
+## 1. Vista General del Sistema (C4 - Contexto)
 
 ```mermaid
-graph TD
-    User[Developer / Student] -->|Access via Browser| Frontend[Next.js Frontend]
-    Frontend -->|Auth (Supabase)| Auth[Auth Service]
-    Frontend -->|API Request| API[Next.js API Routes]
-    
-    subgraph "Core Backend Services"
-        API -->|Calls| LessonController[Lesson Controller]
-        LessonController -->|Uses| SmartAgent[Smart Lesson Generator]
-        LessonController -->|Uses| RAG[RAG Service]
+graph TB
+    subgraph Usuarios
+        U[👤 Estudiante]
+        A[👨‍💻 Admin]
     end
-    
-    subgraph "AI & Intelligence"
-        SmartAgent -->|Queries| LLM[Google Gemini API]
-        RAG -->|Retrieves| VectorDB[Vector Database / Semantic Search]
-        SmartAgent -->|Validates| ClarityGate[Clarity Gate]
+
+    subgraph "AI Code Mentor"
+        FE[🖥️ Frontend\nNext.js]
+        API[⚡ API Layer\nNext.js API Routes]
+        DB[(💾 SQLite\nDB)]
     end
-    
-    subgraph "Data Persistence"
-        LessonController -->|Stores| DB[(PostgreSQL / File System)]
-        API -->|Logs| Metrics[Observability Metrics]
+
+    subgraph Servicios Externos
+        GEMINI[🤖 Gemini API\nGeneración IA]
     end
+
+    U --> FE
+    A --> FE
+    FE --> API
+    API --> DB
+    API --> GEMINI
+
+    style FE fill:#61DAFB,color:#000
+    style API fill:#68A063,color:#fff
+    style DB fill:#003B57,color:#fff
+    style GEMINI fill:#4285F4,color:#fff
 ```
 
-## 2. Agentic Lesson Generation Flow (Recursive)
+---
+
+## 2. Flujo de Generación de Lecciones (Secuencia)
 
 ```mermaid
 sequenceDiagram
-    participant User
-    participant API
-    participant Agent as SmartLessonGenerator
-    participant Gate as ClarityGate
-    participant LLM
+    actor U as Usuario
+    participant FE as Frontend
+    participant API as /api/v1/lessons/generate
+    participant LC as LessonController
+    participant AI as Gemini API
+    participant DB as SQLite
 
-    User->>API: POST /generate (Topic)
-    API->>Agent: generateWithAutonomy(Topic)
-    Agent->>Agent: Check Cache / History
-    
-    loop Resilience Loop (Max 3 Retries)
-        Agent->>LLM: Generate Prompt (v2.0 Storytelling)
-        LLM-->>Agent: Draft Content
-        Agent->>Gate: checkRelevance(Content)
-        
-        alt Content is Relevant (>0.7)
-            Gate-->>Agent: Approved
-            Note right of Agent: Break Loop
-        else Content Low Quality
-            Gate-->>Agent: Rejected (Feedback)
-            Agent->>Agent: Refine Prompt (Query Expansion)
-        end
-    end
-    
-    Agent-->>API: Final Lesson Content (JSON)
-    API-->>User: Render Lesson
+    U->>FE: Solicitar lección
+    FE->>API: POST /generate
+    API->>LC: generateLesson(params)
+    LC->>DB: Cargar contexto usuario
+    DB-->>LC: UserEntityMemory
+    LC->>AI: Prompt + Contexto
+    AI-->>LC: Contenido generado
+    LC->>DB: Guardar sesión
+    LC-->>API: LessonResponse
+    API-->>FE: JSON Response
+    FE-->>U: Renderizar lección
 ```
 
-## 3. Database Entity Relationship (Simplified)
+---
+
+## 3. Modelo de Datos (ERD Simplificado)
 
 ```mermaid
 erDiagram
-    USER ||--o{ PROFILE : has
-    USER ||--o{ LESSON_SESSION : "starts"
-    LESSON_SESSION ||--|{ LESSON_HISTORY : "tracks"
+    users ||--o{ sessions : "tiene"
+    users ||--o{ progress : "registra"
+    sessions ||--o{ lesson_logs : "genera"
     
-    USER {
-        string id PK
-        string email
+    users {
+        int id PK
+        string email UK
+        string password_hash
         datetime created_at
     }
     
-    PROFILE {
-        string user_id FK
-        json skills_matrix
-        string current_level
-        int xp_points
+    sessions {
+        int id PK
+        int user_id FK
+        string jwt_token
+        datetime expires_at
     }
     
-    LESSON_SESSION {
-        string id PK
-        string user_id FK
-        string topic
-        int current_step
-        boolean is_completed
+    progress {
+        int id PK
+        int user_id FK
+        int week_id
+        int module_id
+        float completion_pct
+    }
+    
+    lesson_logs {
+        int id PK
+        int session_id FK
+        string lesson_type
+        json content
+        datetime created_at
     }
 ```
+
+---
+
+## 4. Jerarquía de Componentes Frontend
+
+```mermaid
+graph TD
+    App[_app.js]
+    App --> AuthProvider
+    App --> LessonProvider
+    App --> ProjectTrackingProvider
+    
+    subgraph Pages
+        Index[index.js]
+        Codigo[codigo.js]
+        Modulos[modulos.js]
+        Panel[panel-de-control.js]
+    end
+    
+    subgraph Components
+        AuthModal[AuthModal]
+        ModuleManager[ModuleManager]
+        LessonViewer[LessonViewer]
+        CodeEditor[CodeEditor]
+    end
+    
+    subgraph "UI Atoms"
+        Button[Button]
+        SimpleInput[SimpleInput]
+        Modal[Modal]
+    end
+    
+    Index --> AuthModal
+    Modulos --> ModuleManager
+    Codigo --> LessonViewer
+    Codigo --> CodeEditor
+    AuthModal --> Button
+    AuthModal --> SimpleInput
+    ModuleManager --> Modal
+
+    style App fill:#61DAFB
+    style AuthProvider fill:#764ABC
+    style LessonProvider fill:#764ABC
+```
+
+---
+
+## 5. Flujo de Autenticación
+
+```mermaid
+stateDiagram-v2
+    [*] --> Unauthenticated
+    
+    Unauthenticated --> Loading: checkSession()
+    Loading --> Authenticated: JWT válido
+    Loading --> Unauthenticated: Sin sesión
+    
+    Unauthenticated --> LoginForm: Click "Iniciar Sesión"
+    LoginForm --> Loading: Submit credentials
+    
+    Authenticated --> Unauthenticated: logout()
+    Authenticated --> [*]
+```
+
+---
+
+> **Nota**: Estos diagramas usan [Mermaid](https://mermaid.js.org/) y se renderizan automáticamente en GitHub, VS Code, y la mayoría de viewers de Markdown modernos.

@@ -1,21 +1,40 @@
-
 ---
-name: Feature request
-about: Suggest an idea for this project
-title: "[FEAT] "
-labels: enhancement
+name: ✨ Solicitud de Feature
+about: Proponer una nueva funcionalidad o mejora
+title: '[FEATURE] '
+labels: enhancement, needs-triage
 assignees: ''
-
 ---
 
-**Is your feature request related to a problem? Please describe.**
-A clear and concise description of what the problem is. Ex: I'm always frustrated when [...]
+## Resumen
+<!-- Una oración describiendo la funcionalidad -->
 
-**Describe the solution you'd like**
-A clear and concise description of what you want to happen.
+## Motivación
+<!-- ¿Por qué necesitamos esta funcionalidad? ¿Qué problema resuelve? -->
 
-**Describe alternatives you've considered**
-A clear and concise description of any alternative solutions or features you've considered.
+## Solución Propuesta
+<!-- Describe cómo imaginas que funcionaría -->
 
-**Additional context**
-Add any other context or screenshots about the feature request here.
+## Alternativas Consideradas
+<!-- ¿Hay otras formas de resolver este problema? -->
+
+## Criterios de Aceptación
+- [ ] Criterio 1
+- [ ] Criterio 2
+- [ ] Criterio 3
+
+## Mockups / Diseño
+<!-- Si tienes mockups, diagramas o ejemplos de UI, agrégalos aquí -->
+
+## Impacto
+- **Usuarios afectados**: [ej. Todos, Solo admins, Nuevos usuarios]
+- **Prioridad sugerida**: [Alta / Media / Baja]
+- **Estimación de esfuerzo**: [Pequeño / Mediano / Grande]
+
+## Recursos Relacionados
+<!-- Links a documentación, competidores con esta feature, etc. -->
+
+## Checklist
+- [ ] He buscado features existentes para evitar duplicados
+- [ ] He incluido criterios de aceptación claros
+- [ ] He considerado el impacto en usuarios existentes
