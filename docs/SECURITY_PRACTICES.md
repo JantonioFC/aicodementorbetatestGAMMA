@@ -28,7 +28,7 @@
 Para prevenir fuerza bruta y DDoS L7:
 *   **Global**: 100 requests / 15 min por IP.
 *   **Auth (Login/Register)**: 5 requests / 15 min por IP.
-*   **Generación IA**: 10 requests / dia (Free Tier).
+*   **Generación IA**: 1500 requests / dia.
 
 ### Headers de Seguridad (Helmet)
 Configuración obligatoria en `vercel.json` o middleware:
