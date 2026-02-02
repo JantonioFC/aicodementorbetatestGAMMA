@@ -298,7 +298,7 @@ export default function LandingPage() {
             <div className="bg-[#161A23] border border-[#2D3748] rounded-sm p-8 max-w-2xl mx-auto text-left relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-[#3B82F6] to-[#10B981]"></div>
               <h3 className="text-sm font-mono font-bold text-[#4F6180] mb-6 uppercase tracking-wider">
-                // SYSTEM_CAPABILITIES
+                {'// SYSTEM_CAPABILITIES'}
               </h3>
               <div className="space-y-4 font-mono text-sm text-[#EDEDED]">
                 <p className="flex items-center"><span className="text-[#10B981] mr-3">✔</span> MODULES: .MD_LOADER {'->'} AI_LESSONS</p>

@@ -8,6 +8,11 @@
 
 import db from '../../../lib/db';
 import { withRequiredAuth } from '../../../utils/authMiddleware.js';
+import Logger from '../../../lib/logger';
+
+export const config = {
+  runtime: 'nodejs',
+};
 
 // Estado por defecto del checklist EST
 const DEFAULT_CHECKED_STATE = {
@@ -104,7 +109,7 @@ async function handler(req, res) {
     }
 
   } catch (error) {
-    console.error('❌ Error en /api/est/[weekId]:', error);
+    Logger.error('❌ Error en /api/est/[weekId]', { error: error.message, stack: error.stack });
 
     return res.status(400).json({
       error: 'Solicitud inválida',
@@ -117,7 +122,7 @@ async function handler(req, res) {
 // Handler para GET: Recuperar progreso EST
 async function handleGetProgress(res, userId, weekId) {
   try {
-    console.log(`🔍 GET /api/est/${weekId} - Usuario: ${userId.substring(0, 8)}...`);
+    Logger.info(`🔍 GET /api/est/${weekId}`, { userId });
 
     // Consultar progreso existente
     const progress = db.findOne('est_progress', {
@@ -127,7 +132,7 @@ async function handleGetProgress(res, userId, weekId) {
 
     if (progress) {
       // CASO 1: Progreso encontrado - devolver estado guardado
-      console.log(`✅ Progreso EST encontrado para semana ${weekId}`);
+      Logger.debug(`✅ Progreso EST encontrado`, { weekId });
 
       let checkedState = progress.checked_state;
       if (typeof checkedState === 'string') {
@@ -145,7 +150,7 @@ async function handleGetProgress(res, userId, weekId) {
 
     } else {
       // CASO 2: Progreso no encontrado - devolver estado por defecto
-      console.log(`📭 No hay progreso EST para semana ${weekId}, devolviendo estado por defecto`);
+      Logger.debug(`📭 No hay progreso EST, usando default`, { weekId });
 
       return res.status(200).json({
         success: true,
@@ -158,7 +163,7 @@ async function handleGetProgress(res, userId, weekId) {
     }
 
   } catch (error) {
-    console.error('❌ Error en handleGetProgress:', error);
+    Logger.error('❌ Error en handleGetProgress', { error: error.message });
 
     return res.status(500).json({
       error: 'Error interno del servidor',
@@ -172,7 +177,7 @@ async function handleGetProgress(res, userId, weekId) {
 // Handler para POST/PUT/PATCH: Actualizar progreso EST
 async function handleUpdateProgress(req, res, userId, weekId) {
   try {
-    console.log(`💾 ${req.method} /api/est/${weekId} - Usuario: ${userId.substring(0, 8)}...`);
+    Logger.info(`💾 ${req.method} /api/est/${weekId}`, { userId });
 
     // Validar payload
     const { checkedState } = req.body;
@@ -215,7 +220,7 @@ async function handleUpdateProgress(req, res, userId, weekId) {
       result = { checked_state: validatedCheckedState, updated_at: now };
     }
 
-    console.log(`✅ Progreso EST guardado exitosamente para semana ${weekId}`);
+    Logger.info(`✅ Progreso EST guardado exitosamente`, { weekId });
 
     const checkedCount = Object.values(validatedCheckedState).filter(Boolean).length;
     const totalCount = Object.keys(validatedCheckedState).length;
@@ -236,7 +241,7 @@ async function handleUpdateProgress(req, res, userId, weekId) {
     });
 
   } catch (error) {
-    console.error('❌ Error en handleUpdateProgress:', error);
+    Logger.error('❌ Error en handleUpdateProgress', { error: error.message });
 
     return res.status(500).json({
       error: 'Error interno del servidor',

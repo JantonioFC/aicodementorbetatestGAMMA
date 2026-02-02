@@ -4,6 +4,11 @@
 
 import { withOptionalAuth } from '../../utils/authMiddleware';
 import db from '../../lib/db';
+import Logger from '../../lib/logger';
+
+export const config = {
+  runtime: 'nodejs',
+};
 
 // Handler principal para recuperar lecciones
 async function handler(req, res) {
@@ -69,7 +74,7 @@ async function handler(req, res) {
     // Convertir dia (1-based) a diaIndex (0-based) para la base de datos
     const diaIndexForDB = diaNum - 1;
 
-    console.log(`🔍 Buscando lección guardada para usuario ${userId}: semana ${semanaNum}, día ${diaNum} (índice ${diaIndexForDB}), pomodoro ${pomodoroNum}`);
+    Logger.info(`🔍 Buscando lección guardada`, { userId, semanaNum, diaNum, pomodoroNum });
 
     // Buscar contenido en la base de datos (usando diaIndex 0-based)
     // Using simple query via db.query or db.get (not db.select as it doesn't exist)
@@ -80,7 +85,7 @@ async function handler(req, res) {
 
     // Verificar si se encontró contenido
     if (!savedContent || savedContent.length === 0) {
-      console.log(`📭 No se encontró lección para semana ${semanaNum}, día ${diaNum} (índice ${diaIndexForDB}), pomodoro ${pomodoroNum}`);
+      Logger.info(`📭 No se encontró lección`, { semanaNum, diaNum, pomodoroNum });
 
       return res.status(404).json({
         error: 'Contenido no encontrado',
@@ -119,12 +124,12 @@ async function handler(req, res) {
       }
     };
 
-    console.log(`✅ Lección recuperada exitosamente: "${lessonContent.title || 'Sin título'}" (ID: ${contentRecord.id})`);
+    Logger.info(`✅ Lección recuperada exitosamente`, { title: lessonContent.title, contentId: contentRecord.id });
 
     return res.status(200).json(enrichedResponse);
 
   } catch (error) {
-    console.error('❌ Error interno en get-lesson:', error);
+    Logger.error('❌ Error interno en get-lesson', { error: error.message, stack: error.stack });
 
     return res.status(500).json({
       error: 'Error interno del servidor',

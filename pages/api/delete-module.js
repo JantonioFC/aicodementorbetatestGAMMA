@@ -18,9 +18,9 @@ export default async function handler(req, res) {
     console.log(`🗑️ Eliminando módulo ${moduleId}...`);
 
     // Verificar que el módulo existe
-    const module = db.get.module(moduleId);
+    const moduleData = db.get.module(moduleId);
 
-    if (!module) {
+    if (!moduleData) {
       return res.status(404).json({ error: 'Módulo no encontrado' });
     }
 
@@ -38,18 +38,18 @@ export default async function handler(req, res) {
       throw new Error('Error eliminando módulo');
     }
 
-    console.log(`✅ Módulo ${module.title} eliminado exitosamente`);
+    console.log(`✅ Módulo ${moduleData.title} eliminado exitosamente`);
 
     // Get stats - assuming we can count
     const totalModules = db.get('SELECT COUNT(*) as count FROM modules').count;
 
     res.json({
       success: true,
-      message: `Módulo "${module.title}" eliminado exitosamente`,
+      message: `Módulo "${moduleData.title}" eliminado exitosamente`,
       deletedModule: {
-        id: module.id,
-        title: module.title,
-        filename: module.filename
+        id: moduleData.id,
+        title: moduleData.title,
+        filename: moduleData.filename
       },
       updatedStats: {
         totalModules: totalModules,

@@ -19,9 +19,9 @@ export default async function handler(req, res) {
     console.log(`📖 Recuperando módulo ${moduleId}...`);
 
     // Obtener módulo
-    const module = db.findOne('modules', { id: moduleId });
+    const moduleData = db.findOne('modules', { id: moduleId });
 
-    if (!module) {
+    if (!moduleData) {
       return res.status(404).json({ error: 'Módulo no encontrado' });
     }
 
@@ -65,14 +65,14 @@ export default async function handler(req, res) {
     res.json({
       success: true,
       module: {
-        id: module.id,
-        title: module.title,
-        filename: module.filename,
-        status: module.status,
-        uploadDate: module.upload_date,
-        content: module.content, // Contenido original .md
-        processedContent: module.processed_content ? JSON.parse(module.processed_content) : null,
-        lessonCount: module.lesson_count
+        id: moduleData.id,
+        title: moduleData.title,
+        filename: moduleData.filename,
+        status: moduleData.status,
+        uploadDate: moduleData.upload_date,
+        content: moduleData.content, // Contenido original .md
+        processedContent: moduleData.processed_content ? JSON.parse(moduleData.processed_content) : null,
+        lessonCount: moduleData.lesson_count
       },
       lessons: lessonsWithExercises,
       progress: {

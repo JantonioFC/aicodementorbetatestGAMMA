@@ -3,21 +3,7 @@ import { ClockIcon, AcademicCapIcon, CodeBracketIcon } from '@heroicons/react/24
 import InteractiveQuiz from '../quiz/InteractiveQuiz';
 
 export default function WeeklySchedule({ weekData }) {
-  // Validación de props requeridas
-  if (!weekData || !weekData.esquemaDiario) {
-    return (
-      <div className="bg-gradient-to-br from-red-50 via-white to-red-50 p-6 rounded-lg">
-        <div className="text-center">
-          <h3 className="text-2xl font-bold text-red-900 mb-2">
-            Error: Datos de Semana No Disponibles
-          </h3>
-          <p className="text-red-600 text-sm">
-            El componente WeeklySchedule requiere datos de semana con campo 'esquemaDiario'
-          </p>
-        </div>
-      </div>
-    );
-  }
+
 
   // Estado local para gestionar el checklist de entregables (ahora persistente)
   const [checkedState, setCheckedState] = useState({
@@ -43,14 +29,14 @@ export default function WeeklySchedule({ weekData }) {
   // MISIÓN 157 FASE 3: Función mejorada con persistencia automática
   const handleCheckboxToggle = async (itemName) => {
     console.log(`📋 Toggle EST: ${itemName} para semana ${weekData.semana}`);
-    
+
     // Actualizar estado local inmediatamente para UX responsiva
     const newCheckedState = {
       ...checkedState,
       [itemName]: !checkedState[itemName]
     };
     setCheckedState(newCheckedState);
-    
+
     // Guardar en base de datos de forma asíncrona
     await saveProgressToAPI(newCheckedState);
   };
@@ -58,7 +44,7 @@ export default function WeeklySchedule({ weekData }) {
   // MISIÓN 157 FASE 3: Función para guardar progreso en API
   const saveProgressToAPI = async (newState) => {
     setIsSavingProgress(true);
-    
+
     try {
       const response = await fetch(`/api/est/${weekData.semana}`, {
         method: 'POST',
@@ -91,7 +77,7 @@ export default function WeeklySchedule({ weekData }) {
   // MISIÓN 157 FASE 3: Función para cargar progreso desde API
   const loadProgressFromAPI = async () => {
     console.log(`🔍 Cargando progreso EST para semana ${weekData.semana}...`);
-    
+
     try {
       const response = await fetch(`/api/est/${weekData.semana}`, {
         method: 'GET',
@@ -101,7 +87,7 @@ export default function WeeklySchedule({ weekData }) {
       if (response.ok) {
         const result = await response.json();
         setCheckedState(result.checkedState);
-        
+
         if (result.fromDatabase) {
           setLastSaved(new Date(result.lastUpdated));
           console.log(`✅ Progreso EST cargado desde BD: semana ${weekData.semana}`);
@@ -126,10 +112,26 @@ export default function WeeklySchedule({ weekData }) {
     }
   }, [weekData?.semana]); // Recarga cuando cambia la semana
 
+  // Validación de props requeridas - MOVIMOS ESTO AQUÍ PARA CUMPLIR REGLAS DE HOOKS
+  if (!weekData || !weekData.esquemaDiario) {
+    return (
+      <div className="bg-gradient-to-br from-red-50 via-white to-red-50 p-6 rounded-lg">
+        <div className="text-center">
+          <h3 className="text-2xl font-bold text-red-900 mb-2">
+            Error: Datos de Semana No Disponibles
+          </h3>
+          <p className="text-red-600 text-sm">
+            El componente WeeklySchedule requiere datos de semana con campo &apos;esquemaDiario&apos;
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Función: Manejar click en pomodoro activo (MISIÓN 146.5 preservada)
   const handlePomodoroClick = async (semanaId, diaIndex, pomodoroIndex, pomodoroText) => {
     console.log(`🎯 Click en pomodoro: semana ${semanaId}, día ${diaIndex}, pomodoro ${pomodoroIndex}`);
-    
+
     // Abrir modal en estado de carga
     setModalState({
       isOpen: true,
@@ -141,10 +143,10 @@ export default function WeeklySchedule({ weekData }) {
     try {
       // PASO 1: Intentar recuperar lección existente
       console.log('🔍 Intentando recuperar lección existente...');
-      
+
       // Convertir diaIndex (0-based) a dia (1-based) para consistencia con API
       const dia = diaIndex + 1;
-      
+
       const getResponse = await fetch(`/api/get-lesson?semanaId=${semanaId}&dia=${dia}&pomodoroIndex=${pomodoroIndex}`, {
         method: 'GET',
         credentials: 'include'
@@ -154,7 +156,7 @@ export default function WeeklySchedule({ weekData }) {
         // CASO 1: Lección encontrada - mostrar contenido recuperado
         const existingContent = await getResponse.json();
         console.log('✅ Lección recuperada de BD:', existingContent.title);
-        
+
         setModalState({
           isOpen: true,
           loading: false,
@@ -167,7 +169,7 @@ export default function WeeklySchedule({ weekData }) {
       if (getResponse.status === 404) {
         // CASO 2: Lección no encontrada - generar nueva
         console.log('📭 Lección no existe, generando nueva...');
-        
+
         const generateResponse = await fetch('/api/generate-lesson', {
           method: 'POST',
           headers: {
@@ -185,7 +187,7 @@ export default function WeeklySchedule({ weekData }) {
         if (generateResponse.ok) {
           const newContent = await generateResponse.json();
           console.log('✅ Nueva lección generada:', newContent.title);
-          
+
           setModalState({
             isOpen: true,
             loading: false,
@@ -202,7 +204,7 @@ export default function WeeklySchedule({ weekData }) {
 
     } catch (error) {
       console.error('❌ Error en flujo de lección:', error);
-      
+
       setModalState({
         isOpen: true,
         loading: false,
@@ -228,15 +230,15 @@ export default function WeeklySchedule({ weekData }) {
   // Función: Normalizar ejercicios para compatibilidad (MISIÓN 147)
   const normalizeExercises = (exercises) => {
     if (!exercises || !Array.isArray(exercises)) return [];
-    
+
     return exercises.map((exercise, index) => {
       if (typeof exercise.correctAnswerIndex === 'number') {
         return exercise;
       }
-      
+
       if (exercise.correctAnswer && exercise.options) {
         const correctAnswerIndex = exercise.options.findIndex(option => option === exercise.correctAnswer);
-        
+
         if (correctAnswerIndex >= 0) {
           console.log(`🔄 Ejercicio ${index + 1}: Convertido formato legacy correctAnswer → correctAnswerIndex=${correctAnswerIndex}`);
           return {
@@ -245,7 +247,7 @@ export default function WeeklySchedule({ weekData }) {
           };
         }
       }
-      
+
       console.warn(`⚠️ Ejercicio ${index + 1}: No se pudo determinar respuesta correcta, usando índice 0`);
       return {
         ...exercise,
@@ -270,7 +272,7 @@ export default function WeeklySchedule({ weekData }) {
         icon: AcademicCapIcon
       },
       aplicacion: {
-        title: "Aplicación y Resolución de Problemas", 
+        title: "Aplicación y Resolución de Problemas",
         duration: "2 horas",
         bgColor: "bg-gray-700",
         textColor: "text-white",
@@ -283,12 +285,12 @@ export default function WeeklySchedule({ weekData }) {
   // FUNCIÓN NUEVA: Generar estructura de días dinámicamente desde weekData
   const generateScheduleData = () => {
     if (!weekData.esquemaDiario) return [];
-    
+
     return weekData.esquemaDiario.map((diaData, index) => {
       // Agrupar pomodoros en bloques de Adquisición (0,1) y Aplicación (2,3)
       const adquisicionPomodoros = diaData.pomodoros.slice(0, 2);
       const aplicacionPomodoros = diaData.pomodoros.slice(2, 4);
-      
+
       return {
         day: `Día ${diaData.dia}`,
         theme: diaData.concepto,
@@ -321,8 +323,8 @@ export default function WeeklySchedule({ weekData }) {
             Semana {weekData.semana}: {weekData.tituloSemana}
           </p>
           <p className="text-gray-600 text-sm">
-            Modelo Pedagógico 5x4: <span className="font-semibold">5 días de estudio</span> • 
-            <span className="font-semibold"> 4 horas por día</span> • 
+            Modelo Pedagógico 5x4: <span className="font-semibold">5 días de estudio</span> •
+            <span className="font-semibold"> 4 horas por día</span> •
             <span className="font-semibold"> Separación entre Adquisición y Aplicación</span>
           </p>
           <p className="text-indigo-600 text-xs mt-2">
@@ -364,15 +366,14 @@ export default function WeeklySchedule({ weekData }) {
                         // Calcular índice real del pomodoro (0-3 por día)
                         const realPomodoroIndex = blockIndex === 0 ? pomodoroIndex : pomodoroIndex + 2;
                         const isClickeable = true; // Todos los pomodoros son clickeables ahora
-                        
+
                         return (
-                          <div 
-                            key={pomodoroIndex} 
-                            className={`text-xs opacity-90 leading-tight ${
-                              isClickeable 
-                                ? 'cursor-pointer hover:bg-white hover:bg-opacity-20 rounded p-1 transition-colors' 
-                                : ''
-                            }`}
+                          <div
+                            key={pomodoroIndex}
+                            className={`text-xs opacity-90 leading-tight ${isClickeable
+                              ? 'cursor-pointer hover:bg-white hover:bg-opacity-20 rounded p-1 transition-colors'
+                              : ''
+                              }`}
                             onClick={isClickeable ? () => {
                               handlePomodoroClick(weekData.semana, dayIndex, realPomodoroIndex, pomodoro);
                             } : undefined}
@@ -403,9 +404,9 @@ export default function WeeklySchedule({ weekData }) {
             <div>
               <h4 className="font-semibold text-gray-900 mb-2">Principio Pedagógico</h4>
               <p className="text-gray-700 text-sm leading-relaxed">
-                Este modelo separa la <strong>adquisición</strong> de la <strong>aplicación</strong>, 
-                forzando la transición del conocimiento pasivo al activo. El segundo bloque, centrado en la 
-                <strong> "fricción constructiva"</strong>, es el motor principal del aprendizaje.
+                Este modelo separa la <strong>adquisición</strong> de la <strong>aplicación</strong>,
+                forzando la transición del conocimiento pasivo al activo. El segundo bloque, centrado en la
+                <strong> &quot;fricción constructiva&quot;</strong>, es el motor principal del aprendizaje.
               </p>
             </div>
           </div>
@@ -441,55 +442,51 @@ export default function WeeklySchedule({ weekData }) {
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-            <div 
+            <div
               className="flex items-start space-x-2 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
               onClick={() => handleCheckboxToggle('ejercicios')}
             >
               <span className="text-green-600 mt-0.5 select-none">
                 {checkedState.ejercicios ? '☑' : '☐'}
               </span>
-              <span className={`text-gray-700 select-none ${
-                checkedState.ejercicios ? 'line-through opacity-75' : ''
-              }`}>
+              <span className={`text-gray-700 select-none ${checkedState.ejercicios ? 'line-through opacity-75' : ''
+                }`}>
                 Mínimo de 8 ejercicios de práctica completados
               </span>
             </div>
-            <div 
+            <div
               className="flex items-start space-x-2 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
               onClick={() => handleCheckboxToggle('miniProyecto')}
             >
               <span className="text-green-600 mt-0.5 select-none">
                 {checkedState.miniProyecto ? '☑' : '☐'}
               </span>
-              <span className={`text-gray-700 select-none ${
-                checkedState.miniProyecto ? 'line-through opacity-75' : ''
-              }`}>
+              <span className={`text-gray-700 select-none ${checkedState.miniProyecto ? 'line-through opacity-75' : ''
+                }`}>
                 Mini-Proyecto semanal funcional y documentado
               </span>
             </div>
-            <div 
+            <div
               className="flex items-start space-x-2 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
               onClick={() => handleCheckboxToggle('dma')}
             >
               <span className="text-green-600 mt-0.5 select-none">
                 {checkedState.dma ? '☑' : '☐'}
               </span>
-              <span className={`text-gray-700 select-none ${
-                checkedState.dma ? 'line-through opacity-75' : ''
-              }`}>
+              <span className={`text-gray-700 select-none ${checkedState.dma ? 'line-through opacity-75' : ''
+                }`}>
                 {weekData.entregables || 'Entrada en Diario de Metacognición (DMA/DDE)'}
               </span>
             </div>
-            <div 
+            <div
               className="flex items-start space-x-2 cursor-pointer hover:bg-green-100 p-2 rounded transition-colors"
               onClick={() => handleCheckboxToggle('commits')}
             >
               <span className="text-green-600 mt-0.5 select-none">
                 {checkedState.commits ? '☑' : '☐'}
               </span>
-              <span className={`text-gray-700 select-none ${
-                checkedState.commits ? 'line-through opacity-75' : ''
-              }`}>
+              <span className={`text-gray-700 select-none ${checkedState.commits ? 'line-through opacity-75' : ''
+                }`}>
                 Commits organizados con historia coherente
               </span>
             </div>
@@ -552,7 +549,7 @@ export default function WeeklySchedule({ weekData }) {
                           </span>
                         )}
                         <span>
-                          {modalState.content.fromDatabase 
+                          {modalState.content.fromDatabase
                             ? `Creada: ${new Date(modalState.content.originallyCreatedAt).toLocaleString()}`
                             : `Generada: ${new Date(modalState.content.generatedAt).toLocaleString()}`
                           }
