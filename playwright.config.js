@@ -52,12 +52,10 @@ module.exports = defineConfig({
     },
   ],
 
-  // webServer disabled to avoid lock conflicts with existing 'npm run dev'
-  /*
   webServer: {
-    command: 'npm run dev',
+    command: isCI ? 'npm run start' : 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: true,
+    reuseExistingServer: !isCI,
+    timeout: 120000, // 2 minutes for cold start
   },
-  */
 });
