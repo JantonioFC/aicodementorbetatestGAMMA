@@ -76,7 +76,7 @@ export default function Challenge() {
                         </div>
                         <h1 className="text-3xl font-bold text-white mb-4">Fix the Bug</h1>
                         <p className="text-gray-400 mb-6 leading-relaxed">
-                            We don't allow bots or non-coders here.
+                            We don&apos;t allow bots or non-coders here.
                             <br /><br />
                             Fix the <strong>Python 3</strong> syntax error to unlock access to the platform.
                         </p>

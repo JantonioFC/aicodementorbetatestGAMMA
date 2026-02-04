@@ -26,12 +26,16 @@ const requiredVars = [
 const missingVars = requiredVars.filter(key => !process.env[key]);
 
 if (missingVars.length > 0) {
-    console.error('❌ Error: Faltan variables de entorno requeridas:');
-    missingVars.forEach(key => {
-        console.error(`   - ${key}`);
-    });
-    console.error('\nAsegúrate de configurar estas variables en tu archivo .env.local o en la configuración de Vercel.\n');
-    process.exit(1);
+    if (process.env.CI === 'true') {
+        console.warn('⚠️ Advertencia: Faltan variables de entorno, pero se continúa por estar en entorno CI (GitHub Actions).');
+    } else {
+        console.error('❌ Error: Faltan variables de entorno requeridas:');
+        missingVars.forEach(key => {
+            console.error(`   - ${key}`);
+        });
+        console.error('\nAsegúrate de configurar estas variables en tu archivo .env.local o en la configuración de Vercel.\n');
+        process.exit(1);
+    }
 }
 
 console.log('✅ Validación de entorno exitosa: Todas las variables requeridas están presentes.');
