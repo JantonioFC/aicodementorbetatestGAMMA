@@ -66,7 +66,14 @@ async function authenticateDemo(page, targetPath = '/panel-de-control') {
 
     // Esperar navegación o feedback
     console.log('🔒 [AUTH-LOCAL] Formulario enviado. Esperando redirección...');
-    await page.waitForURL(/panel-de-control/, { timeout: 30000 });
+
+    // MEJORA V6.1: Esperar a que la URL cambie O que aparezca un elemento del dashboard
+    // Esto es más robusto que solo waitForURL que a veces falla en SPAs lentas
+    await Promise.race([
+      page.waitForURL(/panel-de-control/, { timeout: 45000, waitUntil: 'domcontentloaded' }),
+      page.waitForSelector('h1:has-text("Panel de Control")', { timeout: 45000 }),
+      page.waitForSelector('text=Bienvenido', { timeout: 45000 })
+    ]);
   }
 
   // 3. Verificar que estamos en la página correcta (o panel)

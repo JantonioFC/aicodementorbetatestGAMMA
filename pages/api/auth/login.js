@@ -2,6 +2,14 @@ import AuthLocal from '../../../lib/auth-local';
 import { serialize } from 'cookie';
 import rateLimit from '../../../lib/rate-limit'; // Security: Rate Limiting
 
+import { z } from 'zod'; // Security: Input Validation
+
+// Validation Schema
+const loginSchema = z.object({
+    email: z.string().email('Formato de email inválido'),
+    password: z.string().min(1, 'La contraseña es requerida')
+});
+
 export default async function handler(req, res) {
     // 1. Rate Limiting Check
     try {
@@ -14,11 +22,17 @@ export default async function handler(req, res) {
         return res.status(405).json({ error: 'Method not allowed' });
     }
 
-    const { email, password } = req.body;
+    // Input Validation (SEC-02)
+    const validation = loginSchema.safeParse(req.body);
 
-    if (!email || !password) {
-        return res.status(400).json({ error: 'Email y contraseña requeridos' });
+    if (!validation.success) {
+        return res.status(400).json({
+            error: 'Datos inválidos',
+            details: validation.error.errors.map(e => e.message)
+        });
     }
+
+    const { email, password } = validation.data;
 
     try {
         const result = await AuthLocal.loginUser(email, password);

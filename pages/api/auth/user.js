@@ -6,7 +6,8 @@ export default async function handler(req, res) {
     }
 
     // Get token from cookie
-    const token = req.cookies.token;
+    // CORRECCIÓN M-QUALITY: Usar el nombre de cookie correcto definido en login.js
+    const token = req.cookies['ai-code-mentor-auth'] || req.cookies.token;
 
     if (!token) {
         return res.status(401).json({ error: 'Not authenticated' });

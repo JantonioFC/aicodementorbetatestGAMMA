@@ -30,11 +30,18 @@ jobs:
     - name: Build Application
       run: npm run build
 
+    - name: Security Audit (Dependencies)
+      run: npm audit --audit-level=high
+      continue-on-error: true # Report but don't block yet
+
+    - name: Run Unit Tests
+      run: npm test
+
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps chromium
 
-    - name: Run Smoke Tests
-      run: npm run test:smoke
+    - name: Run E2E Tests
+      run: npx playwright test
       env:
         CI: true
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'mock-key' }}

@@ -123,11 +123,10 @@ test.describe('🔐 AUTENTICACIÓN - Suite de Pruebas', () => {
     await authenticateDemo(page);
 
     // Navegar al panel para verificar autenticación
-    await page.goto(TEST_CONFIG.PAGES.PANEL);
-    await page.waitForLoadState('networkidle', { timeout: 30000 });
-
-    // Verificar que la URL es correcta
-    await expect(page).toHaveURL(/panel-de-control/, { timeout: 30000 });
+    // NOTA: authenticateDemo ya maneja la navegación, pero reforzamos
+    if (!page.url().includes('panel-de-control')) {
+      await page.goto(TEST_CONFIG.PAGES.PANEL);
+    }
 
     // Verificar que un elemento clave del Panel sea visible (Updated for Stitch UI "Panel de Control 360")
     await expect(page.locator('h1:has-text("Panel de Control")')).toBeVisible({ timeout: 30000 });

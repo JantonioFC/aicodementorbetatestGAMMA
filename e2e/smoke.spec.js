@@ -21,7 +21,9 @@ test.describe('💨 Smoke Test - Verificación de Salud', () => {
         expect(title).toContain('AI Code Mentor');
 
         // Validar encabezado principal
-        const mainHeading = page.locator('h1');
+        // Validar encabezado principal - Usar wait para asegurar hidratación
+        const mainHeading = page.locator('h1:has-text("SYSTEM_LEARNING")');
+        await mainHeading.waitFor({ state: 'visible', timeout: 15000 });
         await expect(mainHeading).toBeVisible();
         await expect(mainHeading).toContainText('SYSTEM_LEARNING');
 
