@@ -33,7 +33,7 @@ export default function HistoryPanel({ onRestoreGeneration }) {
     } else if (session?.access_token && !isValidJWT(session.access_token)) {
       console.warn('⚠️ [HISTORY] Token JWT malformado detectado, esperando token válido...');
     }
-  }, [session?.access_token]);
+  }, [session, session?.access_token]);
 
   // Filtrar generaciones cuando cambie el query o las generaciones
   useEffect(() => {

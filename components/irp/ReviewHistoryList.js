@@ -183,31 +183,31 @@ export default function ReviewHistoryList({ onViewDetails }) {
   /**
    * Carga el historial de revisiones desde la API
    */
-  const fetchReviewHistory = async () => {
+  const fetchReviewHistory = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
       // MISIÓN 197.1: Obtener token interno válido (renovado si es necesario)
       const token = await getValidInternalToken();
-      
+
       if (!token) {
         throw new Error('No se pudo obtener token válido. Por favor, inicia sesión nuevamente.');
       }
-      
+
       console.log('🔐 [REVIEW-HISTORY] Usando token interno para IRP');
 
       // Construir query parameters
       const queryParams = new URLSearchParams();
-      
+
       if (filters.role !== 'both') {
         queryParams.append('role', filters.role);
       }
-      
+
       if (filters.status !== 'all') {
         queryParams.append('status', filters.status);
       }
-      
+
       if (filters.phase) {
         queryParams.append('phase', filters.phase);
       }
@@ -235,14 +235,15 @@ export default function ReviewHistoryList({ onViewDetails }) {
 
       // Actualizar estado
       setReviews(data.reviews || []);
-      
+
       if (data.pagination) {
-        setPagination({
+        setPagination(prev => ({
+          ...prev, // Keep existing state to avoid partial updates if fields missing
           currentPage: data.pagination.current_page || 1,
           totalPages: data.pagination.total_pages || 1,
           hasNext: data.pagination.has_next || false,
           hasPrev: data.pagination.has_prev || false,
-        });
+        }));
       }
 
     } catch (err) {
@@ -251,12 +252,12 @@ export default function ReviewHistoryList({ onViewDetails }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filters, pagination.currentPage, getValidInternalToken]);
 
   // Cargar historial al montar y cuando cambien los filtros
   useEffect(() => {
     fetchReviewHistory();
-  }, [filters, pagination.currentPage]);
+  }, [fetchReviewHistory]);
 
   /**
    * Maneja cambios en los filtros
@@ -266,7 +267,7 @@ export default function ReviewHistoryList({ onViewDetails }) {
       ...prev,
       [filterName]: value,
     }));
-    
+
     // Resetear a página 1 cuando cambian los filtros
     setPagination(prev => ({
       ...prev,
@@ -349,7 +350,7 @@ export default function ReviewHistoryList({ onViewDetails }) {
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
           🔍 Filtros de Búsqueda
         </h3>
-        
+
         <div className="grid md:grid-cols-3 gap-4">
           {/* Filtro por Rol */}
           <div>
@@ -446,11 +447,10 @@ export default function ReviewHistoryList({ onViewDetails }) {
             <button
               onClick={handlePreviousPage}
               disabled={!pagination.hasPrev}
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
-                pagination.hasPrev
+              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${pagination.hasPrev
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
+                }`}
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -465,11 +465,10 @@ export default function ReviewHistoryList({ onViewDetails }) {
             <button
               onClick={handleNextPage}
               disabled={!pagination.hasNext}
-              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${
-                pagination.hasNext
+              className={`flex items-center px-4 py-2 rounded-lg font-medium transition-colors ${pagination.hasNext
                   ? 'bg-blue-600 text-white hover:bg-blue-700'
                   : 'bg-gray-100 text-gray-400 cursor-not-allowed'
-              }`}
+                }`}
             >
               Siguiente
               <svg className="w-5 h-5 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

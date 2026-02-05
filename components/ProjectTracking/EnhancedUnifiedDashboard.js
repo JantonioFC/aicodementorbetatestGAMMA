@@ -111,7 +111,7 @@ const EnhancedUnifiedDashboard = ({ className = '' }) => {
   useEffect(() => {
     loadDashboardData();
     loadModuleStats();
-  }, []);
+  }, [loadDashboardData]);
 
   const loadModuleStats = async () => {
     setLoadingModules(true);

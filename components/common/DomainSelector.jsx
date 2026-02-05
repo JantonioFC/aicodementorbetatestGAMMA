@@ -37,7 +37,7 @@ export default function DomainSelector({ onChange, className = '' }) {
                 onChange?.(saved);
             }
         }
-    }, []);
+    }, [onChange]);
 
     // Manejar cambio de dominio
     const handleChange = (event) => {

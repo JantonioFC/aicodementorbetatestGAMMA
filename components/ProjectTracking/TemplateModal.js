@@ -65,7 +65,7 @@ const TemplateModal = () => {
     }
 
     // Error will be reset when modal opens (handled separately)
-  }, [selectedTemplate]); // Fixed: removed resetError to prevent infinite loop
+  }, [selectedTemplate, templates]); // Fixed: removed resetError to prevent infinite loop
 
   // Reset form when modal closes
   useEffect(() => {
@@ -81,7 +81,7 @@ const TemplateModal = () => {
     if (isModalOpen) {
       resetError();
     }
-  }, [isModalOpen]); // This only depends on modal state, not the resetError function
+  }, [isModalOpen, resetError]); // This only depends on modal state, not the resetError function
 
   const getWeekNumber = () => {
     const now = new Date();

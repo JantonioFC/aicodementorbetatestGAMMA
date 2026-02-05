@@ -74,43 +74,43 @@ export default function WeeklySchedule({ weekData }) {
     }
   };
 
-  // MISIÓN 157 FASE 3: Función para cargar progreso desde API
-  const loadProgressFromAPI = async () => {
-    console.log(`🔍 Cargando progreso EST para semana ${weekData.semana}...`);
-
-    try {
-      const response = await fetch(`/api/est/${weekData.semana}`, {
-        method: 'GET',
-        credentials: 'include'
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setCheckedState(result.checkedState);
-
-        if (result.fromDatabase) {
-          setLastSaved(new Date(result.lastUpdated));
-          console.log(`✅ Progreso EST cargado desde BD: semana ${weekData.semana}`);
-        } else {
-          console.log(`📭 Sin progreso previo para semana ${weekData.semana}, usando estado por defecto`);
-        }
-      } else {
-        console.error('❌ Error cargando progreso EST, usando estado por defecto');
-      }
-    } catch (error) {
-      console.error('❌ Error de red cargando progreso EST:', error);
-    } finally {
-      setIsLoadingProgress(false);
-    }
-  };
-
   // MISIÓN 157 FASE 3: useEffect para cargar progreso al montar componente o cambiar semana
   useEffect(() => {
+    // MISIÓN 157 FASE 3: Función para cargar progreso desde API
+    const loadProgressFromAPI = async () => {
+      console.log(`🔍 Cargando progreso EST para semana ${weekData.semana}...`);
+
+      try {
+        const response = await fetch(`/api/est/${weekData.semana}`, {
+          method: 'GET',
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          setCheckedState(result.checkedState);
+
+          if (result.fromDatabase) {
+            setLastSaved(new Date(result.lastUpdated));
+            console.log(`✅ Progreso EST cargado desde BD: semana ${weekData.semana}`);
+          } else {
+            console.log(`📭 Sin progreso previo para semana ${weekData.semana}, usando estado por defecto`);
+          }
+        } else {
+          console.error('❌ Error cargando progreso EST, usando estado por defecto');
+        }
+      } catch (error) {
+        console.error('❌ Error de red cargando progreso EST:', error);
+      } finally {
+        setIsLoadingProgress(false);
+      }
+    };
+
     if (weekData && weekData.semana) {
       setIsLoadingProgress(true);
       loadProgressFromAPI();
     }
-  }, [weekData?.semana]); // Recarga cuando cambia la semana
+  }, [weekData]); // Fixed: Added weekData to dependencies
 
   // Validación de props requeridas - MOVIMOS ESTO AQUÍ PARA CUMPLIR REGLAS DE HOOKS
   if (!weekData || !weekData.esquemaDiario) {

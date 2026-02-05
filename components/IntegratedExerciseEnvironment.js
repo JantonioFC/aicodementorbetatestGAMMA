@@ -16,24 +16,24 @@ export default function IntegratedExerciseEnvironment({ exercises, lessonPath, l
 
   // Reset user code when changing exercises
   useEffect(() => {
+    const loadExerciseHistory = async () => {
+      try {
+        const response = await fetch(`/api/exercise-system?action=get-exercise-history&lesson_path=${lessonPath}&exercise_id=${activeExercise + 1}`);
+        const data = await response.json();
+
+        if (data.success) {
+          setExerciseHistory(data.history);
+        }
+      } catch (error) {
+        console.error('Error loading exercise history:', error);
+      }
+    };
+
     setUserCode('');
     setExecutionResult(null);
     setAiFeedback(null);
     loadExerciseHistory();
-  }, [activeExercise]);
-
-  const loadExerciseHistory = async () => {
-    try {
-      const response = await fetch(`/api/exercise-system?action=get-exercise-history&lesson_path=${lessonPath}&exercise_id=${activeExercise + 1}`);
-      const data = await response.json();
-      
-      if (data.success) {
-        setExerciseHistory(data.history);
-      }
-    } catch (error) {
-      console.error('Error loading exercise history:', error);
-    }
-  };
+  }, [activeExercise, lessonPath]);
 
   const executeCode = async () => {
     if (!userCode.trim()) {
@@ -59,7 +59,7 @@ export default function IntegratedExerciseEnvironment({ exercises, lessonPath, l
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setExecutionResult(data.result);
         console.log('✅ Code executed and auto-saved:', data.message);
@@ -99,7 +99,7 @@ export default function IntegratedExerciseEnvironment({ exercises, lessonPath, l
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
         setAiFeedback(data.feedback);
       } else {
@@ -163,16 +163,15 @@ export default MiComponente;`;
           <button
             key={index}
             onClick={() => setActiveExercise(index)}
-            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-              activeExercise === index
+            className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${activeExercise === index
                 ? 'bg-blue-600 text-white'
                 : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
-            }`}
+              }`}
           >
             {index + 1}
           </button>
         ))}
-        
+
         {exerciseHistory.length > 0 && (
           <div className="ml-4 text-xs text-blue-600">
             📚 {exerciseHistory.length} intentos anteriores
@@ -200,19 +199,19 @@ export default MiComponente;`;
               {language.toUpperCase()} | Auto-guardado
             </div>
           </div>
-          
+
           <textarea
             value={userCode}
             onChange={(e) => setUserCode(e.target.value)}
             placeholder={getPlaceholderCode()}
             className="w-full h-64 p-4 border border-gray-300 rounded-lg font-mono text-sm resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            style={{ 
+            style={{
               fontFamily: 'Monaco, Menlo, "Ubuntu Mono", monospace',
               fontSize: '14px',
               lineHeight: '1.5'
             }}
           />
-          
+
           {/* Action Buttons */}
           <div className="flex items-center space-x-3">
             <button
@@ -222,7 +221,7 @@ export default MiComponente;`;
             >
               {isExecuting ? '⚡ Ejecutando...' : '▶️ Ejecutar Código'}
             </button>
-            
+
             <button
               onClick={getAIFeedback}
               disabled={isGettingFeedback}
@@ -230,7 +229,7 @@ export default MiComponente;`;
             >
               {isGettingFeedback ? '🤖 Analizando...' : '🧠 Corrección IA'}
             </button>
-            
+
             <div className="text-xs text-gray-500">
               💾 Se guarda automáticamente
             </div>
@@ -246,7 +245,7 @@ export default MiComponente;`;
                 <span className="text-yellow-400">⚡</span>
                 <span className="ml-2 text-white font-medium">Resultado de Ejecución:</span>
               </div>
-              
+
               {executionResult.results && executionResult.results.length > 0 && (
                 <div className="mb-3">
                   <div className="text-green-300 text-xs mb-1">OUTPUT:</div>
@@ -257,7 +256,7 @@ export default MiComponente;`;
                   ))}
                 </div>
               )}
-              
+
               {executionResult.errors && executionResult.errors.length > 0 && (
                 <div>
                   <div className="text-red-300 text-xs mb-1">ERRORS:</div>
@@ -268,7 +267,7 @@ export default MiComponente;`;
                   ))}
                 </div>
               )}
-              
+
               {executionResult.message && (
                 <div className="text-blue-400 text-xs mt-2 border-t border-gray-700 pt-2">
                   ℹ️ {executionResult.message}
@@ -284,7 +283,7 @@ export default MiComponente;`;
                 <span className="text-purple-600">🧠</span>
                 <span className="ml-2 font-medium text-purple-800">Corrección Automática por IA:</span>
               </div>
-              
+
               <div className="prose prose-sm max-w-none text-purple-900">
                 <div className="whitespace-pre-wrap text-sm leading-relaxed">
                   {aiFeedback}
@@ -324,8 +323,8 @@ export default MiComponente;`;
       {/* Auto-Save Notice */}
       <div className="mt-6 p-3 bg-green-50 border border-green-200 rounded-md">
         <div className="text-sm text-green-800">
-          💾 <strong>Sistema de Guardado Automático V4.2:</strong> 
-          Todo tu código, ejecuciones y feedback se guardan automáticamente. 
+          💾 <strong>Sistema de Guardado Automático V4.2:</strong>
+          Todo tu código, ejecuciones y feedback se guardan automáticamente.
           Sin olvidos ni omisiones - registro completo de tu progreso.
         </div>
       </div>

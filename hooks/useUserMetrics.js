@@ -374,8 +374,10 @@ export function useInsights(metrics) {
   return insights;
 }
 
-export default {
+const userMetricsHooks = {
   useUserMetrics,
   useReviewHistory,
   useInsights
 };
+
+export default userMetricsHooks;

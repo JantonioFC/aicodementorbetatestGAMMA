@@ -19,35 +19,35 @@ export function ProjectTrackingProvider({ children }) {
   const [error, setError] = useState(null);
 
   // Mock data for development
-  const mockDashboardData = {
+  const mockDashboardData = React.useMemo(() => ({
     totalProjects: 0,
     activeProjects: 0,
     completedProjects: 0,
     totalHours: 0
-  };
+  }), []);
 
-  const mockEntryCounts = {
+  const mockEntryCounts = React.useMemo(() => ({
     dde_entry: 0,
     weekly_action_plan: 0,
     unified_tracking_log: 0,
     peer_review: 0,
     project_reflection: 0
-  };
+  }), []);
 
-  const mockRecentEntries = [];
+  const mockRecentEntries = React.useMemo(() => [], []);
 
   // Initialize with mock data
   useEffect(() => {
     setDashboardData(mockDashboardData);
     setEntryCounts(mockEntryCounts);
     setRecentEntries(mockRecentEntries);
-  }, []);
+  }, [mockDashboardData, mockEntryCounts, mockRecentEntries]);
 
   // Load dashboard data function - MVP implementation
   const loadDashboardData = async () => {
     setLoading(true);
     setError(null);
-    
+
     try {
       // In a real implementation, this would make API calls
       // For now, we just set the mock data
@@ -56,7 +56,7 @@ export function ProjectTrackingProvider({ children }) {
       setDashboardData(mockDashboardData);
       setEntryCounts(mockEntryCounts);
       setRecentEntries(mockRecentEntries);
-      
+
       console.log('📊 [PROJECT_TRACKING] Dashboard data loaded (MVP mode)');
     } catch (err) {
       console.error('❌ [PROJECT_TRACKING] Error loading dashboard data:', err);
@@ -72,13 +72,13 @@ export function ProjectTrackingProvider({ children }) {
     try {
       // In a real implementation, this would save to database
       console.log(`➕ [PROJECT_TRACKING] Adding entry: ${entryType}`, entryData);
-      
+
       // Update entry counts
       setEntryCounts(prev => ({
         ...prev,
         [entryType]: (prev[entryType] || 0) + 1
       }));
-      
+
       // Add to recent entries
       const newEntry = {
         id: Date.now(),
@@ -86,9 +86,9 @@ export function ProjectTrackingProvider({ children }) {
         date: new Date().toISOString(),
         ...entryData
       };
-      
+
       setRecentEntries(prev => [newEntry, ...prev.slice(0, 4)]); // Keep only 5 recent
-      
+
       return { success: true, entry: newEntry };
     } catch (err) {
       console.error('❌ [PROJECT_TRACKING] Error adding entry:', err);
@@ -104,14 +104,14 @@ export function ProjectTrackingProvider({ children }) {
     setLoading(true);
     try {
       console.log(`📝 [PROJECT_TRACKING] Updating entry: ${entryId}`, updateData);
-      
+
       // Update recent entries
-      setRecentEntries(prev => 
-        prev.map(entry => 
+      setRecentEntries(prev =>
+        prev.map(entry =>
           entry.id === entryId ? { ...entry, ...updateData } : entry
         )
       );
-      
+
       return { success: true };
     } catch (err) {
       console.error('❌ [PROJECT_TRACKING] Error updating entry:', err);
@@ -127,16 +127,16 @@ export function ProjectTrackingProvider({ children }) {
     setLoading(true);
     try {
       console.log(`🗑️ [PROJECT_TRACKING] Deleting entry: ${entryId}`);
-      
+
       // Update entry counts
       setEntryCounts(prev => ({
         ...prev,
         [entryType]: Math.max((prev[entryType] || 0) - 1, 0)
       }));
-      
+
       // Remove from recent entries
       setRecentEntries(prev => prev.filter(entry => entry.id !== entryId));
-      
+
       return { success: true };
     } catch (err) {
       console.error('❌ [PROJECT_TRACKING] Error deleting entry:', err);
@@ -150,9 +150,9 @@ export function ProjectTrackingProvider({ children }) {
   // Export to portfolio function - MVP implementation
   const exportToPortfolio = async () => {
     console.log('📁 [PROJECT_TRACKING] Exporting to portfolio (MVP mode)');
-    return { 
-      success: true, 
-      message: 'Portfolio export functionality will be implemented in future versions' 
+    return {
+      success: true,
+      message: 'Portfolio export functionality will be implemented in future versions'
     };
   };
 
@@ -161,12 +161,12 @@ export function ProjectTrackingProvider({ children }) {
     setLoading(true);
     try {
       console.log('🔄 [PROJECT_TRACKING] Resetting all data (MVP mode)');
-      
+
       setDashboardData(mockDashboardData);
       setEntryCounts(mockEntryCounts);
       setRecentEntries(mockRecentEntries);
       setError(null);
-      
+
       return { success: true };
     } catch (err) {
       console.error('❌ [PROJECT_TRACKING] Error resetting data:', err);
@@ -181,18 +181,18 @@ export function ProjectTrackingProvider({ children }) {
   const selectTemplate = (templateType) => {
     try {
       console.log(`📋 [PROJECT_TRACKING] Template selected: ${templateType}`);
-      
+
       // Route to specific page for IRP (has special AI generation functionality)
       if (templateType === 'peer_review') {
         console.log('✅ [PROJECT_TRACKING] Routing to specialized IRP page...');
         window.location.href = '/irp';
         return { success: true, templateType, action: 'routed_specialized' };
       }
-      
+
       // Route to universal template creator for all other templates
       console.log(`✅ [PROJECT_TRACKING] Routing to template creator for: ${templateType}`);
       window.location.href = `/crear-template?type=${templateType}`;
-      
+
       return { success: true, templateType, action: 'routed_universal' };
     } catch (err) {
       console.error('❌ [PROJECT_TRACKING] Error selecting template:', err);
@@ -208,7 +208,7 @@ export function ProjectTrackingProvider({ children }) {
     recentEntries,
     loading,
     error,
-    
+
     // Functions
     loadDashboardData,
     addEntry,
@@ -217,7 +217,7 @@ export function ProjectTrackingProvider({ children }) {
     exportToPortfolio,
     resetAllData,
     selectTemplate,
-    
+
     // Utilities
     isLoading: loading,
     hasError: !!error,
@@ -237,11 +237,11 @@ export function ProjectTrackingProvider({ children }) {
  */
 export function useProjectTracking() {
   const context = useContext(ProjectTrackingContext);
-  
+
   if (context === undefined) {
     throw new Error('useProjectTracking must be used within a ProjectTrackingProvider');
   }
-  
+
   return context;
 }
 

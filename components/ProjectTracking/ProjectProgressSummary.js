@@ -8,7 +8,7 @@ import React, { useEffect } from 'react';
 import { useProjectTracking } from '../../contexts/ProjectTrackingContext';
 
 const ProjectProgressSummary = ({ className = '' }) => {
-  const { 
+  const {
     dashboardData,
     entryCounts,
     recentEntries,
@@ -22,7 +22,7 @@ const ProjectProgressSummary = ({ className = '' }) => {
   useEffect(() => {
     // Refresh dashboard data when component mounts
     loadDashboardData();
-  }, []);
+  }, [loadDashboardData]);
 
   const getTotalEntries = () => {
     return Object.values(entryCounts).reduce((sum, count) => sum + count, 0);
@@ -62,25 +62,25 @@ const ProjectProgressSummary = ({ className = '' }) => {
 
   const getTimeSince = (dateString) => {
     if (!dateString) return 'Nunca';
-    
+
     const date = new Date(dateString);
     const now = new Date();
     const diffHours = Math.floor((now - date) / (1000 * 60 * 60));
-    
+
     if (diffHours < 1) return 'Hace menos de 1 hora';
     if (diffHours < 24) return `Hace ${diffHours} horas`;
-    
+
     const diffDays = Math.floor(diffHours / 24);
     if (diffDays < 7) return `Hace ${diffDays} días`;
-    
+
     const diffWeeks = Math.floor(diffDays / 7);
     return `Hace ${diffWeeks} semanas`;
   };
 
   const getMostActiveTemplateType = () => {
     if (!entryCounts || Object.keys(entryCounts).length === 0) return null;
-    
-    return Object.entries(entryCounts).reduce((max, [type, count]) => 
+
+    return Object.entries(entryCounts).reduce((max, [type, count]) =>
       count > (entryCounts[max] || 0) ? type : max
     );
   };
@@ -108,7 +108,7 @@ const ProjectProgressSummary = ({ className = '' }) => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <p className="text-sm">Error cargando dashboard</p>
-          <button 
+          <button
             onClick={loadDashboardData}
             className="mt-2 text-xs text-blue-600 hover:text-blue-800"
           >
@@ -190,27 +190,27 @@ const ProjectProgressSummary = ({ className = '' }) => {
             <h3 className="font-semibold text-gray-800 mb-3">📋 Tipos de Entradas</h3>
             <div className="space-y-2">
               {Object.entries(entryCounts)
-                .sort(([,a], [,b]) => b - a)
+                .sort(([, a], [, b]) => b - a)
                 .slice(0, 5)
                 .map(([type, count]) => (
-                <div key={type} className="flex items-center justify-between py-2">
-                  <div className="flex items-center space-x-3">
-                    <span className="text-lg">{getEntryTypeIcon(type)}</span>
-                    <span className="text-sm font-medium text-gray-700">
-                      {getEntryTypeLabel(type)}
-                    </span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="w-16 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
-                        style={{ width: `${Math.min((count / Math.max(...Object.values(entryCounts))) * 100, 100)}%` }}
-                      ></div>
+                  <div key={type} className="flex items-center justify-between py-2">
+                    <div className="flex items-center space-x-3">
+                      <span className="text-lg">{getEntryTypeIcon(type)}</span>
+                      <span className="text-sm font-medium text-gray-700">
+                        {getEntryTypeLabel(type)}
+                      </span>
                     </div>
-                    <span className="text-sm font-bold text-gray-600 w-8 text-right">{count}</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div
+                          className="bg-gradient-to-r from-blue-500 to-purple-600 h-2 rounded-full"
+                          style={{ width: `${Math.min((count / Math.max(...Object.values(entryCounts))) * 100, 100)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-sm font-bold text-gray-600 w-8 text-right">{count}</span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
             </div>
           </div>
         )}

@@ -145,11 +145,13 @@ const PrivateLayout = ({ children, title = "AI Code Mentor", description = "Ecos
 
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
         {/* Logo Topbar */}
-        <div className="w-full bg-gray-900">
-          <img
+        <div className="w-full bg-gray-900 relative h-24">
+          <Image
             src="/logo.jpg"
             alt="AI Code Mentor - Ecosistema 360"
-            className="w-full h-auto max-h-24 object-contain"
+            fill
+            className="object-contain"
+            priority
           />
         </div>
 

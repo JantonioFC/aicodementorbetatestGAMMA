@@ -68,13 +68,12 @@ function ReviewRow({ review, onViewDetails }) {
               </div>
               {/* Barra de progreso visual */}
               <div className="w-full bg-gray-200 rounded-full h-1.5 mt-1">
-                <div 
-                  className={`h-1.5 rounded-full ${
-                    review.calificacion_promedio >= 4.5 ? 'bg-green-500' :
-                    review.calificacion_promedio >= 4.0 ? 'bg-blue-500' :
-                    review.calificacion_promedio >= 3.5 ? 'bg-yellow-500' :
-                    'bg-orange-500'
-                  }`}
+                <div
+                  className={`h-1.5 rounded-full ${review.calificacion_promedio >= 4.5 ? 'bg-green-500' :
+                      review.calificacion_promedio >= 4.0 ? 'bg-blue-500' :
+                        review.calificacion_promedio >= 3.5 ? 'bg-yellow-500' :
+                          'bg-orange-500'
+                    }`}
                   style={{ width: `${(review.calificacion_promedio / 5.0) * 100}%` }}
                 ></div>
               </div>
@@ -93,7 +92,7 @@ function ReviewRow({ review, onViewDetails }) {
         </span>
       </td>
       <td className="px-4 py-3">
-        <button 
+        <button
           onClick={() => onViewDetails(review)}
           className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors hover:underline"
         >
@@ -151,9 +150,9 @@ function FilterBar({ filters, onFilterChange }) {
           <option value="project">Proyecto</option>
         </select>
         <button
-          onClick={() => onFilterChange({ 
-            ...filters, 
-            sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc' 
+          onClick={() => onFilterChange({
+            ...filters,
+            sortOrder: filters.sortOrder === 'asc' ? 'desc' : 'asc'
           })}
           className="px-3 py-1.5 border border-gray-300 rounded-lg text-sm hover:bg-gray-100 transition-colors"
           title={filters.sortOrder === 'asc' ? 'Ascendente' : 'Descendente'}
@@ -183,7 +182,7 @@ export default function ReviewHistory({ limit = 10, token = null }) {
     if (token !== filters.token) {
       setFilters(prev => ({ ...prev, token }));
     }
-  }, [token]);
+  }, [token, filters.token]);
 
   const { history, pagination, loading, error, loadNextPage, loadPrevPage, refresh } = useReviewHistory(filters);
 
@@ -263,11 +262,11 @@ export default function ReviewHistory({ limit = 10, token = null }) {
           <p className="text-6xl mb-4">📝</p>
           <p className="font-medium">No hay revisiones {filters.status !== 'all' ? filters.status : ''}</p>
           <p className="text-sm mt-2">
-            {filters.role === 'reviewer' 
+            {filters.role === 'reviewer'
               ? 'Comienza a revisar proyectos para verlos aquí'
               : filters.role === 'author'
-              ? 'Solicita revisiones para tus proyectos'
-              : 'Tus revisiones aparecerán aquí'
+                ? 'Solicita revisiones para tus proyectos'
+                : 'Tus revisiones aparecerán aquí'
             }
           </p>
           {(filters.role !== 'both' || filters.status !== 'all') && (
@@ -307,8 +306,8 @@ export default function ReviewHistory({ limit = 10, token = null }) {
               </thead>
               <tbody>
                 {history.map((review, index) => (
-                  <ReviewRow 
-                    key={review.review_id || index} 
+                  <ReviewRow
+                    key={review.review_id || index}
                     review={review}
                     onViewDetails={handleViewDetails}
                   />
@@ -329,20 +328,19 @@ export default function ReviewHistory({ limit = 10, token = null }) {
                   Página {pagination.current_page} de {pagination.total_pages}
                 </p>
               </div>
-              
+
               <div className="flex items-center gap-2">
                 <button
                   onClick={loadPrevPage}
                   disabled={!pagination.has_prev}
-                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
-                    pagination.has_prev
+                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${pagination.has_prev
                       ? 'border-blue-500 text-blue-600 hover:bg-blue-50 active:scale-95'
                       : 'border-gray-300 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   ← Anterior
                 </button>
-                
+
                 {/* Indicador de páginas */}
                 <div className="flex items-center gap-1">
                   {Array.from({ length: Math.min(5, pagination.total_pages) }, (_, i) => {
@@ -351,22 +349,20 @@ export default function ReviewHistory({ limit = 10, token = null }) {
                     return (
                       <div
                         key={page}
-                        className={`w-2 h-2 rounded-full transition-all ${
-                          isCurrent ? 'bg-blue-600 w-6' : 'bg-gray-300'
-                        }`}
+                        className={`w-2 h-2 rounded-full transition-all ${isCurrent ? 'bg-blue-600 w-6' : 'bg-gray-300'
+                          }`}
                       />
                     );
                   })}
                 </div>
-                
+
                 <button
                   onClick={loadNextPage}
                   disabled={!pagination.has_next}
-                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${
-                    pagination.has_next
+                  className={`px-4 py-2 rounded-lg border-2 font-medium transition-all ${pagination.has_next
                       ? 'border-blue-500 text-blue-600 hover:bg-blue-50 active:scale-95'
                       : 'border-gray-300 text-gray-400 cursor-not-allowed'
-                  }`}
+                    }`}
                 >
                   Siguiente →
                 </button>
