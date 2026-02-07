@@ -1,0 +1,375 @@
+openapi: 3.0.3
+info:
+  title: AI Code Mentor API
+  description: |
+    API para la plataforma de aprendizaje de programación AI Code Mentor.
+    
+    ## Autenticación
+    La mayoría de endpoints requieren autenticación mediante JWT token en cookie `ai-code-mentor-auth`.
+    
+    ## Rate Limiting
+    - **Auth endpoints**: 5 requests / 15 minutos
+    - **API endpoints**: 60 requests / minuto
+    - **AI endpoints**: 10 requests / 5 minutos
+  version: 2.0.0
+  contact:
+    name: AI Code Mentor Team
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://localhost:3000/api
+    description: Development server
+  - url: https://aicodementor.com/api
+    description: Production server
+
+tags:
+  - name: auth
+    description: Autenticación y gestión de usuarios
+  - name: lessons
+    description: Generación y gestión de lecciones
+  - name: progress
+    description: Seguimiento de progreso del usuario
+  - name: ai
+    description: Endpoints de IA (Gemini)
+  - name: system
+    description: Health checks y métricas
+
+paths:
+  # ============== AUTH ==============
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Iniciar sesión
+      description: Autentica un usuario y devuelve JWT en cookie
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: "usuario@ejemplo.com"
+                password:
+                  type: string
+                  format: password
+                  minLength: 1
+      responses:
+        '200':
+          description: Login exitoso
+          headers:
+            Set-Cookie:
+              description: JWT token en cookie HttpOnly
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Credenciales inválidas
+        '429':
+          description: Rate limit excedido
+
+  /auth/register:
+    post:
+      tags: [auth]
+      summary: Registrar nuevo usuario
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  minLength: 6
+                display_name:
+                  type: string
+      responses:
+        '200':
+          description: Registro exitoso
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Email ya registrado o datos inválidos
+
+  /auth/logout:
+    post:
+      tags: [auth]
+      summary: Cerrar sesión
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Logout exitoso
+
+  /auth/user:
+    get:
+      tags: [auth]
+      summary: Obtener usuario actual
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Datos del usuario
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '401':
+          description: No autenticado
+
+  # ============== LESSONS ==============
+  /generate-lesson:
+    post:
+      tags: [lessons, ai]
+      summary: Generar lección con IA
+      description: Genera una lección personalizada usando Gemini AI
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [semanaId, dia, pomodoroIndex]
+              properties:
+                semanaId:
+                  type: integer
+                  description: ID de la semana (1-12)
+                dia:
+                  type: integer
+                  description: Día de la semana (1-5)
+                pomodoroIndex:
+                  type: integer
+                  description: Índice del pomodoro (0-3)
+      responses:
+        '200':
+          description: Lección generada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Lesson'
+        '429':
+          description: Rate limit de IA excedido
+        '501':
+          description: GEMINI_API_KEY no configurada
+
+  /get-lesson:
+    get:
+      tags: [lessons]
+      summary: Obtener lección guardada
+      security:
+        - cookieAuth: []
+      parameters:
+        - name: semanaId
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: dia
+          in: query
+          required: true
+          schema:
+            type: integer
+        - name: pomodoroIndex
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Lección encontrada
+        '404':
+          description: Lección no encontrada
+
+  # ============== PROGRESS ==============
+  /update-progress:
+    post:
+      tags: [progress]
+      summary: Actualizar progreso del usuario
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                moduleId:
+                  type: string
+                lessonId:
+                  type: string
+                completed:
+                  type: boolean
+                score:
+                  type: number
+      responses:
+        '200':
+          description: Progreso actualizado
+
+  /progress-summary:
+    get:
+      tags: [progress]
+      summary: Obtener resumen de progreso
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Resumen de progreso
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalModules:
+                    type: integer
+                  completedModules:
+                    type: integer
+                  percentComplete:
+                    type: number
+
+  # ============== AI ANALYSIS ==============
+  /v2/analyze:
+    post:
+      tags: [ai]
+      summary: Analizar código con IA
+      description: Análisis de código usando GeminiRouter con fallback automático
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [code]
+              properties:
+                code:
+                  type: string
+                  maxLength: 50000
+                language:
+                  type: string
+                  default: javascript
+                phase:
+                  type: string
+                  default: fase-1
+                analysisType:
+                  type: string
+                  default: general
+      responses:
+        '200':
+          description: Análisis completado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  analysis:
+                    type: string
+                  metadata:
+                    type: object
+        '429':
+          description: Rate limit de IA excedido
+
+  # ============== SYSTEM ==============
+  /health:
+    get:
+      tags: [system]
+      summary: Health check
+      responses:
+        '200':
+          description: Sistema operativo
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+
+  /v2/health:
+    get:
+      tags: [system]
+      summary: Health check v2 con detalles
+      responses:
+        '200':
+          description: Estado detallado del sistema
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  version:
+                    type: string
+                  geminiRouter:
+                    type: object
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: ai-code-mentor-auth
+      description: JWT token en cookie HttpOnly
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        display_name:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+
+    AuthResponse:
+      type: object
+      properties:
+        user:
+          $ref: '#/components/schemas/User'
+        session:
+          type: object
+          properties:
+            access_token:
+              type: string
+            token_type:
+              type: string
+              example: bearer
+
+    Lesson:
+      type: object
+      properties:
+        titulo:
+          type: string
+        contenido:
+          type: string
+        ejercicios:
+          type: array
+          items:
+            type: object
+        metadata:
+          type: object
