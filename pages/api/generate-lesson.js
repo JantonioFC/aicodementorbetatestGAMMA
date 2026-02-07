@@ -12,8 +12,16 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { weekRepository } = require('../../lib/repositories/WeekRepository');
 const { contentRetriever } = require('../../lib/rag/ContentRetriever');
 const { TEMPLATE_PROMPT_UNIVERSAL, SYSTEM_PROMPT } = require('../../lib/prompts/LessonPrompts');
+import rateLimit from '../../lib/rate-limit';
 
 export default async function handler(req, res) {
+    // Rate limiting: AI profile (10 req/5min)
+    try {
+        await rateLimit(req, res, 'ai');
+    } catch (e) {
+        return; // Response already handled by rateLimit
+    }
+
     if (req.method !== 'POST') {
         return res.status(405).json({
             error: 'Method Not Allowed',

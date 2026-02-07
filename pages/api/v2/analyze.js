@@ -14,10 +14,18 @@ import { geminiRouter } from '../../../lib/ai/router/GeminiRouter';
 import { promptFactory } from '../../../lib/prompts/factory/PromptFactory';
 // ProviderFactory is required dynamically to support OpenRouter overrides
 import { getUserFriendlyMessage } from '../../../lib/utils/errorHandler';
+import rateLimit from '../../../lib/rate-limit';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Método no permitido' });
+    }
+
+    // Rate limiting: AI profile (10 req/5min)
+    try {
+        await rateLimit(req, res, 'ai');
+    } catch (e) {
+        return; // Response already handled by rateLimit
     }
 
     try {
