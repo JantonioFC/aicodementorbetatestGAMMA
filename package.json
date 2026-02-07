@@ -17,7 +17,8 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:verify": "node e2e/verify-setup.js",
     "test:smoke": "playwright test e2e/smoke.spec.js",
-    "create:demo-user": "node scripts/create-demo-user.js"
+    "create:demo-user": "node scripts/create-demo-user.js",
+    "db:backup": "node scripts/db-backup.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",

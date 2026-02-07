@@ -30,10 +30,17 @@ async function autoSetup() {
     // 1. Inicializar SQLite (Esquema + Datos)
     log('🗄️  [SQLITE] Comprobando base de datos local...', 'dim');
     try {
+        // [Task 2.6] Realizar backup antes de cualquier operación de setup
+        const backupService = require('../lib/db/BackupService');
+        if (fs.existsSync(path.join(process.cwd(), 'database', 'sqlite', 'curriculum.db'))) {
+            log('🛡️  [BACKUP] Realizando respaldo preventivo...', 'dim');
+            await backupService.runBackup();
+        }
+
         // initDatabase maneja su propia lógica de "si existe no hago nada salvo --force"
         initDatabase();
     } catch (e) {
-        log(`⚠️  Error inicializando SQLite: ${e.message}`, 'yellow');
+        log(`⚠️  Error inicializando SQLite o backup: ${e.message}`, 'yellow');
     }
 
     log('\n╔══════════════════════════════════════════════════════════╗', 'cyan');
