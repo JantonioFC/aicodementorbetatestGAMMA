@@ -19,8 +19,8 @@ export default async function handler(req, res) {
             return res.status(400).json(result);
         }
 
-        // Set JWT Cookie
-        const cookie = serialize('token', result.token, {
+        // Set JWT Cookie - matches login.js cookie name
+        const cookie = serialize('ai-code-mentor-auth', result.token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             maxAge: 60 * 60 * 24 * 7, // 1 week

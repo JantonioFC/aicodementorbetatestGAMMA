@@ -72,8 +72,9 @@ export default async function handler(req, res) {
       'ai-code-mentor-auth'
     ];
 
+    const isProduction = process.env.NODE_ENV === 'production';
     const clearedCookies = cookiesToClear.map(cookieName =>
-      `${cookieName}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax`
+      `${cookieName}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Strict${isProduction ? '; Secure' : ''}`
     );
 
     res.setHeader('Set-Cookie', clearedCookies);
