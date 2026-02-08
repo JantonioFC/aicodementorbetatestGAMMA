@@ -23,12 +23,13 @@ import { useAuth } from '../../lib/auth/useAuth';
 export default function ReviewRequestForm({ onSuccess, onError }) {
   const router = useRouter();
   const { session, getValidInternalToken } = useAuth(); // MISIÓN 197.1: Obtener función de token válido
-  
+
   // Estado del formulario
   const [formData, setFormData] = useState({
     project_name: '',
     github_repo_url: '',
     pull_request_url: '',
+    code_content: '',         // Nuevo campo para pegar código directamente
     phase: 1,
     week: 1,
     description: '',
@@ -52,22 +53,20 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
       newErrors.project_name = 'El nombre del proyecto es requerido';
     }
 
-    if (!formData.github_repo_url.trim()) {
-      newErrors.github_repo_url = 'La URL del repositorio es requerida';
-    } else if (!isValidGitHubUrl(formData.github_repo_url)) {
+    // GitHub Repo URL es ahora opcional, pero si se pone debe ser válida
+    if (formData.github_repo_url.trim() && !isValidGitHubUrl(formData.github_repo_url)) {
       newErrors.github_repo_url = 'URL de GitHub inválida (debe ser https://github.com/...)';
     }
 
-    if (!formData.pull_request_url.trim()) {
-      newErrors.pull_request_url = 'La URL del Pull Request es requerida';
-    } else if (!isValidGitHubUrl(formData.pull_request_url)) {
-      newErrors.pull_request_url = 'URL de Pull Request inválida (debe ser https://github.com/...)';
+    // Si no hay repo URL, debe haber código pegado
+    if (!formData.github_repo_url.trim() && !formData.code_content.trim()) {
+      newErrors.code_content = 'Debes pegar tu código o proporcionar una URL de repositorio';
     }
 
     if (!formData.description.trim()) {
       newErrors.description = 'La descripción del proyecto es requerida';
-    } else if (formData.description.length < 20) {
-      newErrors.description = 'La descripción debe tener al menos 20 caracteres';
+    } else if (formData.description.length < 10) {
+      newErrors.description = 'La descripción debe tener al menos 10 caracteres';
     }
 
     if (!formData.learning_objectives.trim()) {
@@ -113,7 +112,7 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
    */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    
+
     setFormData(prev => ({
       ...prev,
       [name]: value,
@@ -150,8 +149,9 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
       // Preparar datos para la API
       const requestData = {
         project_name: formData.project_name.trim(),
-        github_repo_url: formData.github_repo_url.trim(),
-        pull_request_url: formData.pull_request_url.trim(),
+        github_repo_url: formData.github_repo_url.trim() || null,
+        pull_request_url: formData.pull_request_url.trim() || null,
+        code_content: formData.code_content.trim() || null,
         phase: parseInt(formData.phase),
         week: parseInt(formData.week),
         description: formData.description.trim(),
@@ -169,11 +169,11 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
 
       // MISIÓN 197.1: Obtener token interno válido (renovado si es necesario)
       const token = await getValidInternalToken();
-      
+
       if (!token) {
         throw new Error('No se pudo obtener token válido. Por favor, inicia sesión nuevamente.');
       }
-      
+
       console.log('🔐 [REVIEW-REQUEST-FORM] Usando token interno para IRP');
 
 
@@ -205,6 +205,7 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
         project_name: '',
         github_repo_url: '',
         pull_request_url: '',
+        code_content: '',
         phase: 1,
         week: 1,
         description: '',
@@ -214,7 +215,7 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
 
     } catch (error) {
       console.error('[REVIEW-REQUEST-FORM] Error creando solicitud:', error);
-      
+
       // Llamar callback de error
       if (onError) {
         onError(error);
@@ -265,9 +266,8 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
               type="text"
               value={formData.project_name}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.project_name ? 'border-red-300' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.project_name ? 'border-red-300' : 'border-gray-300'
+                }`}
               placeholder="ej. Sistema de Gestión de Tareas"
               disabled={loading}
             />
@@ -276,51 +276,75 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
             )}
           </div>
 
-          {/* URL del Repositorio */}
+          {/* Código Fuente (Directo) */}
           <div>
-            <label htmlFor="github_repo_url" className="block text-sm font-medium text-gray-700 mb-1">
-              URL del Repositorio en GitHub *
+            <label htmlFor="code_content" className="block text-sm font-medium text-gray-700 mb-1">
+              Código Fuente a Auditar *
             </label>
-            <input
-              id="github_repo_url"
-              name="github_repo_url"
-              type="url"
-              value={formData.github_repo_url}
+            <textarea
+              id="code_content"
+              name="code_content"
+              rows={8}
+              value={formData.code_content}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.github_repo_url ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="https://github.com/tu-usuario/tu-proyecto"
+              className={`w-full px-3 py-2 border rounded-lg font-mono text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.code_content ? 'border-red-300' : 'border-gray-300'
+                }`}
+              placeholder="// Pega tu código aquí para una auditoría instantánea por IA..."
               disabled={loading}
             />
-            {errors.github_repo_url && (
-              <p className="mt-1 text-sm text-red-600">{errors.github_repo_url}</p>
-            )}
-          </div>
-
-          {/* URL del Pull Request */}
-          <div>
-            <label htmlFor="pull_request_url" className="block text-sm font-medium text-gray-700 mb-1">
-              URL del Pull Request *
-            </label>
-            <input
-              id="pull_request_url"
-              name="pull_request_url"
-              type="url"
-              value={formData.pull_request_url}
-              onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.pull_request_url ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="https://github.com/tu-usuario/tu-proyecto/pull/1"
-              disabled={loading}
-            />
-            {errors.pull_request_url && (
-              <p className="mt-1 text-sm text-red-600">{errors.pull_request_url}</p>
+            {errors.code_content && (
+              <p className="mt-1 text-sm text-red-600">{errors.code_content}</p>
             )}
             <p className="mt-1 text-xs text-gray-500">
-              Asegúrate de crear un Pull Request en tu repositorio antes de solicitar revisión
+              Copia y pega el código principal que deseas que la IA revise basándose en los objetivos de aprendizaje.
             </p>
+          </div>
+
+          <div className="pt-2 border-t border-gray-100">
+            <details className="text-sm text-gray-600">
+              <summary className="cursor-pointer hover:text-blue-600 transition-colors">
+                🔗 Opciones avanzadas (GitHub)
+              </summary>
+              <div className="mt-4 space-y-4">
+                {/* URL del Repositorio */}
+                <div>
+                  <label htmlFor="github_repo_url" className="block text-sm font-medium text-gray-700 mb-1">
+                    URL del Repositorio en GitHub
+                  </label>
+                  <input
+                    id="github_repo_url"
+                    name="github_repo_url"
+                    type="url"
+                    value={formData.github_repo_url}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.github_repo_url ? 'border-red-300' : 'border-gray-300'
+                      }`}
+                    placeholder="https://github.com/tu-usuario/tu-proyecto"
+                    disabled={loading}
+                  />
+                  {errors.github_repo_url && (
+                    <p className="mt-1 text-sm text-red-600">{errors.github_repo_url}</p>
+                  )}
+                </div>
+
+                {/* URL del Pull Request */}
+                <div>
+                  <label htmlFor="pull_request_url" className="block text-sm font-medium text-gray-700 mb-1">
+                    URL del Pull Request
+                  </label>
+                  <input
+                    id="pull_request_url"
+                    name="pull_request_url"
+                    type="url"
+                    value={formData.pull_request_url}
+                    onChange={handleInputChange}
+                    className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 border-gray-300`}
+                    placeholder="https://github.com/tu-usuario/tu-proyecto/pull/1"
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+            </details>
           </div>
         </div>
       </div>
@@ -335,26 +359,25 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
           {/* Fase */}
           <div>
             <label htmlFor="phase" className="block text-sm font-medium text-gray-700 mb-1">
-              Fase *
+              Fase del Currículum *
             </label>
             <select
               id="phase"
               name="phase"
               value={formData.phase}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.phase ? 'border-red-300' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.phase ? 'border-red-300' : 'border-gray-300'
+                }`}
               disabled={loading}
             >
-              <option value={1}>Fase 1 - Fundamentos</option>
-              <option value={2}>Fase 2 - Frontend Básico</option>
-              <option value={3}>Fase 3 - Backend</option>
-              <option value={4}>Fase 4 - Full-Stack</option>
-              <option value={5}>Fase 5 - Especialización</option>
-              <option value={6}>Fase 6 - Proyectos Reales</option>
-              <option value={7}>Fase 7 - Portafolio</option>
-              <option value={8}>Fase 8 - Profesional</option>
+              <option value={1}>Fase 1 - Fundamentos (JS/HTML/CSS)</option>
+              <option value={2}>Fase 2 - Frontend Avanzado (React/Vite)</option>
+              <option value={3}>Fase 3 - Backend y DB (Node/Express/SQL)</option>
+              <option value={4}>Fase 4 - Full-Stack Aplicado</option>
+              <option value={5}>Fase 5 - Especialización y Patrones</option>
+              <option value={6}>Fase 6 - Proyectos Industriales</option>
+              <option value={7}>Fase 7 - Consolidación de Portafolio</option>
+              <option value={8}>Fase 8 - Preparación Profesional</option>
             </select>
             {errors.phase && (
               <p className="mt-1 text-sm text-red-600">{errors.phase}</p>
@@ -364,7 +387,7 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
           {/* Semana */}
           <div>
             <label htmlFor="week" className="block text-sm font-medium text-gray-700 mb-1">
-              Semana *
+              Semana del Sprint *
             </label>
             <input
               id="week"
@@ -374,9 +397,8 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
               max="100"
               value={formData.week}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.week ? 'border-red-300' : 'border-gray-300'
-              }`}
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.week ? 'border-red-300' : 'border-gray-300'
+                }`}
               disabled={loading}
             />
             {errors.week && (
@@ -389,39 +411,38 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
       {/* Descripción y Objetivos */}
       <div className="bg-white border border-gray-200 rounded-lg p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-4">
-          📝 Descripción y Objetivos
+          🎯 Objetivos de la Auditoría
         </h3>
 
         <div className="space-y-4">
           {/* Descripción */}
           <div>
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
-              Descripción del Proyecto *
+              Contexto de la Tarea *
             </label>
             <textarea
               id="description"
               name="description"
-              rows={4}
+              rows={3}
               value={formData.description}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.description ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="Describe brevemente tu proyecto, las tecnologías utilizadas y su propósito..."
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.description ? 'border-red-300' : 'border-gray-300'
+                }`}
+              placeholder="Describe qué intenta resolver este código o qué lección estás completando..."
               disabled={loading}
             />
             {errors.description && (
               <p className="mt-1 text-sm text-red-600">{errors.description}</p>
             )}
             <p className="mt-1 text-xs text-gray-500">
-              Mínimo 20 caracteres. Sé específico sobre lo que hace tu proyecto.
+              Mínimo 10 caracteres. Ayuda a la IA a entender el propósito del código.
             </p>
           </div>
 
           {/* Objetivos de Aprendizaje */}
           <div>
             <label htmlFor="learning_objectives" className="block text-sm font-medium text-gray-700 mb-1">
-              Objetivos de Aprendizaje *
+              Estándares a Evaluar (Separa con comas) *
             </label>
             <input
               id="learning_objectives"
@@ -429,24 +450,20 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
               type="text"
               value={formData.learning_objectives}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.learning_objectives ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="ej. POO, Encapsulación, Herencia, Polimorfismo"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.learning_objectives ? 'border-red-300' : 'border-gray-300'
+                }`}
+              placeholder="ej. Clean Code, SOLID, Manejo de Errores, Optimización"
               disabled={loading}
             />
             {errors.learning_objectives && (
               <p className="mt-1 text-sm text-red-600">{errors.learning_objectives}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">
-              Separa múltiples objetivos con comas
-            </p>
           </div>
 
           {/* Áreas de Enfoque Específico */}
           <div>
             <label htmlFor="specific_focus" className="block text-sm font-medium text-gray-700 mb-1">
-              Áreas de Enfoque Específico *
+              Dudas o bloqueos específicos *
             </label>
             <input
               id="specific_focus"
@@ -454,18 +471,14 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
               type="text"
               value={formData.specific_focus}
               onChange={handleInputChange}
-              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                errors.specific_focus ? 'border-red-300' : 'border-gray-300'
-              }`}
-              placeholder="ej. Arquitectura de clases, Manejo de errores, Testing"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.specific_focus ? 'border-red-300' : 'border-gray-300'
+                }`}
+              placeholder="ej. Tengo dudas sobre el uso de useEffect, ¿es eficiente este reduce?"
               disabled={loading}
             />
             {errors.specific_focus && (
               <p className="mt-1 text-sm text-red-600">{errors.specific_focus}</p>
             )}
-            <p className="mt-1 text-xs text-gray-500">
-              Separa múltiples áreas con comas. Estas son las áreas donde deseas feedback específico.
-            </p>
           </div>
         </div>
       </div>
@@ -475,22 +488,21 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
         <button
           type="submit"
           disabled={loading}
-          className={`flex-1 py-3 px-4 rounded-lg font-medium transition-colors ${
-            loading
-              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-              : 'bg-blue-600 text-white hover:bg-blue-700'
-          }`}
+          className={`flex-1 py-4 px-4 rounded-xl font-bold text-lg shadow-lg transition-all transform active:scale-95 ${loading
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+            : 'bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-indigo-200'
+            }`}
         >
           {loading ? (
             <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <svg className="animate-spin -ml-1 mr-3 h-6 w-6 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Creando solicitud...
+              Auditoría en proceso...
             </span>
           ) : (
-            '✅ Solicitar Revisión'
+            '🚀 Iniciar Auditoría por IA'
           )}
         </button>
 
@@ -498,24 +510,24 @@ export default function ReviewRequestForm({ onSuccess, onError }) {
           type="button"
           onClick={() => router.back()}
           disabled={loading}
-          className="px-6 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-8 py-4 border-2 border-gray-200 rounded-xl font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-50"
         >
           Cancelar
         </button>
       </div>
 
       {/* Nota informativa */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+      <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-5 shadow-sm">
         <div className="flex items-start">
           <div className="flex-shrink-0">
-            <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            <svg className="h-6 w-6 text-indigo-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-blue-700">
-              <strong>Importante:</strong> Una vez creada la solicitud, un instructor asignará un revisor 
-              dentro de las próximas 24 horas. Recibirás una notificación cuando tu código haya sido revisado.
+          <div className="ml-4">
+            <h4 className="text-sm font-bold text-indigo-900 mb-1">Auditoría Instantánea</h4>
+            <p className="text-xs text-indigo-700 leading-relaxed">
+              El sistema utilizará <strong>Gemini 2.5 Flash</strong> para analizar tu código contra los estándares del currículum de <strong>AI Code Mentor</strong>. Recibirás feedback inmediato, sugerencias de mejora y preguntas reflexivas para consolidar tu aprendizaje.
             </p>
           </div>
         </div>

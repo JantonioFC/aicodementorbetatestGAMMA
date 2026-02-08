@@ -11,6 +11,7 @@ export default function AnalyticsDashboard() {
     const [overview, setOverview] = useState(null);
     const [lessonStats, setLessonStats] = useState(null);
     const [error, setError] = useState(null);
+    const [feedbackData, setFeedbackData] = useState(null);
 
     useEffect(() => {
         fetchAnalytics();
@@ -20,20 +21,23 @@ export default function AnalyticsDashboard() {
         try {
             setLoading(true);
 
-            const [overviewRes, lessonsRes] = await Promise.all([
+            const [overviewRes, lessonsRes, feedbackRes] = await Promise.all([
                 fetch('/api/v1/analytics/overview'),
-                fetch('/api/v1/analytics/lessons?days=30')
+                fetch('/api/v1/analytics/lessons?days=30'),
+                fetch('/api/v1/analytics/feedback')
             ]);
 
-            if (!overviewRes.ok || !lessonsRes.ok) {
+            if (!overviewRes.ok || !lessonsRes.ok || !feedbackRes.ok) {
                 throw new Error('Error fetching analytics');
             }
 
             const overviewData = await overviewRes.json();
             const lessonsData = await lessonsRes.json();
+            const feedbackData = await feedbackRes.json();
 
             setOverview(overviewData.data);
             setLessonStats(lessonsData.data);
+            setFeedbackData(feedbackData.data);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -115,24 +119,58 @@ export default function AnalyticsDashboard() {
                     </div>
                 </section>
 
-                {/* Score Distribution */}
-                <section className="bg-gray-800 rounded-lg p-6 mb-8">
-                    <h2 className="text-xl font-semibold mb-4">📊 Distribución de Scores</h2>
-                    <div className="space-y-3">
-                        {lessonStats?.scoreDistribution?.map((item) => (
-                            <div key={item.grade} className="flex items-center gap-4">
-                                <span className="w-24 text-sm">{item.grade}</span>
-                                <div className="flex-1 bg-gray-700 rounded-full h-6">
-                                    <div
-                                        className={`h-6 rounded-full ${getGradeColor(item.grade)}`}
-                                        style={{ width: `${Math.min(100, item.count * 5)}%` }}
-                                    />
+                {/* Feedback & Satisfaction */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    {/* Difficulty Distribution */}
+                    <section className="bg-gray-800 rounded-lg p-6">
+                        <h2 className="text-xl font-semibold mb-4">🧠 Dificultad de las Lecciones</h2>
+                        <div className="space-y-4">
+                            {['TOO_EASY', 'JUST_RIGHT', 'TOO_HARD'].map(diff => {
+                                const item = feedbackData?.difficulty?.find(d => d.difficulty === diff);
+                                const count = item ? item.count : 0;
+                                const total = feedbackData?.summary?.total || 1;
+                                const percentage = Math.round((count / total) * 100);
+                                const labels = { TOO_EASY: 'Muy Fácil', JUST_RIGHT: 'Adecuada', TOO_HARD: 'Muy Difícil' };
+                                const colors = { TOO_EASY: 'bg-blue-500', JUST_RIGHT: 'bg-green-500', TOO_HARD: 'bg-red-500' };
+
+                                return (
+                                    <div key={diff}>
+                                        <div className="flex justify-between text-sm mb-1">
+                                            <span>{labels[diff]}</span>
+                                            <span>{count} ({percentage}%)</span>
+                                        </div>
+                                        <div className="bg-gray-700 rounded-full h-4">
+                                            <div
+                                                className={`h-4 rounded-full ${colors[diff]}`}
+                                                style={{ width: `${percentage}%` }}
+                                            />
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </section>
+
+                    {/* Recent Comments */}
+                    <section className="bg-gray-800 rounded-lg p-6">
+                        <h2 className="text-xl font-semibold mb-4">💬 Feedback Reciente</h2>
+                        <div className="space-y-4 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar">
+                            {feedbackData?.recentComments?.map((c, i) => (
+                                <div key={i} className="bg-gray-700/50 p-3 rounded border border-gray-600">
+                                    <div className="flex justify-between items-start mb-2">
+                                        <span className="text-xs text-blue-400 font-mono">{c.user_email}</span>
+                                        <span className="text-xs text-yellow-400">{'⭐'.repeat(c.rating)}</span>
+                                    </div>
+                                    <p className="text-sm italic text-gray-200">"{c.comment}"</p>
+                                    <p className="text-[10px] text-gray-500 mt-2">{new Date(c.created_at).toLocaleDateString()}</p>
                                 </div>
-                                <span className="w-16 text-right">{item.count}</span>
-                            </div>
-                        ))}
-                    </div>
-                </section>
+                            ))}
+                            {(!feedbackData?.recentComments || feedbackData.recentComments.length === 0) && (
+                                <p className="text-gray-500 text-center py-8">No hay comentarios aún</p>
+                            )}
+                        </div>
+                    </section>
+                </div>
 
                 {/* Activity by Week */}
                 <section className="bg-gray-800 rounded-lg p-6">

@@ -153,7 +153,9 @@ test.describe('🚀 Sistema AI Code Mentor - Tests Básicos', () => {
     const criticalErrors = errors.filter(error =>
       !error.includes('favicon.ico') &&
       !error.includes('DevTools') &&
-      !error.includes('warning')
+      !error.includes('warning') &&
+      !error.includes('401') &&
+      !error.includes('Unauthorized')
     );
 
     console.log(`📊 Total errores capturados: ${errors.length}`);

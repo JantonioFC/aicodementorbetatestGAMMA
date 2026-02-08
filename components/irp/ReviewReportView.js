@@ -26,17 +26,42 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../lib/auth/useAuth';
+import LessonFeedback from '../common/LessonFeedback';
 
 /**
  * Componente principal de visualización del informe
  */
 export default function ReviewReportView({ reviewId, onClose }) {
   const { getValidInternalToken } = useAuth();
-  
+
   // Estados
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleDownloadMarkdown = async () => {
+    if (!review) return;
+    try {
+      setIsExporting(true);
+      const res = await fetch(`/api/v1/export/markdown?id=${review.review_id}`);
+      if (!res.ok) throw new Error('Error al descargar el informe');
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `IA-Code-Mentor-Review-${review.review_id}.md`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('❌ [EXPORT-UI] Error downloading report:', err);
+      alert('Hubo un problema al generar el archivo de descarga.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   /**
    * Carga los detalles de la revisión
@@ -46,14 +71,14 @@ export default function ReviewReportView({ reviewId, onClose }) {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Obtener token del usuario
         const token = await getValidInternalToken();
-        
+
         if (!token) {
           throw new Error('No se pudo obtener el token de autenticación');
         }
-        
+
         // Llamar al endpoint del sistema principal (proxy)
         const response = await fetch(`/api/v1/irp/reviews/${reviewId}`, {
           method: 'GET',
@@ -62,15 +87,15 @@ export default function ReviewReportView({ reviewId, onClose }) {
             'Content-Type': 'application/json',
           },
         });
-        
+
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || 'Error al cargar la revisión');
         }
-        
+
         const data = await response.json();
         setReview(data);
-        
+
       } catch (err) {
         console.error('[REVIEW-REPORT] Error cargando revisión:', err);
         setError(err.message);
@@ -78,7 +103,7 @@ export default function ReviewReportView({ reviewId, onClose }) {
         setLoading(false);
       }
     };
-    
+
     if (reviewId) {
       fetchReviewDetails();
     }
@@ -119,9 +144,9 @@ export default function ReviewReportView({ reviewId, onClose }) {
         icon: '🟢'
       }
     };
-    
+
     const config = configs[prioridad] || configs['media'];
-    
+
     return (
       <span className={`inline-flex items-center px-2 py-1 text-xs font-semibold rounded-full ${config.bgColor} ${config.textColor}`}>
         <span className="mr-1">{config.icon}</span>
@@ -135,7 +160,7 @@ export default function ReviewReportView({ reviewId, onClose }) {
    */
   const renderFileReference = (archivo, linea) => {
     if (!archivo && !linea) return null;
-    
+
     return (
       <div className="mt-2 flex items-center text-sm text-gray-600">
         <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,24 +184,24 @@ export default function ReviewReportView({ reviewId, onClose }) {
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-4">
         {puntosFuertes.map((punto, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className="bg-white rounded-lg p-4 border-l-4 border-green-500 shadow-sm hover:shadow-md transition-shadow"
           >
             {/* Categoría */}
             <div className="mb-2">
               {renderCategoryBadge(punto.categoria)}
             </div>
-            
+
             {/* Descripción */}
             <p className="text-gray-700 leading-relaxed mb-2">
               {punto.descripcion}
             </p>
-            
+
             {/* Referencia a archivo */}
             {renderFileReference(punto.archivo_referencia, punto.linea_referencia)}
           </div>
@@ -196,12 +221,12 @@ export default function ReviewReportView({ reviewId, onClose }) {
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-4">
         {sugerencias.map((sugerencia, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className="bg-white rounded-lg p-4 border-l-4 border-blue-500 shadow-sm hover:shadow-md transition-shadow"
           >
             {/* Categoría y Prioridad */}
@@ -209,12 +234,12 @@ export default function ReviewReportView({ reviewId, onClose }) {
               {renderCategoryBadge(sugerencia.categoria)}
               {sugerencia.prioridad && renderPriorityBadge(sugerencia.prioridad)}
             </div>
-            
+
             {/* Descripción */}
             <p className="text-gray-700 leading-relaxed mb-2">
               {sugerencia.descripcion}
             </p>
-            
+
             {/* Referencia a archivo */}
             {renderFileReference(sugerencia.archivo_referencia, sugerencia.linea_referencia)}
           </div>
@@ -234,12 +259,12 @@ export default function ReviewReportView({ reviewId, onClose }) {
         </div>
       );
     }
-    
+
     return (
       <div className="space-y-4">
         {preguntas.map((pregunta, index) => (
-          <div 
-            key={index} 
+          <div
+            key={index}
             className="bg-white rounded-lg p-4 border-l-4 border-purple-500 shadow-sm hover:shadow-md transition-shadow"
           >
             {/* Pregunta */}
@@ -249,7 +274,7 @@ export default function ReviewReportView({ reviewId, onClose }) {
                 {pregunta.pregunta}
               </p>
             </div>
-            
+
             {/* Contexto */}
             {pregunta.contexto && (
               <div className="mt-3 pl-7">
@@ -311,9 +336,9 @@ export default function ReviewReportView({ reviewId, onClose }) {
         borderColor: 'border-orange-300'
       }
     };
-    
+
     const config = configs[recommendation] || configs['approve_with_minor_changes'];
-    
+
     return (
       <div className={`inline-flex items-center px-4 py-2 rounded-lg border-2 ${config.bgColor} ${config.textColor} ${config.borderColor}`}>
         <span className="text-xl mr-2">{config.icon}</span>
@@ -375,73 +400,107 @@ export default function ReviewReportView({ reviewId, onClose }) {
   return (
     <div className="space-y-6">
       {/* Header con botón de volver */}
+      {/* Header con acciones */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-800">
-          📋 Informe de Revisión de Código
+          🤖 Informe de Auditoría por IA
         </h1>
-        {onClose && (
+        <div className="flex items-center space-x-3">
           <button
-            onClick={onClose}
-            className="text-gray-600 hover:text-gray-800 flex items-center"
+            onClick={handleDownloadMarkdown}
+            disabled={isExporting}
+            className={`flex items-center space-x-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors border border-slate-300 font-medium text-sm ${isExporting ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Volver al Historial
+            {isExporting ? '⌛ Generando...' : '📝 Descargar Markdown'}
           </button>
-        )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="text-gray-600 hover:text-gray-800 flex items-center bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-100 transition-all font-medium"
+            >
+              <svg className="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Volver al Historial
+            </button>
+          )}
+        </div>
       </div>
 
+      {/* Mensaje del Mentor / Tutor */}
+      {review.mensaje_tutor && (
+        <div className="bg-indigo-600 rounded-2xl p-6 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-10">
+            <svg className="w-24 h-24" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+          </div>
+          <div className="relative z-10">
+            <h3 className="text-indigo-100 text-sm font-bold uppercase tracking-wider mb-2">Comentario de tu Mentor IA</h3>
+            <p className="text-xl font-medium leading-relaxed italic">
+              "{review.mensaje_tutor}"
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Información del Proyecto */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200">
-        <h2 className="text-xl font-semibold text-gray-800 mb-4">
-          🎯 Información del Proyecto
+      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+          <span className="mr-2">📁</span> Contexto de la Auditoría
         </h2>
-        <div className="grid md:grid-cols-2 gap-4">
+        <div className="grid md:grid-cols-2 gap-6">
           <div>
-            <p className="text-sm text-gray-600">Nombre del Proyecto:</p>
+            <p className="text-xs text-gray-500 uppercase font-bold">Proyecto</p>
             <p className="text-lg font-semibold text-gray-800">{review.project_info.project_name}</p>
           </div>
           <div>
-            <p className="text-sm text-gray-600">Fase y Semana:</p>
+            <p className="text-xs text-gray-500 uppercase font-bold">Progreso Curricular</p>
             <p className="text-lg font-semibold text-gray-800">
               Fase {review.project_info.phase} • Semana {review.project_info.week}
             </p>
           </div>
-          <div className="md:col-span-2">
-            <p className="text-sm text-gray-600 mb-2">Repositorio:</p>
-            <a 
-              href={review.project_info.github_repo_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-blue-600 hover:text-blue-800 underline flex items-center"
-            >
-              {review.project_info.github_repo_url}
-              <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
-            </a>
-          </div>
+          {review.project_info.github_repo_url && (
+            <div className="md:col-span-2">
+              <p className="text-xs text-gray-500 uppercase font-bold mb-1">Repositorio en GitHub</p>
+              <a
+                href={review.project_info.github_repo_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-indigo-600 hover:text-indigo-800 font-medium underline flex items-center"
+              >
+                {review.project_info.github_repo_url}
+                <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Metadata de la Revisión */}
-      <div className="bg-white rounded-lg p-6 border border-gray-200">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center">
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 mr-3">
+            <span className="text-xl">🤖</span>
+          </div>
           <div>
-            <p className="text-sm text-gray-600">Revisado por:</p>
-            <p className="text-lg font-semibold text-gray-800">{review.reviewer_info.name}</p>
+            <p className="text-xs text-gray-500 uppercase font-bold">Auditor Asignado</p>
+            <p className="font-semibold text-gray-800">Gemini 2.5 Flash (Curricular Audit Mode)</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-gray-600">Fecha de Revisión:</p>
-            <p className="text-lg font-semibold text-gray-800">
-              {new Date(review.reviewer_info.review_date).toLocaleDateString('es-ES', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-              })}
-            </p>
-          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-xs text-gray-500 uppercase font-bold">Fecha de Auditoría</p>
+          <p className="font-semibold text-gray-800">
+            {new Date(review.reviewer_info.review_date).toLocaleDateString('es-ES', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit'
+            })}
+          </p>
         </div>
       </div>
 
@@ -465,7 +524,7 @@ export default function ReviewReportView({ reviewId, onClose }) {
           {renderRating(review.calificacion_general.arquitectura, 'Arquitectura y Diseño')}
           {renderRating(review.calificacion_general.testing, 'Testing y Calidad')}
           {renderRating(review.calificacion_general.documentacion, 'Documentación')}
-          
+
           <div className="pt-4 mt-4 border-t border-gray-200">
             <div className="flex items-center justify-between py-2">
               <span className="text-lg font-bold text-gray-800">Calificación Total:</span>
@@ -527,6 +586,12 @@ export default function ReviewReportView({ reviewId, onClose }) {
           </div>
         </div>
       </div>
+
+      {/* Sistema de Feedback para Refuerzo de IA */}
+      <LessonFeedback
+        lessonId={review.review_id}
+        sessionId={review.session_id || null}
+      />
 
       {/* Footer con Metodología */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-6 border border-blue-200 text-center">

@@ -141,8 +141,8 @@ export default async function handler(req, res) {
 
 async function processAIReview(reviewRequest, userId) {
   try {
-    const codeContent = await fetchCodeFromGitHub(reviewRequest.github_repo_url);
-    const result = await performAIReview(reviewRequest, codeContent);
+    // performAIReview ahora maneja internamente la prioridad (code_content > github)
+    const result = await performAIReview(reviewRequest);
     if (result.success) {
       await saveAIReview(reviewRequest.id, result.reviewData, userId);
     }
