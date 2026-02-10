@@ -217,7 +217,7 @@ export async function enrichRAGWithExternalSources(ragContext: any): Promise<any
 
     if (urls.length === 0) return { ...ragContext, externalSources: [], armStatus: 'no-sources' };
 
-    const externalSources = [];
+    const externalSources: any[] = [];
     for (const u of urls) {
         const result = await processExternalURL(u.url);
         if (result.status === 'success') {
