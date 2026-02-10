@@ -13,8 +13,8 @@ import {
     handleAIError,
     AllModelsFailedError,
     getUserFriendlyMessage
-} from '../../utils/errorHandler.js';
-import { AppError } from '../../utils/AppError.js';
+} from '../../utils/errorHandler';
+import { AppError } from '../../utils/AppError';
 import { AIProvider, AnalysisRequest, AnalysisResponse } from '../providers/BaseProvider';
 
 /**

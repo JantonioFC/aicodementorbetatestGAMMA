@@ -1,7 +1,7 @@
 /**
  * MOTOR RAG CORE - retrieve_sources() + ARM EXTERNO + ARQUITECTURA FEDERADA
  */
-import { enrichRAGWithExternalSources } from '../arm/external-retriever.js';
+import { enrichRAGWithExternalSources } from '../arm/external-retriever';
 
 // Configuración del sistema RAG
 const RAG_CONFIG = {
@@ -48,7 +48,7 @@ export async function retrieve_sources(weekId: number, includeExternalSources: b
     console.log(`🚀 [RAG FEDERADO] Recuperando datos para semana ${weekId} usando arquitectura federada...`);
 
     // Import dinámico para compatibilidad (permitir que el router federado se migre después si es necesario)
-    const { getWeekDataFederated } = await import('../federated/federated-router.js' as any);
+    const { getWeekDataFederated } = await import('../federated/federated-router' as any);
     const weekData = await (getWeekDataFederated as any)(weekId);
 
     if (!weekData) {
@@ -137,7 +137,7 @@ export async function getPrerequisites(weekId: number): Promise<any[]> {
     const prerequisites: any[] = [];
     const startWeek = Math.max(1, weekId - RAG_CONFIG.MAX_PREREQUISITES);
 
-    const { getWeekDataFederated } = await import('../federated/federated-router.js' as any);
+    const { getWeekDataFederated } = await import('../federated/federated-router' as any);
 
     for (let i = startWeek; i < weekId; i++) {
         try {
