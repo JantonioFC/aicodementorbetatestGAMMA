@@ -2,7 +2,7 @@ import { promptVersionManager } from '../../../lib/prompts/PromptVersionManager'
 
 describe('PromptVersionManager', () => {
     test('should have active version set', () => {
-        expect(promptVersionManager.activeVersion).toBeDefined();
+        expect(promptVersionManager.getActive()).toBeDefined();
     });
 
     test('should list versions', () => {
@@ -19,10 +19,10 @@ describe('PromptVersionManager', () => {
     });
 
     test('should switch active version', () => {
-        const original = promptVersionManager.activeVersion;
+        const original = promptVersionManager.getActive().version;
 
         promptVersionManager.setActive('v1.0.0-base');
-        expect(promptVersionManager.activeVersion).toBe('v1.0.0-base');
+        expect(promptVersionManager.getActive().version).toBe('v1.0.0-base');
 
         // Restore
         promptVersionManager.setActive(original);

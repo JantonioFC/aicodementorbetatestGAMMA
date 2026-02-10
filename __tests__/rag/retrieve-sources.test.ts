@@ -150,7 +150,7 @@ describe('retrieve_sources() - Motor RAG Core', () => {
         getPrerequisites = jest.fn().mockImplementation((weekId: number, curriculumData: any) => {
             if (weekId <= 1) return [];
 
-            const prerequisites = [];
+            const prerequisites: { weekId: number; title: any; keyTopics: any }[] = [];
             for (let i = Math.max(1, weekId - 3); i < weekId; i++) {
                 const prevWeek = findWeekInCurriculum(curriculumData, i);
                 if (prevWeek) {

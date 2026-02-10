@@ -130,7 +130,7 @@ export async function retrieveDocumentationForCode(codeSnippet: string, technolo
     if (entities.length === 0) return [];
 
     const techIndex = await getTechnologyIndex(detectedTechnology);
-    const documentationResults = [];
+    const documentationResults: any[] = [];
     const maxEntities = Math.min(entities.length, 5);
 
     for (let i = 0; i < maxEntities; i++) {

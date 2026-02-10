@@ -61,15 +61,15 @@ describe('TokenBudgetManager', () => {
 
             const result = manager.fitWithinBudget(components);
             expect(result.wasAdjusted).toBe(true);
-            expect(result.components.fewShot.length).toBeLessThan(longFewShot.length);
+            expect(result.components.fewShot!.length).toBeLessThan(longFewShot.length);
         });
     });
 });
 
 describe('Preset Budgets', () => {
     test('GEMINI_PRO_BUDGET has correct configuration', () => {
-        expect(GEMINI_PRO_BUDGET.maxTokens).toBe(30000);
-        expect(GEMINI_PRO_BUDGET.reservedForOutput).toBe(4000);
-        expect(GEMINI_PRO_BUDGET.availableBudget).toBe(26000);
+        expect((GEMINI_PRO_BUDGET as any).maxTokens).toBe(30000);
+        expect((GEMINI_PRO_BUDGET as any).reservedForOutput).toBe(4000);
+        expect((GEMINI_PRO_BUDGET as any).availableBudget).toBe(26000);
     });
 });

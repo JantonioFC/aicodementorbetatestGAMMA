@@ -86,7 +86,7 @@ export async function getWeekDataFederated(weekId: number): Promise<any> {
 export function findWeekInPhase(phaseData: any, weekId: number): any {
     for (const semana of phaseData.semanas || []) {
         if (semana.numero === weekId) {
-            let moduloData = null;
+            let moduloData: { modulo: any; tituloModulo: any } | null = null;
             for (const modulo of phaseData.modulos || []) {
                 if (modulo.semanas && modulo.semanas.includes(weekId)) {
                     moduloData = { modulo: modulo.numero, tituloModulo: modulo.titulo };
