@@ -24,7 +24,7 @@ export default function AchievementsWidget() {
     const fetchUserAchievements = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/achievements');
+            const response = await fetch('/api/v1/achievements');
             const result = await response.json();
             if (result.success) {
                 setAchievements(result.achievements);
@@ -40,7 +40,7 @@ export default function AchievementsWidget() {
     const checkForNewAchievements = async () => {
         try {
             setChecking(true);
-            const response = await fetch('/api/achievements/check', { method: 'POST' });
+            const response = await fetch('/api/v1/achievements/check', { method: 'POST' });
             const result = await response.json();
             if (result.success && result.summary.hasNewAchievements) {
                 await fetchUserAchievements();

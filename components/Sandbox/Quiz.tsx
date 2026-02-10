@@ -12,20 +12,20 @@ interface Exercise {
 interface QuizProps {
     exercise: Exercise | string;
     questionNumber: number;
+    lessonId: string;
+    topic?: string;
 }
 
-export default function Quiz({ exercise, questionNumber }: QuizProps) {
+export default function Quiz(props: QuizProps) {
+    const { exercise, questionNumber, lessonId, topic } = props;
     const [userSelection, setUserSelection] = useState<number | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [isCorrect, setIsCorrect] = useState(false);
 
     const ex = typeof exercise === 'string' ? { question: exercise } : exercise;
 
-    const handleSelectOption = (selectedOptionIndex: number, selectedOption: string) => {
+    const handleSelectOption = async (selectedOptionIndex: number, selectedOption: string) => {
         if (isAnswered) return;
-
-        setUserSelection(selectedOptionIndex);
-        setIsAnswered(true);
 
         let isAnswerCorrect = false;
         if (typeof ex.correctAnswerIndex === 'number') {
@@ -37,7 +37,27 @@ export default function Quiz({ exercise, questionNumber }: QuizProps) {
                 selectedOption.trim().toLowerCase() === ex.correctAnswer.trim().toLowerCase();
         }
 
+        setUserSelection(selectedOptionIndex);
+        setIsAnswered(true);
         setIsCorrect(isAnswerCorrect);
+
+        // Persist attempt (Phase 11: Automation)
+        try {
+            await fetch('/api/v1/quizzes/attempt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lessonId,
+                    questionIndex: questionNumber - 1,
+                    userAnswer: selectedOptionIndex,
+                    correctAnswer: ex.correctAnswerIndex,
+                    isCorrect: isAnswerCorrect,
+                    topic
+                })
+            });
+        } catch (error) {
+            console.error('[Quiz] Error saving attempt:', error);
+        }
     };
 
     const getOptionStyle = (optionIndex: number) => {

@@ -11,9 +11,12 @@ interface QuizExercise {
 
 interface InteractiveQuizProps {
     exercises: QuizExercise[];
+    lessonId: string;
+    topic?: string;
 }
 
-export default function InteractiveQuiz({ exercises }: InteractiveQuizProps) {
+export default function InteractiveQuiz(props: InteractiveQuizProps) {
+    const { exercises } = props;
     const [quizState, setQuizState] = useState(() =>
         exercises.map(() => ({
             userSelection: null as number | null,
@@ -21,9 +24,12 @@ export default function InteractiveQuiz({ exercises }: InteractiveQuizProps) {
         }))
     );
 
-    const handleAnswerSelection = (questionIndex: number, optionIndex: number) => {
+    const handleAnswerSelection = async (questionIndex: number, optionIndex: number) => {
         if (quizState[questionIndex].isAnswered) return;
 
+        const isCorrect = optionIndex === exercises[questionIndex].correctAnswerIndex;
+
+        // Optimistic UI update
         setQuizState(prev => {
             const newState = [...prev];
             newState[questionIndex] = {
@@ -32,6 +38,24 @@ export default function InteractiveQuiz({ exercises }: InteractiveQuizProps) {
             };
             return newState;
         });
+
+        // Persist attempt (Phase 11: Automation)
+        try {
+            await fetch('/api/v1/quizzes/attempt', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    lessonId: props.lessonId,
+                    questionIndex,
+                    userAnswer: optionIndex,
+                    correctAnswer: exercises[questionIndex].correctAnswerIndex,
+                    isCorrect,
+                    topic: props.topic
+                })
+            });
+        } catch (error) {
+            console.error('[Quiz] Error saving attempt:', error);
+        }
     };
 
     const resetAllQuiz = () => {

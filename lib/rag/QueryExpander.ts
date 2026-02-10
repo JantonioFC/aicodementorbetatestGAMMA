@@ -42,7 +42,7 @@ export class QueryExpander {
             }
         }
 
-        return [...new Set(queries)]; // Eliminar duplicados
+        return Array.from(new Set(queries)); // Eliminar duplicados
     }
 
     /**
@@ -101,7 +101,7 @@ Contexto: Plataforma educativa de programación para niños (Scratch, pensamient
 
         if (options.useLLM) {
             const llmExpansions = await this.expandWithLLM(query);
-            return [...new Set([...localExpansions, ...llmExpansions])];
+            return Array.from(new Set([...localExpansions, ...llmExpansions]));
         }
 
         return localExpansions;
@@ -143,7 +143,7 @@ Contexto: Plataforma educativa de programación para niños (Scratch, pensamient
      */
     addSynonyms(term: string, synonyms: string[]): void {
         const existing = this.synonyms[term.toLowerCase()] || [];
-        this.synonyms[term.toLowerCase()] = [...new Set([...existing, ...synonyms])];
+        this.synonyms[term.toLowerCase()] = Array.from(new Set([...existing, ...synonyms]));
     }
 }
 

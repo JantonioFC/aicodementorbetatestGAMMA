@@ -5,12 +5,14 @@ import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import PrivateLayout from '@/components/layout/PrivateLayout';
 import EnhancedProgressDashboard from '@/components/dashboard/EnhancedProgressDashboard';
 import AchievementsWidget from '@/components/dashboard/AchievementsWidget';
+import MasteryDashboard from '@/components/dashboard/MasteryDashboard';
 
 export default function AnaliticasPage() {
-    const [activeTab, setActiveTab] = useState<'progress' | 'achievements'>('progress');
+    const [activeTab, setActiveTab] = useState<'progress' | 'achievements' | 'mastery'>('progress');
 
     const tabs = [
         { id: 'progress', label: 'Dashboard de Progreso', icon: '📊' },
+        { id: 'mastery', label: 'Maestría y Competencias', icon: '🎓' },
         { id: 'achievements', label: 'Sistema de Logros', icon: '🏆' },
     ] as const;
 
@@ -49,7 +51,7 @@ export default function AnaliticasPage() {
 
                     {/* Content */}
                     <div className="min-h-[500px] transition-all duration-300">
-                        {activeTab === 'progress' ? (
+                        {activeTab === 'progress' && (
                             <div className="animate-in fade-in slide-in-from-bottom-2">
                                 <div className="mb-4">
                                     <h2 className="text-xl font-bold text-gray-800">📊 Dashboard de Progreso</h2>
@@ -57,7 +59,17 @@ export default function AnaliticasPage() {
                                 </div>
                                 <EnhancedProgressDashboard />
                             </div>
-                        ) : (
+                        )}
+                        {activeTab === 'mastery' && (
+                            <div className="animate-in fade-in slide-in-from-bottom-2">
+                                <div className="mb-4">
+                                    <h2 className="text-xl font-bold text-gray-800">🎓 Maestría y Competencias</h2>
+                                    <p className="text-sm text-gray-500">Tu perfil dinámico de habilidades y conocimientos</p>
+                                </div>
+                                <MasteryDashboard />
+                            </div>
+                        )}
+                        {activeTab === 'achievements' && (
                             <div className="animate-in fade-in slide-in-from-bottom-2">
                                 <div className="mb-4">
                                     <h2 className="text-xl font-bold text-gray-800">🏆 Sistema de Logros</h2>

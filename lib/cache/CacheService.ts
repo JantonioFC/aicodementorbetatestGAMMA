@@ -1,7 +1,7 @@
 
 import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 
 interface CacheEntry {
     value: any;

@@ -1,7 +1,6 @@
-
 import Database from 'better-sqlite3';
-import path from 'path';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
 
 // Configuration
 const DB_PATH = path.join(process.cwd(), 'database', 'sqlite', 'curriculum.db');

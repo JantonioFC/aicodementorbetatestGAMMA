@@ -1,9 +1,8 @@
-
 import { ClarityGate, LowConfidenceError } from '../ai/ClarityGate';
-// @ts-ignore: Legacy JS imports
 import { queryExpander } from '../rag/QueryExpander';
-// @ts-ignore: Legacy JS imports
 import { contentRetriever } from '../rag/ContentRetriever';
+import { competencyService } from './CompetencyService';
+import { agentOrchestrator } from '../agents/AgentOrchestrator';
 import { lessonService, LessonRequest, LessonContent } from './LessonService';
 import { logger } from '../utils/logger';
 
@@ -24,6 +23,18 @@ export class SmartLessonGenerator {
      * 4. Generation
      */
     async generateWithAutonomy(params: LessonRequest): Promise<LessonContent> {
+        let currentDifficulty = params.difficulty;
+
+        // --- Mastery-Based Difficulty Suggestion (Phase 11) ---
+        if (params.userId && (!params.difficulty || params.difficulty === 'auto')) {
+            const suggestion = await competencyService.suggestDifficulty(params.userId, params.topic);
+            logger.info(`[SmartGen] Difficulty suggestion for ${params.topic}: Level ${suggestion.level} (${suggestion.reason})`);
+
+            // Map level to string difficulty
+            const difficultyMap: Record<number, string> = { 1: 'beginner', 2: 'intermediate', 3: 'advanced' };
+            currentDifficulty = difficultyMap[suggestion.level] || 'beginner';
+        }
+
         let retrievalContext: string[] = await this._retrieve(params.topic);
         let retries = 0;
         let clarityPass = false;
@@ -63,10 +74,28 @@ export class SmartLessonGenerator {
 
         // --- Generation Phase ---
         // Inject validated context into params for the base service
-        return lessonService.generateLesson({
+        const initialLesson = await lessonService.generateLesson({
             ...params,
+            difficulty: currentDifficulty,
             injectedContext: retrievalContext
         });
+
+        // --- Multi-Agent Refinement Phase (Phase 11) ---
+        const refinedContent = await agentOrchestrator.orchestrate(initialLesson.content, {
+            userId: params.userId,
+            topic: params.topic,
+            difficulty: currentDifficulty,
+            language: params.language || 'es'
+        });
+
+        return {
+            ...initialLesson,
+            content: refinedContent,
+            metadata: {
+                ...initialLesson.metadata,
+                refinedByAgents: true
+            }
+        };
     }
 
     private async _retrieve(query: string): Promise<string[]> {

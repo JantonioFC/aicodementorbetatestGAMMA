@@ -6,8 +6,10 @@ import { useAPITracking } from '../../contexts/APITrackingContext';
 import Quiz from './Quiz';
 import HistoryPanel from './HistoryPanel';
 import ExportButton from './ExportButton';
+import MentorTip from '../mentorship/MentorTip';
 
 interface ProcessedLesson {
+    id?: string;
     title: string;
     lesson: string;
     exercises: any[];
@@ -64,6 +66,7 @@ export default function SandboxWidget() {
 
             const rawData = await response.json();
             setGeneratedContent({
+                id: rawData.id,
                 title: rawData.title || 'Lección Generada',
                 lesson: rawData.lesson || '',
                 exercises: Array.isArray(rawData.exercises) ? rawData.exercises : [],
@@ -120,6 +123,8 @@ export default function SandboxWidget() {
 
                 {generatedContent && (
                     <div className="space-y-6 animate-in fade-in">
+                        <MentorTip topic={generatedContent.title} />
+
                         <div className="bg-white rounded-xl shadow p-8 border">
                             <h1 className="text-4xl font-black text-gray-900 mb-6">{generatedContent.title}</h1>
                             <div className="prose max-w-none">{formatMarkdownContent(generatedContent.lesson)}</div>
@@ -128,7 +133,15 @@ export default function SandboxWidget() {
                         {generatedContent.exercises.length > 0 && (
                             <div className="space-y-4">
                                 <h3 className="text-xl font-bold text-gray-800">🎯 Ejercicios Interactivos</h3>
-                                {generatedContent.exercises.map((ex, i) => <Quiz key={i} exercise={ex} questionNumber={i + 1} />)}
+                                {generatedContent.exercises.map((ex, i) => (
+                                    <Quiz
+                                        key={i}
+                                        exercise={ex}
+                                        questionNumber={i + 1}
+                                        lessonId={generatedContent.id || 'sandbox'}
+                                        topic={generatedContent.title}
+                                    />
+                                ))}
                             </div>
                         )}
                     </div>

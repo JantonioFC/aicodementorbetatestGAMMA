@@ -6,8 +6,8 @@
  * @module lib/ai/discovery/ModelDiscovery
  */
 
-import fs from 'fs';
-import path from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 const CONFIG_PATH = path.join(process.cwd(), 'lib', 'ai', 'config', 'models.json');
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
