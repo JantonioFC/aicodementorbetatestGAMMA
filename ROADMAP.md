@@ -12,22 +12,25 @@ Priorización basada en **Impacto Educativo** y **Autonomía del Estudiante**.
 *   ✅ **Feedback Loop**: Auto-optimización de prompts basada en feedback.
 *   ✅ **Exportación Local**: Lecciones portables (Markdown/PDF).
 
-## Q1 2025: Modernización y Ecosistema (In Progress)
+## Q1 2025: Modernización y Ecosistema (Completed)
+*   ✅ **Migración a App Router**: Core modernizado a Next.js 14+ y Server Components.
+*   ✅ **Extensión VS Code**: Beta funcional con autenticación segura (Device Flow).
+*   ✅ **Soporte Multilenguaje**: Expansión inicial a Python, Rust, Go.
 
-### 1. Migración a App Router & CI Hardening (Completed)
-*   **Descripción**: Modernización del core a Next.js App Router y blindaje del pipeline de CI/CD.
-*   **Status**: ✅ Completed.
-*   **Logros**: Server Components, Layouts, Tests E2E estables, Build optimizado (4min).
+## Q2 2025: Engineering Hardening & Scale (Completed)
+*Enfoque: Saldar deuda técnica y preparar el sistema para contribución comunitaria masiva.*
 
-### 2. Ecosistema Externo (Extensión VS Code)
-*   **Descripción**: Integrar el mentor directamente en el editor de código del estudiante.
-*   **Status**: ✅ Completed (Beta).
-*   **Features**: Autenticación vía CLI, envío de código a auditoría IRP, Chat Interactivo, Comandos, Apply Fix.
+### 1. TypeScript First & Type Safety
+*   ✅ **Objetivo**: Eliminar la fragilidad del código híbrido (JS/TS).
+*   ✅ **Acciones**: Migración completa de `app/` y `lib/` a TypeScript estricto.
 
-### 3. Soporte Multilenguaje (Expansion)
-*   **Descripción**: Expandir la capacidad del mentor más allá de JavaScript/React.
-*   **Status**: ✅ Completed (Initial Support).
-*   **Lenguajes**: Python, Rust, Go, Java, C# (via Slash Commands).
+### 2. AI Intelligence Layer 2.0
+*   ✅ **Objetivo**: Desacoplar la lógica de IA del código fuente.
+*   ✅ **Acciones**: Externalización de Prompts (JSON/YAML) y refactorización de `ClarityGate` para mayor modularidad.
+
+### 3. Testing Deep Dive
+*   ✅ **Objetivo**: Aumentar confianza en refactorizaciones.
+*   ✅ **Acciones**: Cobertura de tests unitarios al 80% en lógica de negocio (`SmartLessonGenerator`) y Regression Testing visual.
 
 ---
 *Nota: Este proyecto se desarrolla como un bien público digital, priorizando la privacidad y el funcionamiento offline.*

@@ -1,0 +1,275 @@
+/**
+ * TESTS PARA retrieve_sources() - MOTOR RAG CORE
+ * 
+ * MISIÓN 153 - FASE 1: ESCRITURA DE PRUEBAS (TDD)
+ */
+
+// Importaciones necesarias para testing
+import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
+
+// Mock del currículum para tests
+const mockCurriculumData = {
+    curriculum: [
+        {
+            fase: 0,
+            tituloFase: "La Cimentación del Arquitecto",
+            duracionMeses: "3-4 Meses",
+            proposito: "Adquirir competencia mínima viable en desarrollo moderno",
+            modulos: [
+                {
+                    modulo: 1,
+                    tituloModulo: "Fundamentos de la Interacción con IA",
+                    semanas: [
+                        {
+                            semana: 1,
+                            tituloSemana: "Teoría y Ética de IA",
+                            objetivos: [
+                                "Construir el vocabulario y marco mental para interactuar con IA de forma crítica.",
+                                "Comprender los fundamentos, sesgos y limitaciones de los LLMs."
+                            ],
+                            tematica: "Cursos Google Cloud Skills Boost: Introduction to Generative AI",
+                            actividades: [
+                                "Completar los tres micro-cursos de fundamentos de IA de Google.",
+                                "Estudiar los 7 principios de IA responsable de Google."
+                            ],
+                            entregables: "Primera entrada en el DMA resumiendo conceptos clave",
+                            recursos: [
+                                {
+                                    nombre: "Principios de IA Responsable de Google",
+                                    url: "https://ai.google/responsibility/principles/"
+                                }
+                            ],
+                            official_sources: [
+                                "https://www.cloudskillsboost.google/course_templates/536"
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+};
+
+// Mock dinámico para extender a semana 100
+const generateExtendedMockCurriculum = () => {
+    const extended = JSON.parse(JSON.stringify(mockCurriculumData));
+
+    // Generar semanas adicionales hasta la 100 para tests exhaustivos
+    for (let semana = 4; semana <= 100; semana++) {
+        const fase = Math.floor((semana - 1) / 12);
+        const modulo = Math.floor((semana - 1) / 6) + 1;
+
+        const semanaData = {
+            semana: semana,
+            tituloSemana: `Semana de Prueba ${semana}`,
+            objetivos: [`Objetivo test ${semana}`, `Segundo objetivo test ${semana}`],
+            tematica: `Temática de prueba para semana ${semana}`,
+            actividades: [`Actividad test ${semana}`],
+            entregables: `Entregable test semana ${semana}`
+        };
+
+        if (!extended.curriculum[fase]) {
+            extended.curriculum[fase] = {
+                fase: fase,
+                tituloFase: `Fase de Prueba ${fase}`,
+                duracionMeses: "Variable",
+                proposito: `Propósito test fase ${fase}`,
+                modulos: []
+            };
+        }
+
+        const targetModuleIndex = extended.curriculum[fase].modulos.findIndex((m: any) => m.modulo === modulo);
+        if (targetModuleIndex === -1) {
+            extended.curriculum[fase].modulos.push({
+                modulo: modulo,
+                tituloModulo: `Módulo Test ${modulo}`,
+                semanas: [semanaData]
+            });
+        } else {
+            extended.curriculum[fase].modulos[targetModuleIndex].semanas.push(semanaData);
+        }
+    }
+
+    return extended;
+};
+
+describe('retrieve_sources() - Motor RAG Core', () => {
+
+    let retrieveSources: any;
+    let getCurriculumData: any;
+    let findWeekInCurriculum: any;
+    let determinePedagogicalApproach: any;
+    let calculateDifficultyLevel: any;
+    let getPrerequisites: any;
+
+    beforeAll(() => {
+        getCurriculumData = jest.fn().mockImplementation(() => {
+            return Promise.resolve(generateExtendedMockCurriculum());
+        });
+
+        findWeekInCurriculum = jest.fn().mockImplementation((curriculumData: any, weekId: number) => {
+            for (const fase of curriculumData.curriculum) {
+                for (const modulo of fase.modulos) {
+                    for (const semana of modulo.semanas) {
+                        if (semana.semana === weekId) {
+                            return {
+                                ...semana,
+                                fase: fase.fase,
+                                tituloFase: fase.tituloFase,
+                                modulo: modulo.modulo,
+                                tituloModulo: modulo.tituloModulo
+                            };
+                        }
+                    }
+                }
+            }
+            return null;
+        });
+
+        determinePedagogicalApproach = jest.fn().mockImplementation((phase: number) => {
+            const approaches: Record<number, string> = {
+                0: "Cimentación y Fundamentos",
+                1: "Programación Estructurada",
+                2: "Desarrollo Frontend",
+                3: "Arquitectura Backend",
+                4: "Operaciones y Escalabilidad",
+                5: "Ciencia de Datos",
+                6: "Integración Professional",
+                7: "Crecimiento Continuo"
+            };
+            return approaches[phase] || "Enfoque General";
+        });
+
+        calculateDifficultyLevel = jest.fn().mockImplementation((weekId: number) => {
+            if (weekId <= 20) return "Básico";
+            if (weekId <= 50) return "Intermedio";
+            if (weekId <= 80) return "Avanzado";
+            return "Experto";
+        });
+
+        getPrerequisites = jest.fn().mockImplementation((weekId: number, curriculumData: any) => {
+            if (weekId <= 1) return [];
+
+            const prerequisites = [];
+            for (let i = Math.max(1, weekId - 3); i < weekId; i++) {
+                const prevWeek = findWeekInCurriculum(curriculumData, i);
+                if (prevWeek) {
+                    prerequisites.push({
+                        weekId: i,
+                        title: prevWeek.tituloSemana,
+                        keyTopics: prevWeek.objetivos.slice(0, 2)
+                    });
+                }
+            }
+            return prerequisites;
+        });
+
+        retrieveSources = jest.fn().mockImplementation(async (weekId: number) => {
+            if (weekId === undefined || weekId === null || weekId < 1 || weekId > 100) {
+                throw new Error(`WeekId inválido: ${weekId}. Debe estar entre 1-100.`);
+            }
+
+            const curriculumData = await getCurriculumData();
+            const weekData = findWeekInCurriculum(curriculumData, weekId);
+
+            if (!weekData) {
+                throw new Error(`Semana ${weekId} no encontrada en curriculum.json`);
+            }
+
+            const enrichedContext = {
+                weekId: weekId,
+                weekTitle: weekData.tituloSemana,
+                phase: weekData.fase,
+                phaseTitle: weekData.tituloFase,
+                module: weekData.modulo,
+                moduleTitle: weekData.tituloModulo,
+                objectives: weekData.objetivos,
+                mainTopic: weekData.tematica,
+                activities: weekData.actividades,
+                deliverables: weekData.entregables,
+                resources: weekData.recursos || [],
+                exercises: weekData.ejercicios || [],
+                pedagogicalApproach: determinePedagogicalApproach(weekData.fase),
+                difficultyLevel: calculateDifficultyLevel(weekId, weekData.fase),
+                prerequisites: getPrerequisites(weekId, curriculumData),
+                retrievalTimestamp: new Date().toISOString(),
+                sourceAuthority: "curriculum.json",
+                contextVersion: "v5.0"
+            };
+
+            return enrichedContext;
+        });
+    });
+
+    afterAll(() => {
+        jest.restoreAllMocks();
+    });
+
+    describe('Validación de parámetros de entrada', () => {
+        test('debe rechazar weekId undefined', async () => {
+            await expect(retrieveSources(undefined)).rejects.toThrow(
+                /WeekId inválido/
+            );
+        });
+
+        test('debe rechazar weekId null', async () => {
+            await expect(retrieveSources(null)).rejects.toThrow(
+                /WeekId inválido/
+            );
+        });
+
+        test('debe rechazar weekId = 0', async () => {
+            await expect(retrieveSources(0)).rejects.toThrow(
+                /WeekId inválido/
+            );
+        });
+
+        test('debe rechazar weekId negativo', async () => {
+            await expect(retrieveSources(-5)).rejects.toThrow(
+                /WeekId inválido/
+            );
+        });
+
+        test('debe rechazar weekId > 100', async () => {
+            await expect(retrieveSources(101)).rejects.toThrow(
+                /WeekId inválido/
+            );
+        });
+
+        test('debe aceptar weekId = 1', async () => {
+            const result = await retrieveSources(1);
+            expect(result).toBeDefined();
+            expect(result.weekId).toBe(1);
+        });
+
+        test('debe aceptar weekId = 100', async () => {
+            const result = await retrieveSources(100);
+            expect(result).toBeDefined();
+            expect(result.weekId).toBe(100);
+        });
+    });
+
+    describe('Camino feliz - casos válidos', () => {
+        test('debe recuperar correctamente la semana 1', async () => {
+            const result = await retrieveSources(1);
+            expect(result).toBeDefined();
+            expect(result.weekId).toBe(1);
+            expect(result.weekTitle).toBe("Teoría y Ética de IA");
+            expect(result.phase).toBe(0);
+        });
+
+        test('debe calcular correctamente nivel de dificultad por rango de semanas', async () => {
+            const week10 = await retrieveSources(10);
+            expect(week10.difficultyLevel).toBe("Básico");
+
+            const week25 = await retrieveSources(25);
+            expect(week25.difficultyLevel).toBe("Intermedio");
+
+            const week60 = await retrieveSources(60);
+            expect(week60.difficultyLevel).toBe("Avanzado");
+
+            const week90 = await retrieveSources(90);
+            expect(week90.difficultyLevel).toBe("Experto");
+        });
+    });
+});

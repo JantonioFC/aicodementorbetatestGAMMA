@@ -1,0 +1,44 @@
+
+> ai-code-mentor@0.1.0 build
+> npm run validate-env && next build
+
+
+> ai-code-mentor@0.1.0 validate-env
+> node validate-env.js
+
+✅ Validación de entorno exitosa: Todas las variables requeridas están presentes.
+[@sentry/nextjs] DEPRECATION WARNING: autoInstrumentServerFunctions is deprecated and will be removed in a future version. Use webpack.autoInstrumentServerFunctions instead.
+[@sentry/nextjs] DEPRECATION WARNING: autoInstrumentAppDirectory is deprecated and will be removed in a future version. Use webpack.autoInstrumentAppDirectory instead.
+[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+   ▲ Next.js 15.4.11
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · clientTraceMetadata
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)
+[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+ ✓ Compiled successfully in 74s
+   Linting and checking validity of types ...
+
+./components/ProjectTracking/EnhancedUnifiedDashboard.tsx
+32:8  Warning: React Hook useEffect has a missing dependency: 'loadDashboardData'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/Sandbox/HistoryPanel.tsx
+41:8  Warning: React Hook useEffect has a missing dependency: 'fetchHistory'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./app/peer-review/page.tsx:22:19
+Type error: Property 'internalToken' does not exist on type 'AuthContextType'.
+
+[0m [90m 20 |[39m
+ [90m 21 |[39m [36mexport[39m [36mdefault[39m [36mfunction[39m [33mPeerReviewPage[39m() {
+[31m[1m>[22m[39m[90m 22 |[39m     [36mconst[39m { user[33m,[39m internalToken } [33m=[39m useAuth()[33m;[39m
+ [90m    |[39m                   [31m[1m^[22m[39m
+ [90m 23 |[39m     [36mconst[39m [activeView[33m,[39m setActiveView] [33m=[39m useState[33m<[39m[33mView[39m[33m>[39m([32m'dashboard'[39m)[33m;[39m
+ [90m 24 |[39m     [36mconst[39m [selectedReviewId[33m,[39m setSelectedReviewId] [33m=[39m useState[33m<[39m[33mstring[39m [33m|[39m [36mnull[39m[33m>[39m([36mnull[39m)[33m;[39m
+ [90m 25 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null

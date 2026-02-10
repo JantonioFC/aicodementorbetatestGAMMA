@@ -15,8 +15,8 @@ module.exports = {
 
     // Test file patterns
     testMatch: [
-        '**/__tests__/**/*.test.js',
-        '**/tests/**/*.test.js'
+        '**/__tests__/**/*.test.(js|ts|tsx)',
+        '**/tests/**/*.test.(js|ts|tsx)'
     ],
 
     // Transform ESM to CommonJS for Jest
@@ -40,10 +40,10 @@ module.exports = {
             displayName: 'node',
             testEnvironment: 'node',
             testMatch: [
-                '**/__tests__/**/*.test.js',
-                '**/tests/prompts/**/*.test.js',
-                '**/tests/integration/**/*.test.js',
-                '**/tests/unit/**/*.test.js'
+                '**/__tests__/**/*.test.(js|ts|tsx)',
+                '**/tests/prompts/**/*.test.(js|ts|tsx)',
+                '**/tests/integration/**/*.test.(js|ts|tsx)',
+                '**/tests/unit/**/*.test.(js|ts|tsx)'
             ],
             testPathIgnorePatterns: [
                 '/node_modules/',
@@ -58,8 +58,8 @@ module.exports = {
             displayName: 'react',
             testEnvironment: 'jsdom',
             testMatch: [
-                '**/tests/TemplateSelector.test.js',
-                '**/tests/components/**/*.test.js'
+                '**/tests/TemplateSelector.test.(js|ts|tsx)',
+                '**/tests/components/**/*.test.(js|ts|tsx)'
             ],
             testPathIgnorePatterns: [
                 '/node_modules/',

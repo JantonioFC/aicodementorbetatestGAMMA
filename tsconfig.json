@@ -6,6 +6,10 @@
       "dom.iterable",
       "esnext"
     ],
+    "types": [
+      "node",
+      "jest"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": false,
@@ -18,6 +22,7 @@
     "isolatedModules": true,
     "jsx": "preserve",
     "incremental": true,
+    "downlevelIteration": true,
     "baseUrl": ".",
     "paths": {
       "@/*": [

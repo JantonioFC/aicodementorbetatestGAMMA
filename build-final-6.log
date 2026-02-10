@@ -1,0 +1,45 @@
+
+> ai-code-mentor@0.1.0 build
+> npm run validate-env && next build
+
+
+> ai-code-mentor@0.1.0 validate-env
+> node validate-env.js
+
+✅ Validación de entorno exitosa: Todas las variables requeridas están presentes.
+[@sentry/nextjs] DEPRECATION WARNING: autoInstrumentServerFunctions is deprecated and will be removed in a future version. Use webpack.autoInstrumentServerFunctions instead.
+[@sentry/nextjs] DEPRECATION WARNING: autoInstrumentAppDirectory is deprecated and will be removed in a future version. Use webpack.autoInstrumentAppDirectory instead.
+[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+   ▲ Next.js 15.4.11
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · clientTraceMetadata
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)
+[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+ ✓ Compiled successfully in 39.0s
+   Linting and checking validity of types ...
+
+./components/ProjectTracking/EnhancedUnifiedDashboard.tsx
+32:8  Warning: React Hook useEffect has a missing dependency: 'loadDashboardData'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./components/Sandbox/HistoryPanel.tsx
+41:8  Warning: React Hook useEffect has a missing dependency: 'fetchHistory'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./components/ProjectTracking/TemplateModal.tsx:158:41
+Type error: Type '(field: string, value: any) => void' is not assignable to type 'ChangeEventHandler<HTMLInputElement, HTMLInputElement>'.
+  Target signature provides too few arguments. Expected 2 or more, but got 1.
+
+[0m [90m 156 |[39m                                         type[33m=[39m{type [36mas[39m any}
+ [90m 157 |[39m                                         value[33m=[39m{metadata[field]}
+[31m[1m>[22m[39m[90m 158 |[39m                                         onChange[33m=[39m{handleMetadataChange}
+ [90m     |[39m                                         [31m[1m^[22m[39m
+ [90m 159 |[39m                                         label[33m=[39m{getFieldLabel(field)}
+ [90m 160 |[39m                                     [33m/[39m[33m>[39m
+ [90m 161 |[39m                                 ))}[0m
+Next.js build worker exited with code: 1 and signal: null

@@ -1,0 +1,73 @@
+
+> ai-code-mentor@0.1.0 build
+> npm run validate-env && next build
+
+
+> ai-code-mentor@0.1.0 validate-env
+> node validate-env.js
+
+✅ Validación de entorno exitosa: Todas las variables requeridas están presentes.
+[@sentry/nextjs] DEPRECATION WARNING: autoInstrumentServerFunctions is deprecated and will be removed in a future version. Use webpack.autoInstrumentServerFunctions instead.
+[@sentry/nextjs] DEPRECATION WARNING: autoInstrumentAppDirectory is deprecated and will be removed in a future version. Use webpack.autoInstrumentAppDirectory instead.
+[@sentry/nextjs] DEPRECATION WARNING: disableLogger is deprecated and will be removed in a future version. Use webpack.treeshake.removeDebugLogging instead.
+   ▲ Next.js 15.4.11
+   - Environments: .env.local
+   - Experiments (use with caution):
+     · clientTraceMetadata
+     · optimizePackageImports
+
+   Creating an optimized production build ...
+[@sentry/nextjs] It seems like you don't have a global error handler set up. It is recommended that you add a 'global-error.js' file with Sentry instrumentation so that React rendering errors are reported to Sentry. Read more: https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/#react-render-errors-in-app-router (you can suppress this warning by setting SENTRY_SUPPRESS_GLOBAL_ERROR_HANDLER_FILE_WARNING=1 as environment variable)
+[@sentry/nextjs] DEPRECATION WARNING: It is recommended renaming your `sentry.client.config.js` file, or moving its content to `instrumentation-client.ts`. When using Turbopack `sentry.client.config.js` will no longer work. Read more about the `instrumentation-client.ts` file: https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client
+Failed to compile.
+
+./lib/auth/ProtectedRoute.tsx
+Error:   [31mx[0m Expected ';', '}' or <eof>
+    ,-[[36;1;4m/home/juan/Escritorio/ai-code-mentor-beta-test/lib/auth/ProtectedRoute.tsx[0m:86:1]
+ [2m83[0m |             }
+ [2m84[0m |         }, [authState, redirectTo]);
+ [2m85[0m |     
+ [2m86[0m | [35;1m,[0m[35;1m-[0m[35;1m>[0m     user,
+ [2m87[0m | [35;1m|[0m           authState,
+ [2m88[0m | [35;1m|[0m           isAuthenticated,
+ [2m89[0m | [35;1m|[0m           authLoading,
+ [2m90[0m | [35;1m|[0m[35;1m-[0m[35;1m>[0m         isReady: authState === 'authenticated',
+    : [35;1m`[0m[35;1m---[0m[33;1m               ^[0m
+    : [35;1m`[0m[35;1m---[0m[35;1m-[0m [35;1mThis is the expression part of an expression statement[0m
+ [2m91[0m |         };
+ [2m92[0m |     }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./lib/auth/ProtectedRoute.tsx
+./app/panel-de-control/DashboardClient.js
+
+./lib/auth/ProtectedRoute.tsx
+Error:   [31mx[0m Expected ';', '}' or <eof>
+    ,-[[36;1;4m/home/juan/Escritorio/ai-code-mentor-beta-test/lib/auth/ProtectedRoute.tsx[0m:86:1]
+ [2m83[0m |             }
+ [2m84[0m |         }, [authState, redirectTo]);
+ [2m85[0m |     
+ [2m86[0m | [35;1m,[0m[35;1m-[0m[35;1m>[0m     user,
+ [2m87[0m | [35;1m|[0m           authState,
+ [2m88[0m | [35;1m|[0m           isAuthenticated,
+ [2m89[0m | [35;1m|[0m           authLoading,
+ [2m90[0m | [35;1m|[0m[35;1m-[0m[35;1m>[0m         isReady: authState === 'authenticated',
+    : [35;1m`[0m[35;1m---[0m[33;1m               ^[0m
+    : [35;1m`[0m[35;1m---[0m[35;1m-[0m [35;1mThis is the expression part of an expression statement[0m
+ [2m91[0m |         };
+ [2m92[0m |     }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./lib/auth/ProtectedRoute.tsx
+./pages/admin/analytics.js
+
+
+> Build failed because of webpack errors
