@@ -1,5 +1,27 @@
 import { promptVersionManager } from '../../../lib/prompts/PromptVersionManager';
 
+// Seed test versions for CI environment where .js files may not exist
+beforeAll(() => {
+    const versions = (promptVersionManager as any).versions as Map<string, any>;
+    if (versions.size === 0) {
+        versions.set('v1.0.0-base', {
+            version: 'v1.0.0-base',
+            description: 'Base prompt version',
+            createdAt: '2024-01-01',
+            SYSTEM_PROMPT: 'You are a helpful coding tutor.',
+            LESSON_TEMPLATE: 'Topic: {tematica_semanal}\nConcept: {concepto_del_dia}\nPomodoro: {texto_del_pomodoro}'
+        });
+        versions.set('v2.0.0-storytelling', {
+            version: 'v2.0.0-storytelling',
+            description: 'Storytelling prompt version',
+            createdAt: '2024-06-01',
+            SYSTEM_PROMPT: 'You are a storytelling coding tutor.',
+            LESSON_TEMPLATE: 'Story about {tematica_semanal} covering {concepto_del_dia} in {texto_del_pomodoro}'
+        });
+        (promptVersionManager as any).activeVersion = 'v2.0.0-storytelling';
+    }
+});
+
 describe('PromptVersionManager', () => {
     test('should have active version set', () => {
         expect(promptVersionManager.getActive()).toBeDefined();
