@@ -25,7 +25,6 @@ export async function POST(req: NextRequest) {
         const result = await textToSpeechService.synthesize(text, { provider, voice });
 
         return NextResponse.json({
-            success: result.success,
             ...result
         });
     } catch (error: any) {
