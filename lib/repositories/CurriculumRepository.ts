@@ -168,9 +168,19 @@ export class CurriculumRepository {
             modulos: Array.from(f.modulos.values())
         }));
 
+        const totals = db.get<any>(`
+            SELECT 
+                COUNT(DISTINCT m.id) as total_modules,
+                COUNT(DISTINCT s.id) as total_weeks
+            FROM modulos m
+            LEFT JOIN semanas s ON m.id = s.modulo_id
+        `);
+
         return {
             version: '9.1.0-repo',
             sourceType: 'sqlite-repo',
+            totalModules: totals.total_modules,
+            totalWeeks: totals.total_weeks,
             curriculum,
             metadata: { optimizedFor: 'navigation' }
         };

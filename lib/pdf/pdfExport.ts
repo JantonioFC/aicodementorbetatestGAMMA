@@ -122,7 +122,7 @@ function wrapText(text: string, maxWidth: number, fontSize: number, font: any): 
 // Helper: Download PDF
 function downloadPDF(pdfBytes: Uint8Array, filename: string): void {
     if (typeof window === 'undefined') return;
-    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -139,7 +139,9 @@ function sanitizeFilename(name: string): string {
         .substring(0, 50);
 }
 
-export default {
+const pdfExport = {
     exportLessonToPDF,
     exportProgressReportToPDF
 };
+
+export default pdfExport;

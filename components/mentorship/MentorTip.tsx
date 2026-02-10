@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 interface MentorTipProps {
     topic?: string;
@@ -10,7 +10,7 @@ export default function MentorTip({ topic }: MentorTipProps) {
     const [tip, setTip] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
 
-    const fetchTip = async () => {
+    const fetchTip = useCallback(async () => {
         try {
             setLoading(true);
             const url = topic
@@ -26,11 +26,11 @@ export default function MentorTip({ topic }: MentorTipProps) {
         } finally {
             setLoading(false);
         }
-    };
+    }, [topic]);
 
     useEffect(() => {
         fetchTip();
-    }, [topic]);
+    }, [fetchTip]);
 
     if (loading) return (
         <div className="animate-pulse flex space-x-4 p-4 bg-indigo-50 rounded-xl border border-indigo-100">

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../lib/auth/useAuth';
 
 interface Generation {
@@ -22,7 +22,7 @@ export default function HistoryPanel({ onRestoreGeneration }: HistoryPanelProps)
     const [isLoading, setIsLoading] = useState(false);
     const [expandedId, setExpandedId] = useState<string | null>(null);
 
-    const fetchHistory = async () => {
+    const fetchHistory = useCallback(async () => {
         if (!session) return;
         setIsLoading(true);
         try {
@@ -34,11 +34,11 @@ export default function HistoryPanel({ onRestoreGeneration }: HistoryPanelProps)
         } finally {
             setIsLoading(false);
         }
-    };
+    }, [session]);
 
     useEffect(() => {
         fetchHistory();
-    }, [session]);
+    }, [fetchHistory]);
 
     const filtered = generations.filter(gen =>
         gen.title.toLowerCase().includes(searchQuery.toLowerCase())

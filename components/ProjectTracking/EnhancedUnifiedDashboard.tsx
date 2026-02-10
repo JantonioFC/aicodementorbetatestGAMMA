@@ -29,7 +29,7 @@ export default function EnhancedUnifiedDashboard() {
     useEffect(() => {
         loadDashboardData();
         fetch('/api/get-modules').then(r => r.json()).then(d => setModuleStats(d.stats));
-    }, []);
+    }, [loadDashboardData]);
 
     const totalEntries = Object.values(entryCounts).reduce((a, b) => a + b, 0);
     const progress = moduleStats?.overallProgress || 0;
