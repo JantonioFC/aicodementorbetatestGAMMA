@@ -33,6 +33,10 @@ export class DiagramGenerator {
             'algoritmo': this._algorithmDiagram(),
             'secuencia': this._sequenceDiagram(),
             'variable': this._variableDiagram(),
+            'base de datos': this._erDiagram(),
+            'entidad': this._erDiagram(),
+            'estado': this._stateDiagram(),
+            'flujo': this._stateDiagram(),
         };
 
         // Buscar plantilla por coincidencia parcial
@@ -224,6 +228,43 @@ flowchart LR
     
     style A fill:#FF9800,color:#fff
     style B fill:#4CAF50,color:#fff
+\`\`\``;
+    }
+
+    /**
+     * Diagrama de Entidad-Relación (ER).
+     */
+    private _erDiagram(): string {
+        return `\`\`\`mermaid
+erDiagram
+    USUARIO ||--o{ POST : "escribe"
+    USUARIO {
+        string id PK
+        string nombre
+        string email
+    }
+    POST {
+        string id PK
+        string contenido
+        datetime fecha
+        string autor_id FK
+    }
+\`\`\``;
+    }
+
+    /**
+     * Diagrama de Estado.
+     */
+    private _stateDiagram(): string {
+        return `\`\`\`mermaid
+stateDiagram-v2
+    [*] --> Inactivo
+    Inactivo --> Activo : login
+    Activo --> Inactivo : logout
+    Activo --> Procesando : realizar_accion
+    Procesando --> Activo : completar
+    Procesando --> Error : fallo
+    Error --> Inactivo : reset
 \`\`\``;
     }
 

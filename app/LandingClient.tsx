@@ -154,10 +154,10 @@ export default function LandingClient() {
 
     return (
         <main className="min-h-screen bg-[#0F1115] text-[#EDEDED] font-sans selection:bg-[#3B82F6] selection:text-white">
-            {/* Logo Topbar */}
-            <div className="w-full bg-[#161A23] border-b border-[#2D3748] relative h-24">
+            {/* Banner Topbar */}
+            <div className="w-full bg-[#161A23] border-b border-[#2D3748] relative h-28 sm:h-36 md:h-40">
                 <Image
-                    src="/logo.jpg"
+                    src="/banner.jpg"
                     alt="AI Code Mentor - Ecosistema 360"
                     fill
                     style={{ objectFit: 'contain' }}
@@ -171,6 +171,7 @@ export default function LandingClient() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-3">
+                            <Image src="/logo.jpg" alt="AI Code Mentor" width={36} height={36} className="rounded-sm" />
                             <div className="text-xl font-mono font-bold text-[#3B82F6] tracking-tighter">
                                 AI_CODE_MENTOR
                             </div>

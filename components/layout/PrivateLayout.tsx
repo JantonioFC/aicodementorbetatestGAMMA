@@ -73,9 +73,9 @@ const PrivateLayout: React.FC<PrivateLayoutProps> = ({
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-            {/* Logo Topbar */}
-            <div className="w-full bg-gray-900 relative h-24">
-                <Image src="/logo.jpg" alt="Logo" fill className="object-contain" priority />
+            {/* Banner Topbar */}
+            <div className="w-full bg-gray-900 relative h-28 sm:h-36 md:h-40">
+                <Image src="/banner.jpg" alt="AI Code Mentor Banner" fill className="object-contain" priority />
             </div>
 
             <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
@@ -87,6 +87,7 @@ const PrivateLayout: React.FC<PrivateLayoutProps> = ({
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>
                             </button>
+                            <Image src="/logo.jpg" alt="AI Code Mentor" width={36} height={36} className="rounded-sm" />
                             <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">AI Code Mentor</span>
                         </div>
 

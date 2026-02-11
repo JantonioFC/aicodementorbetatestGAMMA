@@ -32,5 +32,22 @@ Priorización basada en **Impacto Educativo** y **Autonomía del Estudiante**.
 *   ✅ **Objetivo**: Aumentar confianza en refactorizaciones.
 *   ✅ **Acciones**: Cobertura de tests unitarios al 80% en lógica de negocio (`SmartLessonGenerator`) y Regression Testing visual.
 
+## Q3 2025: Community & Public Presence (Completed)
+*Enfoque: Lanzamiento público y expansión de la experiencia social del estudiante.*
+
+### 1. Sistema de Comunidad (Phase 3)
+*   **Objetivo**: Fomentar el aprendizaje colaborativo.
+*   **Acciones**: 
+    *   ✅ **Shared Lessons**: Compartir lecciones personalizadas con la comunidad.
+    *   ✅ **Public Leaderboard**: Gamificación y ranking global de estudiantes.
+
+### 2. Advanced Student Autonomy
+*   **Objetivo**: IA que actúe como mentor proactivo.
+*   **Acciones**:
+    *   ✅ **Personal Learning Paths**: Currículos dinámicos basados en brechas detectadas.
+    *   ✅ **Expansión Multimodal**: Mermaid avanzado y comandos de voz (Beta).
+
+---
+
 ---
 *Nota: Este proyecto se desarrolla como un bien público digital, priorizando la privacidad y el funcionamiento offline.*

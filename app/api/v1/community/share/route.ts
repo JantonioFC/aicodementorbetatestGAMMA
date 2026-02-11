@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/auth/serverAuth';
-import { peerReviewService } from '@/lib/services/community/PeerReviewService';
+import { sharedLessonService } from '@/lib/services/community/SharedLessonService';
 import logger from '@/lib/logger';
 
 /**
@@ -10,17 +10,17 @@ import logger from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         const { userId } = await getServerAuth();
-        const { lessonId, title, description } = await req.json();
+        const { lessonId, title, description, category, tags } = await req.json();
 
         if (!lessonId || !title) {
             return NextResponse.json({ error: 'Faltan parámetros: lessonId y title son obligatorios' }, { status: 400 });
         }
 
-        const result = await peerReviewService.shareLesson(userId, lessonId, title, description);
+        const sharedId = await sharedLessonService.shareLesson(userId, lessonId, title, description, category, tags);
 
         return NextResponse.json({
             success: true,
-            id: result.id
+            id: sharedId
         });
 
     } catch (error: any) {

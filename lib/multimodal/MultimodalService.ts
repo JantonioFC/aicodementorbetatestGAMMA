@@ -1,5 +1,7 @@
 import { diagramGenerator } from './DiagramGenerator';
 import { imageGenerator } from './ImageGenerator';
+import { speechAnalysisService } from './SpeechAnalysisService';
+import { textToSpeechService } from './TextToSpeechService';
 
 /**
  * Multimodal Service - Orquestador de Generación Visual
@@ -31,9 +33,10 @@ export const multimodalService = {
         return {
             diagrams: true,
             images: true,
-            audio: false,
+            audio: true,
+            voiceAnalysis: true,
             video: false,
-            providers: ['Mermaid', 'Fal.ai']
+            providers: ['Mermaid', 'Fal.ai', 'WebSpeechAPI']
         };
     }
 };

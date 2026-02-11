@@ -10,6 +10,7 @@ const AchievementsWidget = lazy(() => import('@/components/dashboard/Achievement
 const EnhancedUnifiedDashboard = lazy(() => import('@/components/ProjectTracking/EnhancedUnifiedDashboard'));
 const SandboxWidget = lazy(() => import('@/components/Sandbox/SandboxWidget'));
 const SystemTestWidget = lazy(() => import('@/components/dashboard/SystemTestWidget'));
+const LearningPathMap = lazy(() => import('@/components/autonomy/LearningPathMap'));
 
 export default function DashboardPage() {
     const [activeTab, setActiveTab] = useState('progress');
@@ -17,6 +18,7 @@ export default function DashboardPage() {
     const tabs = [
         { id: 'progress', label: 'Progreso', icon: '📊' },
         { id: 'unified', label: 'Métricas 360', icon: '📈' },
+        { id: 'autonomy', label: 'Ruta IA', icon: '🚀' },
         { id: 'achievements', label: 'Logros', icon: '🏆' },
         { id: 'sandbox', label: 'Sandbox', icon: '🧪' },
         { id: 'system', label: 'Sistema', icon: '🔧' },
@@ -44,6 +46,7 @@ export default function DashboardPage() {
                         <Suspense fallback={<div className="p-20 text-center animate-pulse font-black text-gray-200 text-4xl">CARGANDO MÓDULO...</div>}>
                             {activeTab === 'progress' && <ProgressDashboard />}
                             {activeTab === 'unified' && <EnhancedUnifiedDashboard />}
+                            {activeTab === 'autonomy' && <LearningPathMap />}
                             {activeTab === 'achievements' && <AchievementsWidget />}
                             {activeTab === 'sandbox' && <SandboxWidget />}
                             {activeTab === 'system' && <SystemTestWidget />}

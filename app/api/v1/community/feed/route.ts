@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { peerReviewService } from '@/lib/services/community/PeerReviewService';
+import { getServerAuth } from '@/lib/auth/serverAuth';
+import { sharedLessonService } from '@/lib/services/community/SharedLessonService';
 import logger from '@/lib/logger';
 
 /**
@@ -8,10 +9,18 @@ import logger from '@/lib/logger';
  */
 export async function GET(req: NextRequest) {
     try {
+        const { userId } = await getServerAuth().catch(() => ({ userId: undefined }));
         const { searchParams } = new URL(req.url);
-        const limit = parseInt(searchParams.get('limit') || '10');
 
-        const feed = await peerReviewService.getPublicFeed(limit);
+        const limit = parseInt(searchParams.get('limit') || '20');
+        const category = searchParams.get('category') || undefined;
+        const sort = (searchParams.get('sort') as 'latest' | 'top') || 'latest';
+
+        const feed = await sharedLessonService.getPublicLessons(userId, {
+            category,
+            sort,
+            limit
+        });
 
         return NextResponse.json({
             success: true,
