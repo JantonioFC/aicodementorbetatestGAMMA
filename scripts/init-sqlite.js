@@ -97,6 +97,8 @@ function initDatabase() {
           CREATE TABLE IF NOT EXISTS user_profiles (
               id TEXT PRIMARY KEY, -- UUID from local auth
               email TEXT UNIQUE NOT NULL,
+              password_hash TEXT,
+              token_version INTEGER DEFAULT 1,
               display_name TEXT,
               bio TEXT,
               learning_goals TEXT,
@@ -418,6 +420,26 @@ function initDatabase() {
         });
 
         const stats = populate(curriculumData);
+
+        // Register all migrations as applied (schema is already up-to-date)
+        db.exec(`
+          CREATE TABLE IF NOT EXISTS _migrations (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              name TEXT NOT NULL UNIQUE,
+              applied_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+        `);
+        const migrationFiles = [
+            '001_initial_schema.sql', '002_add_sessions.sql', '003_add_lesson_feedback.sql',
+            '004_add_lesson_evaluations.sql', '005_add_refresh_tokens.sql', '006-device-flow.sql',
+            '007_add_competency_log.sql', '008_add_achievements.sql', '009_add_peer_review.sql',
+            '010_community_system.sql', '011_student_autonomy.sql', '012_add_auth_columns.sql'
+        ];
+        const insertMigration = db.prepare('INSERT OR IGNORE INTO _migrations (name) VALUES (?)');
+        for (const mig of migrationFiles) {
+            insertMigration.run(mig);
+        }
+        log('✅ Migrations registered as applied.', 'green');
 
         log('✅ Initialization Complete!', 'green');
         console.log(`Summary:

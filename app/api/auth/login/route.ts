@@ -20,9 +20,10 @@ export async function POST(req: NextRequest) {
         // Now TypeScript knows result has token, refreshToken, and user
         const successResult = result as { token: string; refreshToken: string; user: Record<string, unknown> };
 
+        const isSecure = process.env.NODE_ENV === 'production' && !process.env.E2E_TEST_MODE;
         const response = NextResponse.json({ user: successResult.user, session: successResult });
-        response.cookies.set('ai-code-mentor-auth', successResult.token, { httpOnly: true, secure: true, path: '/' });
-        response.cookies.set('ai-code-mentor-refresh', successResult.refreshToken, { httpOnly: true, secure: true, path: '/' });
+        response.cookies.set('ai-code-mentor-auth', successResult.token, { httpOnly: true, secure: isSecure, path: '/', sameSite: 'lax' });
+        response.cookies.set('ai-code-mentor-refresh', successResult.refreshToken, { httpOnly: true, secure: isSecure, path: '/', sameSite: 'lax' });
 
         return response;
     } catch (error: unknown) {

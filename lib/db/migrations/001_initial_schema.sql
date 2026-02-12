@@ -46,6 +46,8 @@ CREATE TABLE IF NOT EXISTS esquema_diario (
 CREATE TABLE IF NOT EXISTS user_profiles (
     id TEXT PRIMARY KEY, -- UUID from local auth
     email TEXT UNIQUE NOT NULL,
+    password_hash TEXT,
+    token_version INTEGER DEFAULT 1,
     display_name TEXT,
     bio TEXT,
     learning_goals TEXT,
