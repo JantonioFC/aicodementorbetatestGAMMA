@@ -14,8 +14,10 @@ const JWT_SECRET = process.env.JWT_SECRET;
 const NODE_ENV = process.env.NODE_ENV;
 const CI = process.env.CI;
 
+const IS_BUILD_PHASE = process.env.NEXT_PHASE === 'phase-production-build';
+
 if (!JWT_SECRET) {
-    if (NODE_ENV === 'production') {
+    if (NODE_ENV === 'production' && !IS_BUILD_PHASE) {
         throw new Error('FATAL: JWT_SECRET must be defined in production.');
     }
 }
@@ -23,7 +25,7 @@ if (!JWT_SECRET) {
 // SEC-01: Hardening - Fail fast if secret is missing in prod, otherwise use env var
 const SECRET_KEY: string = JWT_SECRET || '';
 
-if (!SECRET_KEY && NODE_ENV === 'production' && CI !== 'true') {
+if (!SECRET_KEY && NODE_ENV === 'production' && CI !== 'true' && !IS_BUILD_PHASE) {
     throw new Error('FATAL: JWT_SECRET must be defined.');
 }
 

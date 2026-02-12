@@ -9,7 +9,7 @@ import { NextApiRequest, NextApiResponse } from 'next';
 const JWT_SECRET = process.env.JWT_SECRET;
 
 if (!JWT_SECRET) {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.NODE_ENV === 'production' && process.env.NEXT_PHASE !== 'phase-production-build') {
         throw new Error('FATAL: JWT_SECRET must be defined in production.');
     }
 }
