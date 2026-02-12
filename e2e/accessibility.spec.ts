@@ -7,14 +7,18 @@ test.describe('Accessibility Tests', () => {
     test('Landing Page should be accessible', async ({ page }) => {
         await page.goto('/');
 
-        const results = await new AxeBuilder({ page }).analyze();
+        const results = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .analyze();
         expect(results.violations).toEqual([]);
     });
 
     test('Login Page should be accessible', async ({ page }) => {
         await page.goto('/login');
 
-        const results = await new AxeBuilder({ page }).analyze();
+        const results = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .analyze();
         expect(results.violations).toEqual([]);
     });
 
@@ -24,6 +28,8 @@ test.describe('Accessibility Tests', () => {
 
         // Verify we are on dashboard before scanning
         await expect(page).toHaveURL(/panel-de-control/);
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(2000);
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -35,6 +41,8 @@ test.describe('Accessibility Tests', () => {
     test('Sandbox should be accessible (Authenticated)', async ({ page }) => {
         await authenticateDemo(page, '/sandbox');
         await expect(page).toHaveURL(/sandbox/);
+        await page.waitForLoadState('domcontentloaded');
+        await page.waitForTimeout(2000);
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

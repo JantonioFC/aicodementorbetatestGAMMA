@@ -3,12 +3,17 @@
  * 
  * Purpose: Register demo@aicodementor.com
  * STRATEGY: DESTROY AND RECREATE (Clean Slate).
+ * 
+ * IMPORTANT: loginUser() in auth-local.ts queries `user_profiles` for password_hash,
+ * so we MUST store the hash there (not just in a separate `users` table).
  */
 
-const db = require('../lib/db');
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
 const bcrypt = require('bcryptjs');
-const { v4: uuidv4 } = require('uuid');
 
+const DB_PATH = path.join(__dirname, '..', 'database', 'sqlite', 'curriculum.db');
 const DEMO_EMAIL = 'demo@aicodementor.com';
 const DEMO_PASSWORD = 'demo123';
 const DEMO_NAME = 'Usuario Demo';
@@ -16,52 +21,44 @@ const DEMO_NAME = 'Usuario Demo';
 async function createDemoUser() {
   console.log('🚀 Creating Demo User (Clean Slate)...');
 
-  try {
-    // 1. DELETE EXISTING (Cleanup Mismatches) uses raw SQL via db.run
-    console.log('🧹 Cleaning up old data...');
+  if (!fs.existsSync(DB_PATH)) {
+    console.error('❌ Database not found at ' + DB_PATH);
+    console.error('   Run "node scripts/init-sqlite.js" first.');
+    process.exit(1);
+  }
 
-    // SQLite doesn't support cascading deletes by default unless enabled, so we delete from both.
-    // Order matters if foreign keys are enforced, but we'll try profile first.
+  const db = new Database(DB_PATH);
+
+  try {
+    // 1. DELETE EXISTING (Cleanup Mismatches)
+    console.log('🧹 Cleaning up old data...');
+    db.prepare('DELETE FROM user_profiles WHERE email = ?').run(DEMO_EMAIL);
     try {
-      db.run('DELETE FROM user_profiles WHERE email = ?', [DEMO_EMAIL]);
-      db.run('DELETE FROM users WHERE email = ?', [DEMO_EMAIL]);
-      console.log('✅ Old data removed.');
+      db.prepare('DELETE FROM users WHERE email = ?').run(DEMO_EMAIL);
     } catch (e) {
-      console.warn('⚠️ Warning during cleanup:', e.message);
+      // users table may not exist in all schemas - that's OK
     }
+    console.log('✅ Old data removed.');
 
     // 2. Create user (Fresh)
     const hashedPassword = await bcrypt.hash(DEMO_PASSWORD, 10);
-    //  Use consistent UUID for E2E testing
+    // Use consistent UUID for E2E testing
     const userId = '00000000-0000-0000-0000-000000000001';
 
     console.log('🆕 Creating new user...');
-    db.transaction(() => {
-      // User Auth
-      db.insert('users', {
-        id: userId,
-        email: DEMO_EMAIL,
-        password_hash: hashedPassword,
-        full_name: DEMO_NAME,
-        avatar_url: '',
-        created_at: new Date().toISOString()
-      });
+    // User Profile WITH password_hash (REQUIRED by auth-local.ts loginUser)
+    db.prepare(`
+      INSERT INTO user_profiles (id, email, password_hash, token_version, display_name, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, DEMO_EMAIL, hashedPassword, 1, DEMO_NAME, new Date().toISOString(), new Date().toISOString());
 
-      // User Profile (REQUIRED by /api/auth/user)
-      db.insert('user_profiles', {
-        id: userId,
-        email: DEMO_EMAIL,
-        display_name: DEMO_NAME,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      });
-    })();
-
-    console.log(`✅ User and Profile created! ID: ${userId}`);
+    console.log(`✅ Demo user created in user_profiles! ID: ${userId}`);
 
   } catch (err) {
     console.error('❌ Error creating demo user:', err);
     process.exit(1);
+  } finally {
+    db.close();
   }
 }
 

@@ -79,7 +79,7 @@ const AuthLocal = {
                 return { error: 'El usuario ya existe' };
             }
 
-            // const hashedPassword = await bcrypt.hash(password, 10);
+            const hashedPassword = await bcrypt.hash(password, 10);
             const userId = uuidv4();
             const initialVersion = 1;
 
@@ -87,6 +87,8 @@ const AuthLocal = {
                 db.insert('user_profiles', {
                     id: userId,
                     email,
+                    password_hash: hashedPassword,
+                    token_version: initialVersion,
                     display_name: fullName || email.split('@')[0],
                     created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
