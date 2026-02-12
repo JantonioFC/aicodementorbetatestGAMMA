@@ -306,6 +306,203 @@ function initDatabase() {
               user_agent TEXT,
               created_at DATETIME DEFAULT CURRENT_TIMESTAMP
           );
+
+          -- ==========================================
+          -- 8. AUTH TOKENS (Refresh + PAT + Device)
+          -- ==========================================
+          CREATE TABLE IF NOT EXISTS refresh_tokens (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL,
+              token TEXT NOT NULL UNIQUE,
+              expires_at DATETIME NOT NULL,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              revoked BOOLEAN DEFAULT 0,
+              FOREIGN KEY (user_id) REFERENCES user_profiles(id) ON DELETE CASCADE
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_refresh_tokens_user_id ON refresh_tokens(user_id);
+          CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token);
+
+          CREATE TABLE IF NOT EXISTS personal_access_tokens (
+              id INTEGER PRIMARY KEY AUTOINCREMENT,
+              token_hash TEXT NOT NULL UNIQUE,
+              user_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              label TEXT,
+              last_used_at DATETIME,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              expires_at DATETIME
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_pats_user_id ON personal_access_tokens(user_id);
+
+          CREATE TABLE IF NOT EXISTS device_codes (
+              code TEXT PRIMARY KEY,
+              device_code TEXT NOT NULL UNIQUE,
+              status TEXT DEFAULT 'pending' CHECK(status IN ('pending', 'authorized', 'expired', 'denied')),
+              user_id TEXT REFERENCES user_profiles(id) ON DELETE CASCADE,
+              expires_at DATETIME NOT NULL,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_device_codes_device_code ON device_codes(device_code);
+
+          -- ==========================================
+          -- 9. LEARNING SESSIONS
+          -- ==========================================
+          CREATE TABLE IF NOT EXISTS learning_sessions (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              week_id INTEGER,
+              status TEXT DEFAULT 'ACTIVE' CHECK(status IN ('ACTIVE', 'PAUSED', 'COMPLETED')),
+              started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              ended_at DATETIME,
+              metadata TEXT DEFAULT '{}'
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_learning_sessions_user_id ON learning_sessions(user_id);
+          CREATE INDEX IF NOT EXISTS idx_learning_sessions_status ON learning_sessions(status);
+
+          CREATE TABLE IF NOT EXISTS session_interactions (
+              id TEXT PRIMARY KEY,
+              session_id TEXT NOT NULL REFERENCES learning_sessions(id) ON DELETE CASCADE,
+              interaction_type TEXT NOT NULL CHECK(interaction_type IN ('LESSON_GENERATED', 'QUIZ_ANSWERED', 'FEEDBACK_GIVEN', 'NOTE_ADDED')),
+              content TEXT NOT NULL,
+              tokens_used INTEGER DEFAULT 0,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_session_interactions_session_id ON session_interactions(session_id);
+
+          -- ==========================================
+          -- 10. LESSON FEEDBACK & EVALUATIONS
+          -- ==========================================
+          CREATE TABLE IF NOT EXISTS lesson_feedback (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              lesson_id TEXT NOT NULL,
+              session_id TEXT REFERENCES learning_sessions(id),
+              rating INTEGER NOT NULL CHECK(rating >= 1 AND rating <= 5),
+              was_helpful INTEGER DEFAULT 1,
+              difficulty TEXT CHECK(difficulty IN ('TOO_EASY', 'JUST_RIGHT', 'TOO_HARD')),
+              comment TEXT,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_lesson_feedback_lesson_id ON lesson_feedback(lesson_id);
+          CREATE INDEX IF NOT EXISTS idx_lesson_feedback_user_id ON lesson_feedback(user_id);
+
+          CREATE TABLE IF NOT EXISTS lesson_evaluations (
+              id TEXT PRIMARY KEY,
+              lesson_id TEXT NOT NULL,
+              session_id TEXT REFERENCES learning_sessions(id),
+              user_id TEXT REFERENCES user_profiles(id),
+              faithfulness_score REAL,
+              relevance_score REAL,
+              length_score REAL,
+              structure_score REAL,
+              no_hallucination_score REAL,
+              overall_score REAL,
+              details TEXT,
+              word_count INTEGER,
+              has_examples INTEGER DEFAULT 0,
+              has_quiz INTEGER DEFAULT 0,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          -- ==========================================
+          -- 11. COMPETENCY & COMMUNITY
+          -- ==========================================
+          CREATE TABLE IF NOT EXISTS competency_log (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              competency_name TEXT NOT NULL,
+              competency_category TEXT NOT NULL DEFAULT 'General',
+              level_achieved INTEGER NOT NULL DEFAULT 1,
+              evidence_description TEXT NOT NULL,
+              achieved_date DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_competency_log_user_id ON competency_log(user_id);
+
+          CREATE TABLE IF NOT EXISTS shared_lessons (
+              id TEXT PRIMARY KEY,
+              owner_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              lesson_id TEXT NOT NULL,
+              title TEXT NOT NULL,
+              description TEXT,
+              category TEXT,
+              tags TEXT,
+              content TEXT NOT NULL,
+              is_public INTEGER DEFAULT 1,
+              views_count INTEGER DEFAULT 0,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_shared_lessons_owner ON shared_lessons(owner_id);
+
+          CREATE TABLE IF NOT EXISTS shared_lesson_votes (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              shared_lesson_id TEXT NOT NULL REFERENCES shared_lessons(id) ON DELETE CASCADE,
+              vote_value INTEGER NOT NULL CHECK (vote_value IN (-1, 1)),
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              UNIQUE(user_id, shared_lesson_id)
+          );
+
+          CREATE TABLE IF NOT EXISTS community_metrics (
+              id TEXT PRIMARY KEY,
+              user_id TEXT UNIQUE NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              total_points INTEGER DEFAULT 0,
+              lessons_shared_count INTEGER DEFAULT 0,
+              total_upvotes_received INTEGER DEFAULT 0,
+              rank_title TEXT DEFAULT 'Novato',
+              last_computed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          -- ==========================================
+          -- 12. LEARNING PATHS (Student Autonomy)
+          -- ==========================================
+          CREATE TABLE IF NOT EXISTS learning_paths (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              title TEXT NOT NULL,
+              description TEXT,
+              target_profile TEXT,
+              status TEXT DEFAULT 'active',
+              current_step_index INTEGER DEFAULT 0,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+              updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE TABLE IF NOT EXISTS path_steps (
+              id TEXT PRIMARY KEY,
+              path_id TEXT NOT NULL REFERENCES learning_paths(id) ON DELETE CASCADE,
+              step_number INTEGER NOT NULL,
+              topic TEXT NOT NULL,
+              estimated_difficulty TEXT,
+              resource_type TEXT,
+              resource_id TEXT,
+              status TEXT DEFAULT 'pending',
+              reasoning TEXT,
+              completed_at DATETIME,
+              created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_path_steps_path ON path_steps(path_id);
+
+          CREATE TABLE IF NOT EXISTS skill_gaps (
+              id TEXT PRIMARY KEY,
+              user_id TEXT NOT NULL REFERENCES user_profiles(id) ON DELETE CASCADE,
+              topic TEXT NOT NULL,
+              current_level INTEGER DEFAULT 0,
+              target_level INTEGER DEFAULT 3,
+              gap_score REAL,
+              last_analyzed_at DATETIME DEFAULT CURRENT_TIMESTAMP
+          );
+
+          CREATE INDEX IF NOT EXISTS idx_skill_gaps_user ON skill_gaps(user_id);
       `);
         log('✅ Schema created.', 'green');
 

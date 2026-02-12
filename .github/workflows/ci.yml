@@ -44,10 +44,6 @@ jobs:
       run: npm audit --audit-level=critical
       continue-on-error: true # Report but don't block yet
 
-    - name: Security Audit (Dependencies)
-      run: npm audit --audit-level=critical
-      continue-on-error: true # Report but don't block yet
-
     - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -98,31 +94,6 @@ jobs:
         node scripts/create-demo-user.js
       env:
         JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-minimum-32-chars' }}
-
-    - name: Diagnose Auth API
-      run: |
-        echo "=== Starting standalone server for diagnostics ==="
-        E2E_TEST_MODE=true JWT_SECRET='ci-test-secret-minimum-32-chars' node .next/standalone/server.js &
-        SERVER_PID=$!
-        sleep 5
-        echo "=== Testing health endpoint ==="
-        curl -s http://localhost:3000/api/health || echo "HEALTH FAILED"
-        echo ""
-        echo "=== Testing login API ==="
-        curl -s -w "\nHTTP_CODE:%{http_code}" -X POST http://localhost:3000/api/auth/login \
-          -H "Content-Type: application/json" \
-          -d '{"email":"demo@aicodementor.com","password":"demo123"}'
-        echo ""
-        echo "=== Testing refresh API ==="
-        curl -s -w "\nHTTP_CODE:%{http_code}" -X POST http://localhost:3000/api/auth/refresh
-        echo ""
-        echo "=== Checking DB file ==="
-        ls -la database/sqlite/curriculum.db
-        echo "=== Checking user in DB ==="
-        node -e "const D=require('better-sqlite3');const d=new D('database/sqlite/curriculum.db');const u=d.prepare('SELECT id,email,password_hash FROM user_profiles WHERE email=?').get('demo@aicodementor.com');console.log(JSON.stringify(u));d.close();"
-        kill $SERVER_PID 2>/dev/null || true
-      env:
-        JWT_SECRET: 'ci-test-secret-minimum-32-chars'
 
     - name: Run E2E Tests
       run: npx playwright test --retries=2
