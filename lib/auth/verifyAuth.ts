@@ -15,9 +15,11 @@ if (!JWT_SECRET) {
 const SECRET_KEY: string = JWT_SECRET || '';
 
 interface JWTPayload {
-    userId: string;
+    sub: string;
     email: string;
+    aud?: string;
     role?: string;
+    v?: number;
 }
 
 export interface AuthVerificationResult {
@@ -42,10 +44,10 @@ export async function verifyAuthToken(token: string): Promise<AuthVerificationRe
 
         const decoded = jwt.verify(token, SECRET_KEY) as unknown as JWTPayload;
 
-        if (decoded && decoded.userId) {
+        if (decoded && decoded.sub) {
             return {
                 isValid: true,
-                userId: decoded.userId,
+                userId: decoded.sub,
                 email: decoded.email,
                 role: decoded.role
             };
