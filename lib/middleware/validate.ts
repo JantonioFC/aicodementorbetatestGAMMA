@@ -13,7 +13,7 @@ export interface ValidationSchema {
 /**
  * Valida una solicitud contra un esquema.
  */
-export function validate(schema: ValidationSchema, handler: (req: NextApiRequest, res: NextApiResponse) => Promise<any> | any) {
+export function validate(schema: ValidationSchema, handler: (req: NextApiRequest, res: NextApiResponse) => Promise<void> | void) {
     return async (req: NextApiRequest, res: NextApiResponse) => {
         // Validar método HTTP
         if (schema.method && req.method !== schema.method) {

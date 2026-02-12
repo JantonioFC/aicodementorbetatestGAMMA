@@ -16,7 +16,7 @@ const DefaultLoader = () => (
     </div>
 );
 
-export function lazyLoad(importFn: () => Promise<{ default: React.ComponentType<any> }>, options: LazyLoadOptions = {}) {
+export function lazyLoad<T = any>(importFn: () => Promise<{ default: React.ComponentType<T> }>, options: LazyLoadOptions = {}) {
     const {
         loading: LoadingComponent = DefaultLoader,
         ssr = false,
@@ -28,7 +28,7 @@ export function lazyLoad(importFn: () => Promise<{ default: React.ComponentType<
     });
 }
 
-export function lazyLoadChart(importFn: () => Promise<{ default: React.ComponentType<any> }>) {
+export function lazyLoadChart<T = any>(importFn: () => Promise<{ default: React.ComponentType<T> }>) {
     return lazyLoad(importFn, { ssr: false });
 }
 
@@ -37,7 +37,7 @@ export const LazyComponents = {
     EnhancedDashboard: lazyLoad(() => import('../../components/dashboard/EnhancedProgressDashboard'))
 };
 
-export function PreloadOnHover({ load, children }: { load: () => Promise<any>; children: React.ReactNode }) {
+export function PreloadOnHover({ load, children }: { load: () => Promise<unknown>; children: React.ReactNode }): React.JSX.Element {
     const handleMouseEnter = () => {
         load().catch(() => { });
     };

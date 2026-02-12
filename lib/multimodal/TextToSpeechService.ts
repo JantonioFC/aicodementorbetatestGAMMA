@@ -1,3 +1,5 @@
+import { logger } from '../observability/Logger';
+
 /**
  * Text-to-Speech Service
  * Genera audio de las lecciones para accesibilidad y aprendizaje auditivo.
@@ -8,6 +10,22 @@ export interface TTSVoice {
     name: string;
     pitch: number;
     speakingRate: number;
+}
+
+export interface TTSOptions {
+    provider?: 'fal' | 'google' | 'browser';
+    voice?: string;
+}
+
+export interface TTSSynthesisResult {
+    success: boolean;
+    provider: string;
+    audioUrl?: string;
+    duration?: number;
+    ssml?: string;
+    text?: string;
+    error?: string;
+    note?: string;
 }
 
 export class TextToSpeechService {
@@ -38,7 +56,7 @@ export class TextToSpeechService {
     /**
      * Convierte texto a audio.
      */
-    async synthesize(text: string, options: any = {}) {
+    async synthesize(text: string, options: TTSOptions = {}): Promise<TTSSynthesisResult> {
         const {
             provider = 'fal',
             voice = this.defaultVoice.name,
@@ -63,7 +81,7 @@ export class TextToSpeechService {
     /**
      * Genera audio con fal.ai
      */
-    private async _synthesizeWithFal(text: string, voice: string) {
+    private async _synthesizeWithFal(text: string, _voice: string): Promise<TTSSynthesisResult> {
         try {
             const response = await fetch(`${this.providers.fal.baseUrl}/fal-ai/metavoice-v1`, {
                 method: 'POST',
@@ -81,7 +99,7 @@ export class TextToSpeechService {
                 throw new Error(`Fal.ai TTS error: ${response.status}`);
             }
 
-            const data = await response.json();
+            const data = await response.json() as { audio_url?: string; audio?: { url: string }; duration?: number };
 
             return {
                 success: true,
@@ -89,11 +107,13 @@ export class TextToSpeechService {
                 audioUrl: data.audio_url || data.audio?.url,
                 duration: data.duration
             };
-        } catch (error: any) {
-            console.error('[TTS] Fal.ai error:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[TTS] Fal.ai error: ${message}`);
             return {
                 success: false,
-                error: error.message,
+                error: message,
+                provider: 'fal',
                 ssml: this._generateSSML(text),
                 text
             };

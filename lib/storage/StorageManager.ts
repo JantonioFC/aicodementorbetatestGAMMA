@@ -12,6 +12,37 @@ export enum StorageStores {
     PREFERENCES = 'preferences'
 }
 
+export interface AnalysisData {
+    id?: number;
+    timestamp: string;
+    code: string;
+    codePreview: string;
+    language: string;
+    phase: string;
+    result: unknown;
+    model: string;
+    latency: number;
+}
+
+export interface DraftData {
+    id: string;
+    code: string;
+    language: string;
+    timestamp: string;
+}
+
+export interface PreferenceData {
+    key: string;
+    value: unknown;
+    updatedAt: string;
+}
+
+export interface ExportData {
+    analyses: AnalysisData[];
+    draft: DraftData | null;
+    exportedAt: string;
+}
+
 export class StorageManager {
     private db: IDBDatabase | null = null;
     private isInitialized: boolean = false;
@@ -40,8 +71,9 @@ export class StorageManager {
                 resolve();
             };
 
-            request.onupgradeneeded = (event: any) => {
-                const db = event.target.result;
+            request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+                const target = event.target as IDBOpenDBRequest;
+                const db = target.result;
 
                 if (!db.objectStoreNames.contains(StorageStores.ANALYSES)) {
                     const analysisStore = db.createObjectStore(StorageStores.ANALYSES, {
@@ -71,13 +103,13 @@ export class StorageManager {
         return this.isInitialized && this.db !== null;
     }
 
-    async saveAnalysis(data: any): Promise<number> {
+    async saveAnalysis(data: Partial<AnalysisData>): Promise<number> {
         await this.ensureInitialized();
         if (!this.db) throw new Error('DB not initialized');
 
-        const analysis = {
+        const analysis: AnalysisData = {
             timestamp: new Date().toISOString(),
-            code: data.code,
+            code: data.code || '',
             codePreview: data.code?.substring(0, 200) || '',
             language: data.language || 'javascript',
             phase: data.phase || 'fase-1',
@@ -96,7 +128,7 @@ export class StorageManager {
         });
     }
 
-    async getAnalysisHistory(limit = 50): Promise<any[]> {
+    async getAnalysisHistory(limit = 50): Promise<AnalysisData[]> {
         await this.ensureInitialized();
         if (!this.db) return [];
 
@@ -106,11 +138,12 @@ export class StorageManager {
             const index = store.index('timestamp');
             const request = index.openCursor(null, 'prev');
 
-            const results: any[] = [];
-            request.onsuccess = (event: any) => {
-                const cursor = event.target.result;
+            const results: AnalysisData[] = [];
+            request.onsuccess = (event: Event) => {
+                const target = event.target as IDBRequest<IDBCursorWithValue | null>;
+                const cursor = target.result;
                 if (cursor && results.length < limit) {
-                    results.push(cursor.value);
+                    results.push(cursor.value as AnalysisData);
                     cursor.continue();
                 } else {
                     resolve(results);
@@ -124,7 +157,7 @@ export class StorageManager {
         await this.ensureInitialized();
         if (!this.db) return;
 
-        const draft = {
+        const draft: DraftData = {
             id: 'current',
             code,
             language,
@@ -140,7 +173,7 @@ export class StorageManager {
         });
     }
 
-    async getDraft(): Promise<any> {
+    async getDraft(): Promise<DraftData | null> {
         await this.ensureInitialized();
         if (!this.db) return null;
 
@@ -148,12 +181,12 @@ export class StorageManager {
             const transaction = this.db!.transaction([StorageStores.DRAFTS], 'readonly');
             const store = transaction.objectStore(StorageStores.DRAFTS);
             const request = store.get('current');
-            request.onsuccess = () => resolve(request.result || null);
+            request.onsuccess = () => resolve((request.result as DraftData) || null);
             request.onerror = () => reject(request.error);
         });
     }
 
-    async setPreference(key: string, value: any): Promise<void> {
+    async setPreference(key: string, value: unknown): Promise<void> {
         await this.ensureInitialized();
         if (!this.db) return;
 
@@ -166,7 +199,7 @@ export class StorageManager {
         });
     }
 
-    async getPreference(key: string, defaultValue: any = null): Promise<any> {
+    async getPreference<T>(key: string, defaultValue: T): Promise<T> {
         await this.ensureInitialized();
         if (!this.db) return defaultValue;
 
@@ -174,12 +207,12 @@ export class StorageManager {
             const transaction = this.db!.transaction([StorageStores.PREFERENCES], 'readonly');
             const store = transaction.objectStore(StorageStores.PREFERENCES);
             const request = store.get(key);
-            request.onsuccess = () => resolve(request.result?.value ?? defaultValue);
+            request.onsuccess = () => resolve((request.result as PreferenceData)?.value as T ?? defaultValue);
             request.onerror = () => reject(request.error);
         });
     }
 
-    async exportAll(): Promise<any> {
+    async exportAll(): Promise<ExportData> {
         await this.ensureInitialized();
         const analyses = await this.getAnalysisHistory(1000);
         const draft = await this.getDraft();

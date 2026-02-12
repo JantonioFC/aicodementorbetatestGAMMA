@@ -1,6 +1,26 @@
-import { db } from '../../db';
-import logger from '../../logger';
+import { db, QueryParams } from '../../db';
+import { logger } from '../../observability/Logger';
 import crypto from 'crypto';
+
+export interface PublicFeedItem {
+    id: string;
+    title: string;
+    description: string;
+    owner_id: string;
+    owner_name: string;
+    created_at: string;
+    review_count: number;
+    avg_rating: number;
+}
+
+export interface LessonReview {
+    id: string;
+    rating: number;
+    comment: string;
+    reviewer_id: string;
+    reviewer_name: string;
+    created_at: string;
+}
 
 /**
  * PeerReviewService - Gestiona el intercambio de conocimientos entre alumnos.
@@ -10,7 +30,7 @@ export class PeerReviewService {
     /**
      * Comparte una lección del sandbox para que otros puedan verla.
      */
-    async shareLesson(ownerId: string, lessonId: string, title: string, description?: string) {
+    async shareLesson(ownerId: string, lessonId: string, title: string, description?: string): Promise<{ id: string }> {
         try {
             const id = `sh_${crypto.randomUUID()}`;
             db.insert('shared_lessons', {
@@ -21,11 +41,12 @@ export class PeerReviewService {
                 description: description || '',
                 is_public: 1,
                 created_at: new Date().toISOString()
-            });
+            } as Record<string, QueryParams>);
             logger.info(`[PeerReview] Lección compartida: ${title} por ${ownerId}`);
             return { id };
-        } catch (error: any) {
-            logger.error('[PeerReview] Error compartiendo lección:', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[PeerReview] Error compartiendo lección: ${message}`);
             throw error;
         }
     }
@@ -33,14 +54,14 @@ export class PeerReviewService {
     /**
      * Obtiene el feed de lecciones compartidas.
      */
-    async getPublicFeed(limit = 10) {
-        return db.query(`
+    async getPublicFeed(limit = 10): Promise<PublicFeedItem[]> {
+        return db.query<PublicFeedItem>(`
             SELECT 
                 sl.id, 
                 sl.title, 
                 sl.description, 
                 sl.owner_id,
-                up.full_name as owner_name,
+                up.display_name as owner_name,
                 sl.created_at,
                 (SELECT COUNT(*) FROM lesson_reviews WHERE shared_lesson_id = sl.id) as review_count,
                 (SELECT AVG(rating) FROM lesson_reviews WHERE shared_lesson_id = sl.id) as avg_rating
@@ -55,7 +76,7 @@ export class PeerReviewService {
     /**
      * Agrega una revisión a una lección compartida.
      */
-    async addReview(reviewerId: string, sharedLessonId: string, rating: number, comment: string) {
+    async addReview(reviewerId: string, sharedLessonId: string, rating: number, comment: string): Promise<{ id: string }> {
         try {
             const id = `rev_${crypto.randomUUID()}`;
             db.insert('lesson_reviews', {
@@ -65,11 +86,12 @@ export class PeerReviewService {
                 rating,
                 comment,
                 created_at: new Date().toISOString()
-            });
+            } as Record<string, QueryParams>);
             logger.info(`[PeerReview] Nueva revisión en ${sharedLessonId} por ${reviewerId}`);
             return { id };
-        } catch (error: any) {
-            logger.error('[PeerReview] Error agregando revisión:', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[PeerReview] Error agregando revisión: ${message}`);
             throw error;
         }
     }
@@ -77,14 +99,14 @@ export class PeerReviewService {
     /**
      * Obtiene las revisiones de una lección compartida.
      */
-    async getLessonReviews(sharedLessonId: string) {
-        return db.query(`
+    async getLessonReviews(sharedLessonId: string): Promise<LessonReview[]> {
+        return db.query<LessonReview>(`
             SELECT 
                 lr.id, 
                 lr.rating, 
                 lr.comment, 
                 lr.reviewer_id,
-                up.full_name as reviewer_name,
+                up.display_name as reviewer_name,
                 lr.created_at
             FROM lesson_reviews lr
             JOIN user_profiles up ON lr.reviewer_id = up.id

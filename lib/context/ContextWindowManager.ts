@@ -23,6 +23,13 @@ export interface ContextComponents {
     [key: string]: string | undefined;
 }
 
+interface HistoryItem {
+    type: string;
+    topic?: string;
+    correct?: boolean;
+    [key: string]: unknown;
+}
+
 export class ContextWindowManager {
     private maxTokens: number;
     private reserveForOutput: number;
@@ -51,7 +58,15 @@ export class ContextWindowManager {
      * Optimiza el contexto aplicando "Serial Position Effect".
      * Coloca información crítica al inicio y final.
      */
-    optimizeContext(components: ContextComponents) {
+    optimizeContext(components: ContextComponents): {
+        optimizedPrompt: string;
+        usage: {
+            usedTokens: number;
+            availableTokens: number;
+            utilization: string;
+            includedSections: { priority: number, tokens: number }[];
+        };
+    } {
         const sections: ContextSection[] = [];
         let usedTokens = 0;
 
@@ -161,7 +176,7 @@ export class ContextWindowManager {
     /**
      * Sumariza historia si es muy larga.
      */
-    summarizeHistory(history: any[], maxItems: number = 5): string {
+    summarizeHistory(history: HistoryItem[], maxItems: number = 5): string {
         if (!history || history.length === 0) return '';
 
         // Mantener las más recientes

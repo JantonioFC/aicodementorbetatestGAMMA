@@ -3,6 +3,7 @@
  * Proporciona infraestructura para transcripción de audio y análisis de comandos de voz.
  * Beta: Utiliza Web Speech API como motor primario y prepara hooks para servicios cloud.
  */
+import { logger } from '../observability/Logger';
 
 export interface SpeechResult {
     transcript: string;
@@ -84,7 +85,7 @@ export class SpeechAnalysisService {
      */
     public async processCloudSpeech(audioBlob: Blob): Promise<SpeechResult> {
         // En una implementación real, aquí se enviaría el Blob a Google Cloud Speech-to-Text o Whisper
-        console.log('[SpeechAnalysis] Audio recibido para procesamiento cloud:', audioBlob.size, 'bytes');
+        logger.debug('SpeechAnalysis audio received for cloud processing', { sizeBytes: audioBlob.size });
 
         return {
             transcript: "Simulación de transcripción cloud",

@@ -5,10 +5,70 @@
  */
 
 // Importaciones necesarias para testing
-import { describe, test, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, test, expect, beforeAll, afterAll, jest } from '@jest/globals';
+
+interface MockResource {
+    nombre: string;
+    url: string;
+}
+
+interface MockWeek {
+    semana: number;
+    tituloSemana: string;
+    objetivos: string[];
+    tematica: string;
+    actividades: string[];
+    entregables: string;
+    recursos?: MockResource[];
+    official_sources?: string[];
+    ejercicios?: string[];
+    fase?: number;
+    tituloFase?: string;
+    modulo?: number;
+    tituloModulo?: string;
+}
+
+interface MockModule {
+    modulo: number;
+    tituloModulo: string;
+    semanas: MockWeek[];
+}
+
+interface MockPhase {
+    fase: number;
+    tituloFase: string;
+    duracionMeses: string;
+    proposito: string;
+    modulos: MockModule[];
+}
+
+interface MockCurriculum {
+    curriculum: MockPhase[];
+}
+
+interface EnrichedContext {
+    weekId: number;
+    weekTitle: string;
+    phase: number;
+    phaseTitle: string;
+    module: number;
+    moduleTitle: string;
+    objectives: string[];
+    mainTopic: string;
+    activities: string[];
+    deliverables: string;
+    resources: MockResource[];
+    exercises: string[];
+    pedagogicalApproach: string;
+    difficultyLevel: string;
+    prerequisites: Array<{ weekId: number; title: string; keyTopics: string[] }>;
+    retrievalTimestamp: string;
+    sourceAuthority: string;
+    contextVersion: string;
+}
 
 // Mock del currículum para tests
-const mockCurriculumData = {
+const mockCurriculumData: MockCurriculum = {
     curriculum: [
         {
             fase: 0,
@@ -51,15 +111,15 @@ const mockCurriculumData = {
 };
 
 // Mock dinámico para extender a semana 100
-const generateExtendedMockCurriculum = () => {
-    const extended = JSON.parse(JSON.stringify(mockCurriculumData));
+const generateExtendedMockCurriculum = (): MockCurriculum => {
+    const extended: MockCurriculum = JSON.parse(JSON.stringify(mockCurriculumData));
 
     // Generar semanas adicionales hasta la 100 para tests exhaustivos
     for (let semana = 4; semana <= 100; semana++) {
         const fase = Math.floor((semana - 1) / 12);
-        const modulo = Math.floor((semana - 1) / 6) + 1;
+        const moduloCount = Math.floor((semana - 1) / 6) + 1;
 
-        const semanaData = {
+        const semanaData: MockWeek = {
             semana: semana,
             tituloSemana: `Semana de Prueba ${semana}`,
             objetivos: [`Objetivo test ${semana}`, `Segundo objetivo test ${semana}`],
@@ -78,11 +138,11 @@ const generateExtendedMockCurriculum = () => {
             };
         }
 
-        const targetModuleIndex = extended.curriculum[fase].modulos.findIndex((m: any) => m.modulo === modulo);
+        const targetModuleIndex = extended.curriculum[fase].modulos.findIndex((m: MockModule) => m.modulo === moduloCount);
         if (targetModuleIndex === -1) {
             extended.curriculum[fase].modulos.push({
-                modulo: modulo,
-                tituloModulo: `Módulo Test ${modulo}`,
+                modulo: moduloCount,
+                tituloModulo: `Módulo Test ${moduloCount}`,
                 semanas: [semanaData]
             });
         } else {
@@ -95,19 +155,19 @@ const generateExtendedMockCurriculum = () => {
 
 describe('retrieve_sources() - Motor RAG Core', () => {
 
-    let retrieveSources: any;
-    let getCurriculumData: any;
-    let findWeekInCurriculum: any;
-    let determinePedagogicalApproach: any;
-    let calculateDifficultyLevel: any;
-    let getPrerequisites: any;
+    let retrieveSources: (weekId: number | undefined | null) => Promise<EnrichedContext>;
+    let getCurriculumData: jest.Mock<() => Promise<MockCurriculum>>;
+    let findWeekInCurriculum: jest.Mock<(curriculumData: MockCurriculum, weekId: number) => MockWeek | null>;
+    let determinePedagogicalApproach: jest.Mock<(phase: number) => string>;
+    let calculateDifficultyLevel: jest.Mock<(weekId: number) => string>;
+    let getPrerequisites: jest.Mock<(weekId: number, curriculumData: MockCurriculum) => Array<{ weekId: number; title: string; keyTopics: string[] }>>;
 
     beforeAll(() => {
-        getCurriculumData = jest.fn().mockImplementation(() => {
+        getCurriculumData = jest.fn<() => Promise<MockCurriculum>>(() => {
             return Promise.resolve(generateExtendedMockCurriculum());
         });
 
-        findWeekInCurriculum = jest.fn().mockImplementation((curriculumData: any, weekId: number) => {
+        findWeekInCurriculum = jest.fn<(curriculumData: MockCurriculum, weekId: number) => MockWeek | null>((curriculumData: MockCurriculum, weekId: number) => {
             for (const fase of curriculumData.curriculum) {
                 for (const modulo of fase.modulos) {
                     for (const semana of modulo.semanas) {
@@ -126,7 +186,7 @@ describe('retrieve_sources() - Motor RAG Core', () => {
             return null;
         });
 
-        determinePedagogicalApproach = jest.fn().mockImplementation((phase: number) => {
+        determinePedagogicalApproach = jest.fn<(phase: number) => string>((phase: number) => {
             const approaches: Record<number, string> = {
                 0: "Cimentación y Fundamentos",
                 1: "Programación Estructurada",
@@ -140,17 +200,17 @@ describe('retrieve_sources() - Motor RAG Core', () => {
             return approaches[phase] || "Enfoque General";
         });
 
-        calculateDifficultyLevel = jest.fn().mockImplementation((weekId: number) => {
+        calculateDifficultyLevel = jest.fn<(weekId: number) => string>((weekId: number) => {
             if (weekId <= 20) return "Básico";
             if (weekId <= 50) return "Intermedio";
             if (weekId <= 80) return "Avanzado";
             return "Experto";
         });
 
-        getPrerequisites = jest.fn().mockImplementation((weekId: number, curriculumData: any) => {
+        getPrerequisites = jest.fn<(weekId: number, curriculumData: MockCurriculum) => Array<{ weekId: number; title: string; keyTopics: string[] }>>((weekId: number, curriculumData: MockCurriculum) => {
             if (weekId <= 1) return [];
 
-            const prerequisites: { weekId: number; title: any; keyTopics: any }[] = [];
+            const prerequisites: Array<{ weekId: number; title: string; keyTopics: string[] }> = [];
             for (let i = Math.max(1, weekId - 3); i < weekId; i++) {
                 const prevWeek = findWeekInCurriculum(curriculumData, i);
                 if (prevWeek) {
@@ -164,7 +224,7 @@ describe('retrieve_sources() - Motor RAG Core', () => {
             return prerequisites;
         });
 
-        retrieveSources = jest.fn().mockImplementation(async (weekId: number) => {
+        retrieveSources = jest.fn<(weekId: number | undefined | null) => Promise<EnrichedContext>>(async (weekId: number | undefined | null) => {
             if (weekId === undefined || weekId === null || weekId < 1 || weekId > 100) {
                 throw new Error(`WeekId inválido: ${weekId}. Debe estar entre 1-100.`);
             }
@@ -176,21 +236,21 @@ describe('retrieve_sources() - Motor RAG Core', () => {
                 throw new Error(`Semana ${weekId} no encontrada en curriculum.json`);
             }
 
-            const enrichedContext = {
+            const enrichedContext: EnrichedContext = {
                 weekId: weekId,
                 weekTitle: weekData.tituloSemana,
-                phase: weekData.fase,
-                phaseTitle: weekData.tituloFase,
-                module: weekData.modulo,
-                moduleTitle: weekData.tituloModulo,
+                phase: weekData.fase || 0,
+                phaseTitle: weekData.tituloFase || '',
+                module: weekData.modulo || 0,
+                moduleTitle: weekData.tituloModulo || '',
                 objectives: weekData.objetivos,
                 mainTopic: weekData.tematica,
                 activities: weekData.actividades,
                 deliverables: weekData.entregables,
                 resources: weekData.recursos || [],
                 exercises: weekData.ejercicios || [],
-                pedagogicalApproach: determinePedagogicalApproach(weekData.fase),
-                difficultyLevel: calculateDifficultyLevel(weekId, weekData.fase),
+                pedagogicalApproach: determinePedagogicalApproach(weekData.fase || 0),
+                difficultyLevel: calculateDifficultyLevel(weekId),
                 prerequisites: getPrerequisites(weekId, curriculumData),
                 retrievalTimestamp: new Date().toISOString(),
                 sourceAuthority: "curriculum.json",

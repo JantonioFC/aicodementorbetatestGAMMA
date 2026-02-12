@@ -7,6 +7,7 @@ import { useAuth } from '../../lib/auth/useAuth';
 import TemplateModal from '../ProjectTracking/TemplateModal';
 import ModelSettings from '../settings/ModelSettings';
 import APIUsageCounter from '../APIUsageCounter';
+import { logger } from '@/lib/observability/Logger';
 
 interface PrivateLayoutProps {
     children: React.ReactNode;
@@ -64,7 +65,7 @@ const PrivateLayout: React.FC<PrivateLayoutProps> = ({
             router.push('/');
             await signOut();
         } catch (err) {
-            console.error('Error durante logout:', err);
+            logger.error('Error durante logout', err);
             window.location.href = '/';
         } finally {
             setIsLoggingOut(false);
@@ -82,7 +83,11 @@ const PrivateLayout: React.FC<PrivateLayoutProps> = ({
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center space-x-4">
-                            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="md:hidden p-2 text-gray-600">
+                            <button
+                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                                className="md:hidden p-2 text-gray-600"
+                                aria-label={isSidebarOpen ? "Cerrar menú lateral" : "Abrir menú lateral"}
+                            >
                                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                                 </svg>

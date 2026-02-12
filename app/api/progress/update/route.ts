@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
                 } else {
                     db.run('UPDATE lessons SET completed = 1, completed_date = ? WHERE id = ?', [now, id]);
                 }
-                const lesson: any = db.findOne('lessons', { id });
+                const lesson = db.findOne('lessons', { id }) as { module_id?: string } | undefined;
                 moduleId = lesson?.module_id;
                 break;
 
@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
                 } else {
                     db.run('UPDATE exercises SET completed = 1, completed_date = ?, user_solution = ? WHERE id = ?', [now, userSolution || null, id]);
                 }
-                const exercise: any = db.query('SELECT e.*, l.module_id FROM exercises e JOIN lessons l ON e.lesson_id = l.id WHERE e.id = ?', [id])[0];
+                const exercise = db.query('SELECT e.*, l.module_id FROM exercises e JOIN lessons l ON e.lesson_id = l.id WHERE e.id = ?', [id])[0] as { module_id?: string } | undefined;
                 moduleId = exercise?.module_id;
                 break;
 
@@ -39,7 +39,8 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true, message: 'Progreso actualizado' });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

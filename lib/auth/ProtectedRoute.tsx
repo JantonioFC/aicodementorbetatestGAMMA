@@ -17,7 +17,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     useEffect(() => {
         if (authState === 'unauthenticated') {
-            console.log('🔒 [PROTECTED-ROUTE] Usuario no autenticado, redirigiendo a:', redirectTo);
+            // Redirecting...
             if (typeof window !== 'undefined') {
                 window.location.href = redirectTo;
             }
@@ -26,7 +26,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     switch (authState) {
         case 'loading':
-            console.log('⏳ [PROTECTED-ROUTE] Verificando autenticación...');
+            // Loading...
             if (showLoadingScreen) {
                 return <LoadingScreen message="Verificando acceso..." />;
             }
@@ -40,7 +40,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             );
 
         case 'unauthenticated':
-            console.log('❌ [PROTECTED-ROUTE] Acceso denegado - No autenticado');
+            // Access denied
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-900 to-orange-900">
                     <div className="text-center">
@@ -52,11 +52,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             );
 
         case 'authenticated':
-            console.log('✅ [PROTECTED-ROUTE] Usuario autenticado:', user?.email);
+            // Authenticated
             return <>{children}</>;
 
         default:
-            console.error('⚠️ [PROTECTED-ROUTE] Estado de autenticación desconocido:', authState);
+            // Refreshing session...
             return (
                 <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 to-black">
                     <div className="text-center">
@@ -71,12 +71,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
 export default ProtectedRoute;
 
-export function useProtectedRoute(redirectTo = '/login') {
+export function useProtectedRoute(redirectTo: string = '/login'): {
+    user: import('./useAuth').User | null;
+    authState: 'loading' | 'authenticated' | 'unauthenticated';
+    isAuthenticated: boolean;
+    authLoading: boolean;
+    isReady: boolean;
+} {
     const { user, authState, isAuthenticated, authLoading } = useAuth();
 
     useEffect(() => {
         if (authState === 'unauthenticated') {
-            console.log('🔒 [USE-PROTECTED-ROUTE] Redirigiendo a:', redirectTo);
+            // Redirecting...
             if (typeof window !== 'undefined') {
                 window.location.href = redirectTo;
             }
@@ -102,7 +108,7 @@ export function RequireAuth({
     children,
     fallback = null,
     useLoadingScreen = true
-}: RequireAuthProps) {
+}: RequireAuthProps): React.ReactElement | null {
     const { authState, user } = useAuth();
 
     if (authState === 'loading') {
@@ -133,20 +139,20 @@ export function RequireAuth({
         );
     }
 
-    console.log('✅ [REQUIRE-AUTH] Usuario autenticado:', user?.email);
+    // Authenticated
     return <>{children}</>;
 }
 
 export function withAuth<P extends object>(
     Component: React.ComponentType<P>,
     options: { redirectTo?: string; showLoadingScreen?: boolean } = {}
-) {
+): React.FC<P> {
     const {
         redirectTo = '/login',
         showLoadingScreen = true,
     } = options;
 
-    const WrappedComponent = (props: P) => {
+    const WrappedComponent: React.FC<P> = (props: P) => {
         return (
             <ProtectedRoute redirectTo={redirectTo} showLoadingScreen={showLoadingScreen}>
                 <Component {...props} />

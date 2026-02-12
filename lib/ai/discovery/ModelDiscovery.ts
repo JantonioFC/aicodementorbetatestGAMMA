@@ -8,6 +8,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '../../observability/Logger';
 
 const CONFIG_PATH = path.join(process.cwd(), 'lib', 'ai', 'config', 'models.json');
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 horas
@@ -63,6 +64,17 @@ const KNOWN_MODELS: DiscoveredModel[] = [
     }
 ];
 
+interface GoogleAIModelsResponse {
+    models: Array<{
+        name: string;
+        displayName?: string;
+        description?: string;
+        inputTokenLimit?: number;
+        outputTokenLimit?: number;
+        supportedGenerationMethods?: string[];
+    }>;
+}
+
 export class ModelDiscovery {
     private apiKey: string;
     private baseUrl: string;
@@ -83,14 +95,14 @@ export class ModelDiscovery {
     async discover(forceRefresh = false): Promise<DiscoveredModel[]> {
         // Verificar cache en memoria
         if (!forceRefresh && this.cache && this.isCacheValid()) {
-            console.log('[ModelDiscovery] Usando cache en memoria');
+            logger.debug('ModelDiscovery using in-memory cache');
             return this.cache;
         }
 
         // Verificar cache en archivo
         const fileCache = this.loadFromFile();
         if (!forceRefresh && fileCache && this.isFileCacheValid(fileCache)) {
-            console.log('[ModelDiscovery] Usando cache de archivo');
+            logger.debug('ModelDiscovery using file cache');
             this.cache = fileCache.models;
             this.lastDiscovery = new Date(fileCache.lastUpdated);
             return this.cache;
@@ -102,12 +114,13 @@ export class ModelDiscovery {
             this.cache = models;
             this.lastDiscovery = new Date();
             this.saveToFile(models);
-            console.log(`[ModelDiscovery] Descubiertos ${models.length} modelos via API`);
+            logger.info('ModelDiscovery discovered models via API', { count: models.length });
             return models;
-        } catch (error: any) {
-            console.error('[ModelDiscovery] Error consultando API:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('ModelDiscovery error querying API', { error: message });
             // Usar modelos conocidos como fallback
-            console.log('[ModelDiscovery] Usando modelos conocidos como fallback');
+            logger.info('ModelDiscovery using known models as fallback');
             return KNOWN_MODELS;
         }
     }
@@ -128,17 +141,17 @@ export class ModelDiscovery {
             throw new Error(`API error: ${response.status} ${response.statusText}`);
         }
 
-        const data = await response.json();
+        const data = await response.json() as GoogleAIModelsResponse;
 
         const excludePatterns = ['tts', 'robotics', 'computer-use', 'image', 'lite'];
 
         const generativeModels = (data.models || [])
-            .filter((model: any) =>
+            .filter((model) =>
                 model.supportedGenerationMethods?.includes('generateContent') &&
                 model.name?.includes('gemini') &&
                 !excludePatterns.some(pattern => model.name?.toLowerCase().includes(pattern))
             )
-            .map((model: any) => ({
+            .map((model) => ({
                 name: model.name?.replace('models/', '') || model.name,
                 displayName: model.displayName || model.name,
                 description: model.description || '',
@@ -184,8 +197,9 @@ export class ModelDiscovery {
                 const content = fs.readFileSync(CONFIG_PATH, 'utf-8');
                 return JSON.parse(content) as FileCache;
             }
-        } catch (error: any) {
-            console.warn('[ModelDiscovery] Error leyendo cache:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn('ModelDiscovery error reading cache', { error: message });
         }
         return null;
     }
@@ -206,9 +220,10 @@ export class ModelDiscovery {
             };
 
             fs.writeFileSync(CONFIG_PATH, JSON.stringify(data, null, 2));
-            console.log(`[ModelDiscovery] Cache guardado en ${CONFIG_PATH}`);
-        } catch (error: any) {
-            console.error('[ModelDiscovery] Error guardando cache:', error.message);
+            logger.debug('ModelDiscovery cache saved', { path: CONFIG_PATH });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('ModelDiscovery error saving cache', { error: message });
         }
     }
 

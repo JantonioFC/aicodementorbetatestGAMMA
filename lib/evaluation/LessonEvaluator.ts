@@ -51,6 +51,23 @@ export interface EvaluationResult {
     hasQuiz: boolean;
 }
 
+export interface LessonContent {
+    content?: string;
+    contenido?: string;
+    quiz?: Array<{
+        pregunta: string;
+        opciones: string[];
+        respuesta_correcta: string;
+        explicacion: string;
+    }>;
+}
+
+export interface EvaluationContext {
+    tematica_semanal?: string;
+    concepto_del_dia?: string;
+    texto_del_pomodoro?: string;
+}
+
 export class LessonEvaluator {
     private prohibitedTerms: string[];
     private weights: Record<string, number>;
@@ -76,7 +93,7 @@ export class LessonEvaluator {
     /**
      * Evalúa una lección generada.
      */
-    evaluate(lesson: any, context: any, ragContext: string = ''): EvaluationResult {
+    evaluate(lesson: LessonContent, context: EvaluationContext, ragContext: string = ''): EvaluationResult {
         const content = lesson.contenido || lesson.content || '';
         const quiz = lesson.quiz || [];
 
@@ -131,8 +148,8 @@ export class LessonEvaluator {
      */
     evaluateAndSave(
         lessonId: string,
-        lesson: any,
-        context: any,
+        lesson: LessonContent,
+        context: EvaluationContext,
         ragContext: string = '',
         sessionId: string | null = null,
         userId: string | null = null
@@ -164,7 +181,7 @@ export class LessonEvaluator {
         return { evaluationId: id, ...result };
     }
 
-    private _evaluateFaithfulness(content: string, pomodoroTopic: string) {
+    private _evaluateFaithfulness(content: string, pomodoroTopic: string): { score: number; details: EvaluationDetails['faithfulness'] } {
         const contentLower = content.toLowerCase();
         const topicWords = pomodoroTopic.toLowerCase().split(/\s+/).filter(w => w.length > 3);
 
@@ -186,7 +203,7 @@ export class LessonEvaluator {
         };
     }
 
-    private _evaluateRelevance(content: string, context: any, ragContext: string) {
+    private _evaluateRelevance(content: string, context: EvaluationContext, ragContext: string): { score: number; details: EvaluationDetails['relevance'] } {
         const contentLower = content.toLowerCase();
 
         const contextTerms = new Set<string>();
@@ -212,7 +229,7 @@ export class LessonEvaluator {
         };
     }
 
-    private _evaluateLength(content: string) {
+    private _evaluateLength(content: string): { score: number; details: EvaluationDetails['length'] } {
         const wordCount = content.split(/\s+/).filter(w => w.length > 0).length;
         const minWords = 800;
 
@@ -237,7 +254,7 @@ export class LessonEvaluator {
         };
     }
 
-    private _evaluateStructure(content: string, quiz: any[]) {
+    private _evaluateStructure(content: string, quiz: LessonContent['quiz']): { score: number; details: EvaluationDetails['structure'] } {
         let score = 0;
         const checks = {
             hasTitle: /^#\s+.+/m.test(content) || content.includes('**'),
@@ -245,7 +262,7 @@ export class LessonEvaluator {
             hasExamples: content.includes('Ejemplo') || content.includes('ejemplo') || content.includes('```'),
             hasAnalogy: content.includes('Analogía') || content.includes('analogía') || content.includes('Imagina'),
             hasQuiz: (quiz || []).length >= 3,
-            quizHasOptions: (quiz || []).length > 0 && quiz.every(q => q.opciones && q.opciones.length >= 4)
+            quizHasOptions: (quiz || []).length > 0 && (quiz || []).every(q => q.opciones && q.opciones.length >= 4)
         };
 
         if (checks.hasTitle) score += 15;
@@ -261,7 +278,7 @@ export class LessonEvaluator {
         };
     }
 
-    private _evaluateNoHallucination(content: string) {
+    private _evaluateNoHallucination(content: string): { score: number; details: EvaluationDetails['noHallucination'] } {
         const contentLower = content.toLowerCase();
         const foundProhibited: string[] = [];
 
@@ -285,7 +302,7 @@ export class LessonEvaluator {
     /**
      * Obtiene estadísticas de evaluación para un rango de tiempo.
      */
-    getStats(days: number = 7) {
+    getStats(days: number = 7): (Record<string, unknown> & { passRate: number }) | null {
         const stats = db.get<{
             totalEvaluations: number;
             avgScore: number;

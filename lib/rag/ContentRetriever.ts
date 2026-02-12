@@ -2,18 +2,22 @@
 import { db } from '../db';
 import { queryExpander } from './QueryExpander';
 import { embeddingService } from './EmbeddingService';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 // --- Interfaces de Dominio del Currículo ---
+
+export type Recurso = string | { titulo: string; url?: string };
+export type Actividad = string | { titulo: string; descripcion?: string };
+export type Ejercicio = string | { titulo: string; descripcion?: string };
 
 export interface WeekContext {
     semana: number;
     titulo: string;
     tematica: string;
     objetivos: string[];
-    actividades: any[];
-    recursos: any[];
-    ejercicios: any[];
+    actividades: Actividad[];
+    recursos: Recurso[];
+    ejercicios: Ejercicio[];
     guia_estudio?: string;
     modulo?: string;
     fase?: string;
@@ -43,8 +47,8 @@ export interface PomodoroContext {
     texto_del_pomodoro: string;
     total_pomodoros_dia: number;
 
-    recursos_semana: any[];
-    ejercicios_semana: any[];
+    recursos_semana: Recurso[];
+    ejercicios_semana: Ejercicio[];
 
     error?: string;
     weekContext?: WeekContext | null; // For error reporting
@@ -70,7 +74,7 @@ export interface SearchResult {
     score?: number;
     titulo_semana?: string; // Optional for keyword results
     tematica?: string;      // Optional for keyword results
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export class ContentRetriever {
@@ -106,10 +110,10 @@ export class ContentRetriever {
             semana: week.semana,
             titulo: week.titulo_semana,
             tematica: week.tematica,
-            objetivos: this._parseJson(week.objetivos) as string[],
-            actividades: this._parseJson(week.actividades),
-            recursos: this._parseJson(week.recursos),
-            ejercicios: this._parseJson(week.ejercicios),
+            objetivos: this._parseJson<string>(week.objetivos),
+            actividades: this._parseJson<Actividad>(week.actividades),
+            recursos: this._parseJson<Recurso>(week.recursos),
+            ejercicios: this._parseJson<Ejercicio>(week.ejercicios),
             guia_estudio: week.guia_estudio,
             modulo: week.titulo_modulo,
             fase: week.titulo_fase,
@@ -132,7 +136,7 @@ export class ContentRetriever {
         return days.map(d => ({
             dia: d.dia,
             concepto: d.concepto,
-            pomodoros: this._parseJson(d.pomodoros) as string[]
+            pomodoros: this._parseJson<string>(d.pomodoros)
         }));
     }
 
@@ -297,8 +301,9 @@ export class ContentRetriever {
                 source: 'semantic'
             }));
 
-        } catch (error: any) {
-            logger.warn(`[ContentRetriever] Metadata search error: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn(`[ContentRetriever] Metadata search error: ${message}`);
             return this.searchWeeks(query, limit);
         }
     }
@@ -310,7 +315,6 @@ export class ContentRetriever {
         const {
             limit = 5,
             useExpansion = true,
-            useReranking = true,
             filters = {}
         } = options;
 
@@ -322,8 +326,9 @@ export class ContentRetriever {
             try {
                 queries = await queryExpander.expand(query, { useLLM: false }); // Solo sinónimos locales para velocidad
                 logger.info(`[ContentRetriever] Queries expandidas: ${queries.length}`);
-            } catch (e: any) {
-                logger.warn(`[ContentRetriever] Query expansion failed: ${e.message}`);
+            } catch (e: unknown) {
+                const message = e instanceof Error ? e.message : String(e);
+                logger.warn(`[ContentRetriever] Query expansion failed: ${message}`);
             }
         }
 
@@ -343,14 +348,17 @@ export class ContentRetriever {
         });
 
         // 4. Reranking (Simplificado/Heurístico si no hay Reranker module, o asumimos score es suficiente)
-        // Nota: Reranker.js no fue migrado en este step. Usaremos el score de similitud y deduplicación.
-        // Si se requiere Reranker.ts, debería ser una dependencia inyectada. 
-        // Por simplicidad en esta fase, ordenamos por score combinado si hubiera múltiples fuentes,
-        // pero aquí 'searchWithMetadata' devuelve semantic score.
-
         const sorted = dedupedRaw.sort((a, b) => (b.similarity || 0) - (a.similarity || 0));
 
         return sorted.slice(0, limit);
+    }
+
+    /**
+     * Alias for searchAdvanced returning only text content for compatibility.
+     */
+    async retrieve(query: string, limit: number = 5): Promise<string[]> {
+        const results = await this.searchAdvanced(query, { limit });
+        return results.map(r => r.text);
     }
 
     /**
@@ -365,8 +373,9 @@ export class ContentRetriever {
         try {
             const rawSemantic = await embeddingService.searchSimilar(query, limit);
             semanticResults = rawSemantic.map(r => ({ ...r, source: 'semantic' }));
-        } catch (error: any) {
-            logger.warn(`[ContentRetriever] Semantic search no disponible: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn(`[ContentRetriever] Semantic search no disponible: ${message}`);
         }
 
         // 3. Combinar y rankear resultados
@@ -404,8 +413,9 @@ export class ContentRetriever {
             }
 
             return lines.join('\n');
-        } catch (error: any) {
-            logger.warn(`[ContentRetriever] Error obteniendo contexto relacionado: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn(`[ContentRetriever] Error obteniendo contexto relacionado: ${message}`);
             return '';
         }
     }
@@ -444,11 +454,11 @@ export class ContentRetriever {
     }
 
     // Helper para parsear JSON de forma segura
-    private _parseJson(str: string): any[] {
+    private _parseJson<T>(str: string): T[] {
         if (!str) return [];
         try {
-            const res = JSON.parse(str);
-            return Array.isArray(res) ? res : [];
+            const res: unknown = JSON.parse(str);
+            return Array.isArray(res) ? res as T[] : [];
         } catch {
             return [];
         }

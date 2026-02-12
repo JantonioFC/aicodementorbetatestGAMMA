@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import logger from '../../logger';
+import { logger } from '../../observability/Logger';
 
 export interface LeaderboardEntry {
     user_id: string;
@@ -9,6 +9,27 @@ export interface LeaderboardEntry {
     upvotes_received: number;
     rank_title: string;
     avatar_url?: string;
+}
+
+interface UserRow {
+    id: string;
+}
+
+interface UserMetricsResult {
+    lessons: number;
+    quizzes: number;
+    shared: number;
+    upvotes: number;
+    peer_points: number;
+}
+
+interface CommunityMetricsData {
+    user_id: string;
+    total_points: number;
+    lessons_shared_count: number;
+    total_upvotes_received: number;
+    rank_title: string;
+    last_computed_at: string;
 }
 
 export class LeaderboardService {
@@ -21,17 +42,17 @@ export class LeaderboardService {
         LESSON_SHARED: 100,
         UPVOTE_RECEIVED: 20,
         PEER_REVIEW_COMPLETED: 75
-    };
+    } as const;
 
     /**
      * Recalculate points for all users or a specific user
      */
-    async recalculateMetrics(userId?: string) {
+    async recalculateMetrics(userId?: string): Promise<void> {
         try {
-            const usersToUpdate = userId ? [userId] : db.query('SELECT id FROM user_profiles') as any[];
+            const usersToUpdate = userId ? [{ id: userId }] : db.query<UserRow>('SELECT id FROM user_profiles');
 
             for (const user of usersToUpdate) {
-                const targetId = userId || user.id;
+                const targetId = user.id;
 
                 // 1. Progress Stats (Quizzes, Lessons, Exercises)
                 // We'll use the profile service logic or query directly
@@ -44,7 +65,7 @@ export class LeaderboardService {
                         (SELECT COALESCE(peer_points_total, 0) FROM irp_user_metrics WHERE user_id = ?) as peer_points
                 `;
 
-                const data = db.get<any>(statsQuery, [targetId, targetId, targetId, targetId, targetId]);
+                const data = db.get<UserMetricsResult>(statsQuery, [targetId, targetId, targetId, targetId, targetId]);
 
                 if (!data) continue;
 
@@ -66,7 +87,7 @@ export class LeaderboardService {
                 // 4. Update community_metrics
                 const existing = db.findOne('community_metrics', { user_id: targetId });
 
-                const metrics = {
+                const metrics: CommunityMetricsData = {
                     user_id: targetId,
                     total_points: totalPoints,
                     lessons_shared_count: data.shared,
@@ -76,15 +97,16 @@ export class LeaderboardService {
                 };
 
                 if (existing) {
-                    db.update('community_metrics', metrics, { user_id: targetId });
+                    db.update('community_metrics', metrics as unknown as Record<string, import('../../db').QueryParams>, { user_id: targetId } as Record<string, import('../../db').QueryParams>);
                 } else {
-                    db.insert('community_metrics', { ...metrics, id: `m_${targetId}` });
+                    db.insert('community_metrics', { ...metrics, id: `m_${targetId}` } as unknown as Record<string, import('../../db').QueryParams>);
                 }
             }
 
             logger.info(`[LeaderboardService] Metrics updated for ${userId ? 'user ' + userId : 'all users'}`);
-        } catch (error) {
-            logger.error('[LeaderboardService] Error recalculating metrics', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[LeaderboardService] Error recalculating metrics: ${message}`);
         }
     }
 
@@ -107,9 +129,10 @@ export class LeaderboardService {
                 LIMIT ?
             `;
 
-            return db.query(query, [limit]) as LeaderboardEntry[];
-        } catch (error) {
-            logger.error('[LeaderboardService] Error getting top students', error);
+            return db.query<LeaderboardEntry>(query, [limit]);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[LeaderboardService] Error getting top students: ${message}`);
             return [];
         }
     }

@@ -1,6 +1,6 @@
 import { BaseAgent, AgentContext, AgentResponse } from './BaseAgent';
 import { geminiRouter } from '../ai/router/GeminiRouter';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 /**
  * Technical Agent - Se enfoca en la precisión técnica, revisión de código y conceptos avanzados.
@@ -45,15 +45,16 @@ Tu objetivo es asegurar la precisión técnica de la siguiente respuesta.
                     model: response.metadata.model
                 }
             };
-        } catch (error: any) {
-            logger.error(`[TechnicalAgent] Error: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[TechnicalAgent] Error: ${message}`);
             return {
                 content: input,
                 metadata: {
                     agentName: this.name,
                     confidence: 0.1,
                     role: this.role,
-                    error: error.message
+                    error: message
                 }
             };
         }

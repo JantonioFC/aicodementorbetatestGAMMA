@@ -3,6 +3,14 @@ import fs from 'fs';
 import path from 'path';
 import vm from 'vm';
 
+interface ExerciseAttempt {
+    lessonPath: string;
+    exerciseId: string;
+    code: string;
+    language: string;
+    result: { results: string[]; errors?: string[]; analysis?: unknown };
+}
+
 export async function POST(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
@@ -34,8 +42,9 @@ export async function POST(req: NextRequest) {
             default:
                 return NextResponse.json({ error: 'Action not valid' }, { status: 400 });
         }
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 
@@ -51,8 +60,9 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ success: true, history });
         }
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 
@@ -61,14 +71,15 @@ async function executeJavaScript(code: string) {
         const results: string[] = [];
         const errors: string[] = [];
         const sandbox = {
-            console: { log: (...args: any[]) => results.push(args.join(' ')), error: (...args: any[]) => errors.push(args.join(' ')) },
+            console: { log: (...args: unknown[]) => results.push(args.map(String).join(' ')), error: (...args: unknown[]) => errors.push(args.map(String).join(' ')) },
             results, errors
         };
         const context = vm.createContext(sandbox);
         vm.runInContext(`try { ${code} } catch(e) { errors.push(e.message); }`, context, { timeout: 1000 });
         return { results, errors };
-    } catch (e: any) {
-        return { results: [], errors: [e.message] };
+    } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        return { results: [], errors: [message] };
     }
 }
 
@@ -89,7 +100,7 @@ async function checkSolutionWithAI(code: string, desc: string, lang: string) {
     return data.candidates?.[0].content?.parts?.[0].text || 'Error';
 }
 
-async function autoSaveAttempt(data: any) {
+async function autoSaveAttempt(data: ExerciseAttempt) {
     const dir = path.join(process.cwd(), 'exports', 'ejercicios');
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     const file = `${data.lessonPath.replace(/\./g, '_')}_${data.exerciseId}_${Date.now()}.json`;

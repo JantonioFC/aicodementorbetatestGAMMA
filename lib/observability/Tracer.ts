@@ -3,11 +3,12 @@
  * Permite debugging y análisis de rendimiento.
  */
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from './Logger';
 
 export interface SpanEvent {
     event: string;
     timestamp: number;
-    data: any;
+    data: unknown;
 }
 
 export interface Span {
@@ -16,13 +17,13 @@ export interface Span {
     startTime: number;
     endTime?: number;
     duration?: number;
-    metadata: any;
+    metadata: Record<string, unknown>;
     events: SpanEvent[];
     children: string[];
     result?: {
         success: boolean;
         error?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
@@ -49,7 +50,7 @@ export class Tracer {
     /**
      * Inicia un nuevo span de trazabilidad.
      */
-    startSpan(name: string, metadata: any = {}): string {
+    startSpan(name: string, metadata: Record<string, unknown> = {}): string {
         const spanId = uuidv4();
         const span: Span = {
             id: spanId,
@@ -61,7 +62,6 @@ export class Tracer {
         };
 
         this.activeSpans.set(spanId, span);
-        console.log(`[Tracer] Started span: ${name} (${spanId.substring(0, 8)})`);
 
         return spanId;
     }
@@ -69,7 +69,7 @@ export class Tracer {
     /**
      * Añade un evento al span.
      */
-    addEvent(spanId: string, event: string, data: any = {}): void {
+    addEvent(spanId: string, event: string, data: unknown = {}): void {
         const span = this.activeSpans.get(spanId);
         if (span) {
             span.events.push({
@@ -83,16 +83,20 @@ export class Tracer {
     /**
      * Finaliza un span.
      */
-    endSpan(spanId: string, result: any = {}): Span | null {
+    endSpan(spanId: string, result: Record<string, unknown> = {}): Span | null {
         const span = this.activeSpans.get(spanId);
         if (!span) {
-            console.warn(`[Tracer] Span not found: ${spanId}`);
+            logger.warn(`[Tracer] Span not found: ${spanId}`);
             return null;
         }
 
         span.endTime = Date.now();
         span.duration = span.endTime - span.startTime;
-        span.result = result;
+        span.result = {
+            success: result.success === true,
+            error: typeof result.error === 'string' ? result.error : undefined,
+            ...result
+        };
 
         this.activeSpans.delete(spanId);
         this.completedSpans.push(span);
@@ -102,27 +106,26 @@ export class Tracer {
             this.completedSpans.shift();
         }
 
-        console.log(`[Tracer] Ended span: ${span.name} (${span.duration}ms)`);
-
         return span;
     }
 
     /**
      * Crea un wrapper para funciones que las trace automáticamente.
      */
-    trace<T extends (...args: any[]) => Promise<any>>(name: string, fn: T): T {
+    trace<T extends (...args: unknown[]) => Promise<unknown>>(name: string, fn: T): T {
         const tracer = this;
-        return (async function (this: any, ...args: Parameters<T>): Promise<ReturnType<T>> {
+        return (async function (this: unknown, ...args: Parameters<T>): Promise<ReturnType<T>> {
             const spanId = tracer.startSpan(name, { argsCount: args.length });
             try {
                 const result = await fn.apply(this, args);
                 tracer.endSpan(spanId, { success: true });
-                return result;
-            } catch (error: any) {
-                tracer.endSpan(spanId, { success: false, error: error.message });
+                return result as ReturnType<T>;
+            } catch (error: unknown) {
+                const errorMessage = error instanceof Error ? error.message : String(error);
+                tracer.endSpan(spanId, { success: false, error: errorMessage });
                 throw error;
             }
-        }) as T;
+        }) as unknown as T;
     }
 
     /**
@@ -139,8 +142,9 @@ export class Tracer {
         const statsByName: TracerStats = {};
 
         for (const span of this.completedSpans) {
-            if (!statsByName[span.name]) {
-                statsByName[span.name] = {
+            const name = span.name; // Use local var for TS narrowing/consistency
+            if (!statsByName[name]) {
+                statsByName[name] = {
                     count: 0,
                     totalDuration: 0,
                     avgDuration: 0,
@@ -148,10 +152,12 @@ export class Tracer {
                 };
             }
 
-            statsByName[span.name].count++;
-            statsByName[span.name].totalDuration += span.duration || 0;
-            if (span.result?.success === false) {
-                statsByName[span.name].errors++;
+            statsByName[name].count++;
+            statsByName[name].totalDuration += span.duration || 0;
+
+            // Safe access to result
+            if (span.result && span.result.success === false) {
+                statsByName[name].errors++;
             }
         }
 

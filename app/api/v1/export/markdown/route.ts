@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/auth/serverAuth';
-import exportService from '@/lib/services/exportService';
+import exportService, { ReviewData } from '@/lib/services/exportService';
 import { getReviewDetails } from '@/lib/services/irp/reviewService';
 
 export async function GET(req: NextRequest) {
@@ -22,7 +22,13 @@ export async function GET(req: NextRequest) {
         // Since we handle owner check in service or here
         // In local-first, we usually allow the demo user
 
-        const markdown = exportService.convertToMarkdown(review);
+        const reviewData: ReviewData = {
+            review_id: reviewId,
+            created_at: review.created_at,
+            metadata: { display_name: review.project_name },
+        };
+
+        const markdown = exportService.convertToMarkdown(reviewData);
 
         return new Response(markdown, {
             headers: {
@@ -31,7 +37,8 @@ export async function GET(req: NextRequest) {
             }
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

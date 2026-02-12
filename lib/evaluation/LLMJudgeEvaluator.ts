@@ -4,6 +4,7 @@
  * Basado en skill: llm-evaluation
  */
 import { geminiRouter } from '../ai/router/GeminiRouter';
+import { logger } from '../observability/Logger';
 
 export interface LLMEvaluationResult {
     success: boolean;
@@ -66,7 +67,7 @@ Evalúa la siguiente lección en escala 1-10 para cada criterio:
     /**
      * Evalúa una lección usando LLM-as-Judge.
      */
-    async evaluate(lesson: any, context: any): Promise<LLMEvaluationResult> {
+    async evaluate(lesson: { content?: string; contenido?: string }, context: { tematica_semanal?: string; concepto_del_dia?: string; texto_del_pomodoro?: string }): Promise<LLMEvaluationResult> {
         const lessonContent = lesson.contenido || lesson.content || '';
         const curriculumContext = `
 Tema semanal: ${context.tematica_semanal || 'N/A'}
@@ -84,18 +85,26 @@ Pomodoro: ${context.texto_del_pomodoro || 'N/A'}
                 analysisType: 'json'
             });
 
-            const evaluation = this._parseResponse(response.analysis);
+            const evaluation = this._parseResponse(response.analysis) as Partial<LLMEvaluationResult>;
             return {
                 success: true,
-                ...evaluation,
+                faithfulness: evaluation.faithfulness,
+                pedagogy: evaluation.pedagogy,
+                codeFree: evaluation.codeFree,
+                engagement: evaluation.engagement,
+                structure: evaluation.structure,
+                overall: evaluation.overall,
+                reasoning: evaluation.reasoning,
+                improvements: evaluation.improvements,
                 evaluatorType: 'llm-judge',
                 model: 'gemini-1.5-flash'
             };
-        } catch (error: any) {
-            console.error('[LLMJudge] Error:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('[LLMJudge] Error', { error: message });
             return {
                 success: false,
-                error: error.message,
+                error: message,
                 evaluatorType: 'llm-judge'
             };
         }
@@ -104,7 +113,7 @@ Pomodoro: ${context.texto_del_pomodoro || 'N/A'}
     /**
      * Compara dos lecciones (pairwise comparison).
      */
-    async compareLessons(lessonA: any, lessonB: any, context: any): Promise<ComparisonResult> {
+    async compareLessons(lessonA: { contenido?: string }, lessonB: { contenido?: string }, context: { texto_del_pomodoro?: string }): Promise<ComparisonResult> {
         const prompt = `Compara estas dos lecciones sobre "${context.texto_del_pomodoro}".
 
 **LECCIÓN A:**
@@ -125,36 +134,39 @@ ${lessonB.contenido?.substring(0, 2000)}
                 userPrompt: prompt,
                 analysisType: 'json'
             });
-            const result = this._parseResponse(response.analysis);
+            const result = this._parseResponse(response.analysis) as unknown as ComparisonResult;
             return {
                 winner: result.winner || 'tie',
                 reasoning: result.reasoning || '',
                 confidence: result.confidence || 0,
                 success: true
             };
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
             return {
                 winner: 'tie',
-                reasoning: error.message,
+                reasoning: message,
                 confidence: 0,
                 success: false,
-                error: error.message
+                error: message
             };
         }
     }
 
-    private _parseResponse(response: any): any {
-        if (typeof response === 'object') return response;
+    private _parseResponse(response: unknown): Record<string, unknown> {
+        if (typeof response === 'object' && response !== null) return response as Record<string, unknown>;
 
+        const responseText = String(response);
         try {
-            const jsonMatch = response.match(/```json\n?([\s\S]*?)\n?```/) ||
-                response.match(/\{[\s\S]*\}/);
+            const jsonMatch = responseText.match(/```json\n?([\s\S]*?)\n?```/) ||
+                responseText.match(/\{[\s\S]*\}/);
             if (jsonMatch) {
-                return JSON.parse(jsonMatch[1] || jsonMatch[0]);
+                return JSON.parse(jsonMatch[1] || jsonMatch[0]) as Record<string, unknown>;
             }
-            return { rawResponse: response };
-        } catch (e: any) {
-            return { rawResponse: response, parseError: e.message };
+            return { rawResponse: responseText };
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            return { rawResponse: responseText, parseError: message };
         }
     }
 }

@@ -20,7 +20,7 @@ export interface AnalysisAnalysis {
     improvements: string[];
     examples: string[];
     score: number | null;
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export interface AnalysisResponse {
@@ -35,7 +35,7 @@ export interface AnalysisResponse {
 
 export interface ProviderConfig {
     name: string;
-    [key: string]: any; // Allow extra config
+    [key: string]: unknown; // Allow extra config
 }
 
 export interface AIProvider {
@@ -74,10 +74,10 @@ export abstract class BaseProvider implements AIProvider {
     /**
      * Parse text response to JSON
      */
-    protected parseResponse(text: string): any {
+    protected parseResponse(text: string): Record<string, unknown> {
         // Default simplistic parser, can be overridden
         try {
-            return JSON.parse(text);
+            return JSON.parse(text) as Record<string, unknown>;
         } catch (e) {
             return { raw: text };
         }

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
             if (!fs.existsSync(baseDir)) return NextResponse.json({ exports: {} });
 
             const categories = ['lecciones', 'ejercicios', 'portfolio'];
-            const result: any = {};
+            const result: Record<string, string[]> = {};
             categories.forEach(cat => {
                 const p = path.join(baseDir, cat);
                 result[cat] = fs.existsSync(p) ? fs.readdirSync(p) : [];
@@ -21,7 +21,8 @@ export async function GET(req: NextRequest) {
             return NextResponse.json({ success: true, exports: result });
         }
         return NextResponse.json({ error: 'Invalid action' }, { status: 400 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

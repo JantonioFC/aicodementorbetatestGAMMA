@@ -38,7 +38,7 @@ export default defineConfig({
     ],
 
     webServer: {
-        command: isCI ? 'npm run start' : 'npm run dev',
+        command: isCI ? 'E2E_TEST_MODE=true npm run start' : 'E2E_TEST_MODE=true npm run dev',
         url: 'http://localhost:3000',
         reuseExistingServer: !isCI || process.env.REUSE_SERVER === 'true',
         timeout: 120000,

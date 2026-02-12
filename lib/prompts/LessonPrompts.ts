@@ -26,17 +26,17 @@ const lessonPrompts = promptLoader.load('lesson.json');
 // ============================================================
 // 1. SYSTEM PROMPT (Persona y Comportamiento Global)
 // ============================================================
-export const SYSTEM_PROMPT: string = lessonPrompts.system;
+export const SYSTEM_PROMPT: string = lessonPrompts.system as string;
 
 // ============================================================
 // 2. FEW-SHOT EXAMPLES (Guía de Estructura y Calidad)
 // ============================================================
-export const FEW_SHOT_EXAMPLES: ChatMessage[] = lessonPrompts.examples;
+export const FEW_SHOT_EXAMPLES: ChatMessage[] = lessonPrompts.examples as ChatMessage[];
 
 // ============================================================
 // 3. USER PROMPT TEMPLATE (Tarea Específica con Variables)
 // ============================================================
-export const USER_PROMPT_TEMPLATE: string = lessonPrompts.user_template;
+export const USER_PROMPT_TEMPLATE: string = lessonPrompts.user_template as string;
 
 // ============================================================
 // 4. BUILDER FUNCTION (Ensambla el Prompt Final)
@@ -60,9 +60,9 @@ export function buildLessonPromptMessages(context: LessonContext, includeFewShot
         prompts = lessonPrompts;
     }
 
-    const systemPrompt = prompts.system || SYSTEM_PROMPT;
-    const examples = prompts.examples || FEW_SHOT_EXAMPLES;
-    const userTemplate = prompts.user_template || USER_PROMPT_TEMPLATE;
+    const systemPrompt = (prompts.system as string) || SYSTEM_PROMPT;
+    const examples = (prompts.examples as ChatMessage[]) || FEW_SHOT_EXAMPLES;
+    const userTemplate = (prompts.user_template as string) || USER_PROMPT_TEMPLATE;
 
     const messages: ChatMessage[] = [
         { role: 'system', content: systemPrompt }

@@ -2,9 +2,10 @@
 import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
+import { logger } from '../observability/Logger';
 
-interface CacheEntry {
-    value: any;
+interface CacheEntry<T = unknown> {
+    value: T;
     expiresAt: number | null;
 }
 
@@ -15,6 +16,12 @@ interface CacheStats {
     expired?: number;
     sizeKB?: number;
     error?: string;
+}
+
+interface SQLiteStats {
+    total: number;
+    expired: number;
+    totalBytes: number;
 }
 
 export class CacheService {
@@ -62,13 +69,14 @@ export class CacheService {
             this._stmtDel = this.db.prepare('DELETE FROM cache WHERE key = ?');
             this._stmtCleanup = this.db.prepare('DELETE FROM cache WHERE expires_at IS NOT NULL AND expires_at < ?');
 
-            console.log('✅ [CacheService] Cache SQLite inicializado en data/cache.db');
+            logger.info('CacheService SQLite initialized', { path: 'data/cache.db' });
 
             // Limpiar entradas expiradas al iniciar
             this._cleanup();
 
-        } catch (error: any) {
-            console.warn('⚠️ [CacheService] No se pudo inicializar SQLite, usando memoria:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn('CacheService could not initialize SQLite, using memory fallback', { error: message });
             this.db = null;
         }
     }
@@ -76,11 +84,11 @@ export class CacheService {
     /**
      * Obtiene un valor del cache.
      */
-    get<T = any>(key: string): T | null {
+    get<T = unknown>(key: string): T | null {
         if (!this.db || !this._stmtGet) {
-            const cached = this.memoryFallback.get(key);
+            const cached = this.memoryFallback.get(key) as CacheEntry<T> | undefined;
             if (cached && (!cached.expiresAt || cached.expiresAt > Date.now())) {
-                return cached.value as T;
+                return cached.value;
             }
             return null;
         }
@@ -96,8 +104,9 @@ export class CacheService {
             }
 
             return JSON.parse(row.value) as T;
-        } catch (error: any) {
-            console.error('[CacheService] Error get:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('CacheService error on get', { error: message });
             return null;
         }
     }
@@ -106,7 +115,7 @@ export class CacheService {
      * Guarda un valor en cache.
      * @param ttlSeconds - Tiempo de vida en segundos (default: 1 hora)
      */
-    set(key: string, value: any, ttlSeconds: number = 3600): void {
+    set<T = unknown>(key: string, value: T, ttlSeconds: number = 3600): void {
         if (!this.db || !this._stmtSet) {
             this.memoryFallback.set(key, {
                 value,
@@ -121,8 +130,9 @@ export class CacheService {
                 : null;
 
             this._stmtSet.run(key, JSON.stringify(value), expiresAt);
-        } catch (error: any) {
-            console.error('[CacheService] Error set:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('CacheService error on set', { error: message });
         }
     }
 
@@ -137,8 +147,9 @@ export class CacheService {
 
         try {
             this._stmtDel.run(key);
-        } catch (error: any) {
-            console.error('[CacheService] Error delete:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('CacheService error on delete', { error: message });
         }
     }
 
@@ -166,10 +177,11 @@ export class CacheService {
             const now = Math.floor(Date.now() / 1000);
             const result = this._stmtCleanup.run(now);
             if (result.changes > 0) {
-                console.log(`🧹 [CacheService] Limpiadas ${result.changes} entradas expiradas`);
+                logger.info('CacheService cleaned expired entries', { count: result.changes });
             }
-        } catch (error: any) {
-            console.error('[CacheService] Error cleanup:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('CacheService error on cleanup', { error: message });
         }
     }
 
@@ -191,17 +203,18 @@ export class CacheService {
                     SUM(CASE WHEN expires_at IS NOT NULL AND expires_at < strftime('%s', 'now') THEN 1 ELSE 0 END) as expired,
                     SUM(length(value)) as totalBytes
                 FROM cache
-            `).get() as { total: number, expired: number, totalBytes: number };
+            `).get() as SQLiteStats;
 
             return {
                 type: 'sqlite',
                 path: 'data/cache.db',
-                entries: stats.total,
-                expired: stats.expired,
-                sizeKB: Math.round(stats.totalBytes / 1024)
+                entries: stats.total || 0,
+                expired: stats.expired || 0,
+                sizeKB: Math.round((stats.totalBytes || 0) / 1024)
             };
-        } catch (error: any) {
-            return { type: 'sqlite', entries: 0, error: error.message };
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            return { type: 'sqlite', entries: 0, error: message };
         }
     }
 
@@ -216,9 +229,10 @@ export class CacheService {
 
         try {
             this.db.exec('DELETE FROM cache');
-            console.log('🗑️ [CacheService] Cache limpiado');
-        } catch (error: any) {
-            console.error('[CacheService] Error clear:', error.message);
+            logger.info('CacheService cache cleared');
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('CacheService error on clear', { error: message });
         }
     }
 }

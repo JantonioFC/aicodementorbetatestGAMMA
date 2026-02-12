@@ -15,14 +15,18 @@ export async function POST(req: NextRequest) {
 
         const { email, password } = validation.data;
         const result = await AuthLocal.loginUser(email, password);
-        if (result.error) return NextResponse.json(result, { status: 401 });
+        if ('error' in result && result.error) return NextResponse.json(result, { status: 401 });
 
-        const response = NextResponse.json({ user: result.user, session: result });
-        response.cookies.set('ai-code-mentor-auth', result.token, { httpOnly: true, secure: true, path: '/' });
-        response.cookies.set('ai-code-mentor-refresh', result.refreshToken, { httpOnly: true, secure: true, path: '/' });
+        // Now TypeScript knows result has token, refreshToken, and user
+        const successResult = result as { token: string; refreshToken: string; user: Record<string, unknown> };
+
+        const response = NextResponse.json({ user: successResult.user, session: successResult });
+        response.cookies.set('ai-code-mentor-auth', successResult.token, { httpOnly: true, secure: true, path: '/' });
+        response.cookies.set('ai-code-mentor-refresh', successResult.refreshToken, { httpOnly: true, secure: true, path: '/' });
 
         return response;
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

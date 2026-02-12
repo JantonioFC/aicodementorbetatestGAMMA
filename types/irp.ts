@@ -67,10 +67,34 @@ export interface ReviewReport {
     session_id?: string;
 }
 
+export interface AuthorMetricsData {
+    total_reviews_received: number;
+    average_rating_received: number;
+    improvement_trend: 'positive' | 'negative' | 'stable';
+    response_to_feedback_rate: number;
+}
+
+export interface ReviewerMetricsData {
+    total_reviews_completed: number;
+    quality_score: number;
+    average_review_time_hours: number;
+    average_rating_given: number;
+    punctuality_rate: number;
+}
+
+export interface PeerPointsData {
+    total_earned: number;
+    current_level: string;
+}
+
+export interface Insight {
+    type: 'success' | 'warning' | 'info';
+    message: string;
+    action?: string;
+}
+
 export interface UserMetrics {
-    reviewer_metrics?: {
-        total_reviews_completed: number;
-        average_rating_given: number;
-        average_review_time_hours: number;
-    };
+    reviewer_metrics: ReviewerMetricsData;
+    author_metrics: AuthorMetricsData;
+    peer_points: PeerPointsData;
 }

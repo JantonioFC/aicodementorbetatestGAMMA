@@ -3,6 +3,7 @@
  * Detecta condiciones anómalas y notifica.
  */
 import { metricsCollector } from './Metrics';
+import { logger } from './Logger';
 
 export interface Alert {
     id: string;
@@ -117,13 +118,14 @@ export class AlertsSystem {
      * Notifica a callbacks registrados.
      */
     private _notify(alert: Alert): void {
-        console.log(`[ALERT ${alert.level}] ${alert.title}: ${alert.message}`);
+        logger.warn('Alert triggered', { level: alert.level, title: alert.title, message: alert.message });
 
         for (const callback of this.callbacks) {
             try {
                 callback(alert);
-            } catch (e: any) {
-                console.error('[Alerts] Callback error:', e.message);
+            } catch (e: unknown) {
+                const message = e instanceof Error ? e.message : String(e);
+                logger.error('Alerts callback error', { error: message });
             }
         }
     }

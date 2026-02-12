@@ -10,14 +10,15 @@ export async function DELETE(
         const { userId } = await getServerAuth();
         const { id } = await params;
 
-        const result = db.run('DELETE FROM sandbox_generations WHERE id = ? AND user_id = ?', [id, userId]) as any;
+        const result = db.run('DELETE FROM sandbox_generations WHERE id = ? AND user_id = ?', [id, userId]) as unknown as { changes: number };
 
         if (result.changes === 0) {
             return NextResponse.json({ success: false, error: 'Not Found' }, { status: 404 });
         }
 
         return NextResponse.json({ success: true, message: 'Eliminado' });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

@@ -20,8 +20,9 @@ export default function SystemTestWidget() {
             if (!res.ok) throw new Error(data.message || 'Error de ejecución');
             setResults(data.testResults);
             setTestState(data.testResults.success ? 'success' : 'failed');
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            setError(message);
             setTestState('error');
         }
     };
@@ -59,8 +60,15 @@ export default function SystemTestWidget() {
     );
 }
 
+
+interface StatProps {
+    label: string;
+    value: string | number;
+    color?: string;
+}
+
 function StatusBadge({ state }: { state: string }) {
-    const configs: any = {
+    const configs: Record<string, { label: string; color: string }> = {
         idle: { label: 'LISTO', color: 'bg-gray-100 text-gray-600' },
         running: { label: 'EN CURSO', color: 'bg-indigo-100 text-indigo-600 animate-pulse' },
         success: { label: 'OK', color: 'bg-emerald-100 text-emerald-600' },
@@ -71,7 +79,7 @@ function StatusBadge({ state }: { state: string }) {
     return <span className={`px-4 py-1 rounded-full text-[10px] font-black tracking-widest ${config.color}`}>{config.label}</span>;
 }
 
-function Stat({ label, value, color = 'text-gray-900' }: any) {
+function Stat({ label, value, color = 'text-gray-900' }: StatProps) {
     return (
         <div>
             <p className="text-[10px] font-black text-gray-400 uppercase">{label}</p>

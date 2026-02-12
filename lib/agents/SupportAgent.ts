@@ -1,6 +1,6 @@
 import { BaseAgent, AgentContext, AgentResponse } from './BaseAgent';
 import { geminiRouter } from '../ai/router/GeminiRouter';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 /**
  * Support Agent - Utiliza el método socrático para guiar al alumno sin darle la respuesta directa.
@@ -57,15 +57,16 @@ Enfócate en UN solo paso de razonamiento a la vez.
                     model: response.metadata.model
                 }
             };
-        } catch (error: any) {
-            logger.error(`[SupportAgent] Error: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[SupportAgent] Error: ${message}`);
             return {
-                content: `Interesante pregunta. Antes de profundizar, ¿qué es lo que más te llama la atención sobre ${context.topic}? (Error en el agente: ${error.message})`,
+                content: `Interesante pregunta. Antes de profundizar, ¿qué es lo que más te llama la atención sobre ${context.topic}? (Error en el agente: ${message})`,
                 metadata: {
                     agentName: this.name,
                     confidence: 0.1,
                     role: this.role,
-                    error: error.message
+                    error: message
                 }
             };
         }

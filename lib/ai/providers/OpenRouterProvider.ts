@@ -1,5 +1,6 @@
 
 import { BaseProvider, AnalysisRequest, AnalysisResponse, AnalysisAnalysis, ProviderConfig } from './BaseProvider';
+import { logger } from '../../observability/Logger';
 
 export class OpenRouterProvider extends BaseProvider {
     private apiKey: string;
@@ -8,9 +9,9 @@ export class OpenRouterProvider extends BaseProvider {
     private appName: string;
 
     constructor(config: ProviderConfig) {
-        super({ name: config.modelName || 'openai/gpt-3.5-turbo' });
-        this.apiKey = config.apiKey || '';
-        this.modelName = config.modelName || 'openai/gpt-3.5-turbo';
+        super({ name: typeof config.modelName === 'string' ? config.modelName : 'openai/gpt-3.5-turbo' });
+        this.apiKey = typeof config.apiKey === 'string' ? config.apiKey : '';
+        this.modelName = typeof config.modelName === 'string' ? config.modelName : 'openai/gpt-3.5-turbo';
         this.siteUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
         this.appName = 'AI Code Mentor';
     }
@@ -94,7 +95,7 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional ni bloques de código
 `;
 
         try {
-            const messages: any[] = [];
+            const messages: { role: string; content: string }[] = [];
             if (request.messages && Array.isArray(request.messages) && request.messages.length > 0) {
                 // Map to OpenAI/OpenRouter format
                 request.messages.forEach(msg => {
@@ -136,18 +137,19 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional ni bloques de código
                 latency
             });
 
-        } catch (error: any) {
-            console.error(`[OpenRouterProvider] Error with ${this.modelName}:`, error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[OpenRouterProvider] Error with ${this.modelName}`, { error: message });
             throw error;
         }
     }
 
-    private formatResponse(rawResponse: any, metadata: { tokensUsed: number, latency: number }): AnalysisResponse {
+    private formatResponse(rawResponse: Record<string, unknown>, metadata: { tokensUsed: number, latency: number }): AnalysisResponse {
         const analysis: AnalysisAnalysis = {
-            feedback: rawResponse.feedback || '',
-            strengths: Array.isArray(rawResponse.strengths) ? rawResponse.strengths : [],
-            improvements: Array.isArray(rawResponse.improvements) ? rawResponse.improvements : [],
-            examples: Array.isArray(rawResponse.examples) ? rawResponse.examples : [],
+            feedback: typeof rawResponse.feedback === 'string' ? rawResponse.feedback : '',
+            strengths: Array.isArray(rawResponse.strengths) ? rawResponse.strengths.filter((s): s is string => typeof s === 'string') : [],
+            improvements: Array.isArray(rawResponse.improvements) ? rawResponse.improvements.filter((i): i is string => typeof i === 'string') : [],
+            examples: Array.isArray(rawResponse.examples) ? rawResponse.examples.filter((e): e is string => typeof e === 'string') : [],
             score: typeof rawResponse.score === 'number' ? rawResponse.score : null
         };
 

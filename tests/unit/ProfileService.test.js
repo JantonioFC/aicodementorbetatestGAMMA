@@ -16,12 +16,13 @@ jest.mock('../../lib/db', () => {
     };
 });
 
-jest.mock('../../lib/logger', () => ({
+jest.mock('../../lib/observability/Logger', () => ({
     __esModule: true,
-    default: {
+    logger: {
         info: jest.fn(),
         error: jest.fn(),
-        warn: jest.fn()
+        warn: jest.fn(),
+        debug: jest.fn()
     }
 }));
 

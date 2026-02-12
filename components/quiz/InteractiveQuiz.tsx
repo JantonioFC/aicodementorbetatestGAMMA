@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { logger } from '@/lib/observability/Logger';
 
 interface QuizExercise {
     question: string;
@@ -54,7 +55,7 @@ export default function InteractiveQuiz(props: InteractiveQuizProps) {
                 })
             });
         } catch (error) {
-            console.error('[Quiz] Error saving attempt:', error);
+            logger.error('Quiz error saving attempt', error);
         }
     };
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/auth/serverAuth';
 import { masteryAnalyticsService } from '@/lib/services/MasteryAnalyticsService';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 /**
  * GET /api/v1/analytics/mastery
@@ -10,6 +10,9 @@ import logger from '@/lib/logger';
 export async function GET(req: NextRequest) {
     try {
         const { userId } = await getServerAuth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
 
         logger.info(`[AnalyticsAPI] Solicitando reporte de maestría para ${userId}`);
 
@@ -24,11 +27,12 @@ export async function GET(req: NextRequest) {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         logger.error('[AnalyticsAPI] Error recuperando analíticas de maestría:', error);
         return NextResponse.json({
             error: 'Error recuperando analíticas',
-            details: error.message
+            details: message
         }, { status: 500 });
     }
 }

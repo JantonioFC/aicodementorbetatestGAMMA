@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import logger from '../../logger';
+import { logger } from '../../observability/Logger';
 import { competencyService } from '../CompetencyService';
 import crypto from 'crypto';
 
@@ -80,8 +80,9 @@ export class SkillGapService {
 
             logger.info(`[SkillGap] Análisis completado para ${userId}: ${gaps.length} brechas detectadas.`);
             return gaps;
-        } catch (error: any) {
-            logger.error(`[SkillGap] Error en análisis para ${userId}:`, error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[SkillGap] Error en análisis para ${userId}: ${message}`);
             throw error;
         }
     }
@@ -90,7 +91,7 @@ export class SkillGapService {
      * Obtiene las brechas guardadas más críticas.
      */
     async getStoredGaps(userId: string): Promise<SkillGap[]> {
-        return db.query('SELECT * FROM skill_gaps WHERE user_id = ? ORDER BY gap_score DESC', [userId]);
+        return db.query<SkillGap>('SELECT * FROM skill_gaps WHERE user_id = ? ORDER BY gap_score DESC', [userId]);
     }
 }
 

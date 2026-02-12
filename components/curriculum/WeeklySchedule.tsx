@@ -9,11 +9,11 @@ interface PomodoroBlock {
     duration: string;
     bgColor: string;
     textColor: string;
-    icon: any;
+    icon: React.ReactNode;
     pomodoros: string[];
 }
 
-interface DayData {
+export interface DayData {
     dia: number;
     concepto: string;
     pomodoros: string[];

@@ -6,7 +6,8 @@ import {
     getReviewDetails,
     calculateUserMetrics,
     generateSystemStats,
-    saveAIReview
+    saveAIReview,
+    type ReviewRequest
 } from '@/lib/services/irp/reviewService';
 import { isAIAvailable, performAIReview } from '@/lib/services/irp/aiReviewerService';
 
@@ -17,6 +18,9 @@ export async function GET(
     try {
         const { path: pathSegments } = await params;
         const { userId, user } = await getServerAuth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
         const path = '/' + (pathSegments?.join('/') || '');
 
         if (path === '/health') {
@@ -25,8 +29,8 @@ export async function GET(
 
         if (path === '/reviews/history') {
             const { searchParams } = new URL(req.url);
-            const role = searchParams.get('role') || 'both';
-            const status = searchParams.get('status') || 'all';
+            const role = (searchParams.get('role') || 'both') as 'author' | 'reviewer' | 'both';
+            const status = (searchParams.get('status') || 'all') as 'pending' | 'completed' | 'all';
             const limit = parseInt(searchParams.get('limit') || '20');
             const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -52,8 +56,9 @@ export async function GET(
         }
 
         return NextResponse.json({ error: 'Not Found' }, { status: 404 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 
@@ -64,6 +69,9 @@ export async function POST(
     try {
         const { path: pathSegments } = await params;
         const { userId } = await getServerAuth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
         const path = '/' + (pathSegments?.join('/') || '');
 
         if (path === '/reviews/request') {
@@ -83,18 +91,20 @@ export async function POST(
         }
 
         return NextResponse.json({ error: 'Not Found' }, { status: 404 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }
 
-async function processAIReview(reviewRequest: any, userId: string) {
+async function processAIReview(reviewRequest: ReviewRequest, userId: string) {
     try {
         const result = await performAIReview(reviewRequest);
         if (result.success) {
             await saveAIReview(reviewRequest.id, result.reviewData, userId);
         }
-    } catch (error: any) {
-        console.error('[IRP] AI review error:', error.message);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error('[IRP] AI review error:', message);
     }
 }

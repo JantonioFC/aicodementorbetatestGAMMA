@@ -11,11 +11,24 @@ export interface UserEntity {
     userId: string;
     type: string;
     key: string;
-    value: any;
+    value: unknown;
     confidence: number;
     source?: string;
     createdAt?: string;
     updatedAt?: string;
+}
+
+export interface MemoryStats {
+    decayed: number;
+    removed: number;
+    total: number;
+}
+
+export interface UserCognitiveProfile {
+    preferences: Record<string, { value: unknown; confidence: number }>;
+    masteredSkills: string[];
+    strugglingWith: string[];
+    interests: string[];
 }
 
 export class UserEntityMemory {
@@ -44,7 +57,7 @@ export class UserEntityMemory {
     /**
      * Guarda o actualiza una entidad del usuario.
      */
-    set(userId: string, entityType: string, key: string, value: any, options: { confidence?: number; source?: string } = {}): string {
+    set(userId: string, entityType: string, key: string, value: unknown, options: { confidence?: number; source?: string } = {}): string {
         const id = uuidv4();
         const serializedValue = typeof value === 'object' ? JSON.stringify(value) : String(value);
 
@@ -71,7 +84,7 @@ export class UserEntityMemory {
     /**
      * Obtiene una entidad específica.
      */
-    get(userId: string, entityType: string, key: string): any | null {
+    get(userId: string, entityType: string, key: string): unknown | null {
         const row = db.get<{ entity_value: string }>(
             'SELECT entity_value FROM user_entities WHERE user_id = ? AND entity_type = ? AND entity_key = ?',
             [userId, entityType, key]
@@ -89,13 +102,13 @@ export class UserEntityMemory {
     /**
      * Obtiene todas las entidades de un tipo para un usuario.
      */
-    getAll(userId: string, entityType: string): Record<string, { value: any, confidence: number }> {
+    getAll(userId: string, entityType: string): Record<string, { value: unknown, confidence: number }> {
         const rows = db.query<{ entity_key: string, entity_value: string, confidence: number }>(
             'SELECT entity_key, entity_value, confidence FROM user_entities WHERE user_id = ? AND entity_type = ?',
             [userId, entityType]
         );
 
-        const result: Record<string, { value: any, confidence: number }> = {};
+        const result: Record<string, { value: unknown, confidence: number }> = {};
         for (const row of rows) {
             try {
                 result[row.entity_key] = {
@@ -115,7 +128,7 @@ export class UserEntityMemory {
     /**
      * Construye el perfil completo del usuario para inyección en prompt.
      */
-    getProfile(userId: string) {
+    getProfile(userId: string): UserCognitiveProfile {
         const preferences = this.getAll(userId, 'preference');
         const skills = this.getAll(userId, 'skill');
         const struggles = this.getAll(userId, 'struggle');
@@ -141,7 +154,7 @@ export class UserEntityMemory {
         const parts: string[] = [];
 
         if (profile.preferences.learningStyle) {
-            parts.push(`Estilo de aprendizaje preferido: ${profile.preferences.learningStyle.value}`);
+            parts.push(`Estilo de aprendizaje preferido: ${String(profile.preferences.learningStyle.value)}`);
         }
 
         if (profile.masteredSkills.length > 0) {
@@ -166,7 +179,7 @@ export class UserEntityMemory {
     /**
      * Actualiza el perfil basado en interacción de quiz.
      */
-    updateFromQuiz(userId: string, topic: string, correct: boolean, difficulty: number = 1): void {
+    updateFromQuiz(userId: string, topic: string, correct: boolean, _difficulty: number = 1): void {
         const entityType = correct ? 'skill' : 'struggle';
 
         // Obtener historial de confianza para este tema
@@ -192,13 +205,13 @@ export class UserEntityMemory {
     /**
      * Aplica decay a entidades no usadas recientemente.
      */
-    applyDecay(userId: string, decayRate: number = 0.1, daysThreshold: number = 7) {
+    applyDecay(userId: string, decayRate: number = 0.1, daysThreshold: number = 7): MemoryStats {
         const staleEntities = db.query<{ id: string, entity_key: string, entity_type: string, confidence: number }>(`
             SELECT id, entity_key, entity_type, confidence 
             FROM user_entities 
             WHERE user_id = ? 
-              AND updated_at < datetime('now', '-${daysThreshold} days')
-              AND confidence > 0.1
+            AND updated_at < datetime('now', '-${daysThreshold} days')
+            AND confidence > 0.1
         `, [userId]);
 
         let decayed = 0;

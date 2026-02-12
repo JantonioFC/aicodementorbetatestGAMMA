@@ -22,7 +22,7 @@ interface ExportStatus {
     completed: boolean;
     downloadUrl: string | null;
     error: string | null;
-    metadata: any | null;
+    metadata: unknown | null;
 }
 
 const PortfolioExportSystem: React.FC<PortfolioExportSystemProps> = ({ className = '' }) => {
@@ -92,9 +92,10 @@ const PortfolioExportSystem: React.FC<PortfolioExportSystemProps> = ({ className
             setExportStatus({
                 isExporting: false, progress: 100, currentStep: 'Completado', completed: true, downloadUrl: result.downloadUrl, error: null, metadata: result.metadata
             });
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
             setExportStatus({
-                isExporting: false, progress: 0, currentStep: '', completed: false, downloadUrl: null, error: error.message, metadata: null
+                isExporting: false, progress: 0, currentStep: '', completed: false, downloadUrl: null, error: message, metadata: null
             });
         }
     };

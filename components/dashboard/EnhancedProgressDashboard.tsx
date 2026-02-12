@@ -40,8 +40,9 @@ export default function EnhancedProgressDashboard() {
                 if (!response.ok) throw new Error(`Error ${response.status}`);
                 const result = await response.json();
                 setData(result);
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                setError(message);
             } finally {
                 setLoading(false);
             }
@@ -49,8 +50,15 @@ export default function EnhancedProgressDashboard() {
         fetchProgressSummary();
     }, []);
 
-    if (loading) return <div className="p-6 animate-pulse bg-gray-100 rounded-lg h-64"></div>;
-    if (error) return <div className="p-6 text-red-600">Error: {error}</div>;
+    if (loading) return (
+        <div
+            className="p-6 animate-pulse bg-gray-100 rounded-lg h-64"
+            aria-busy="true"
+            aria-live="polite"
+            aria-label="Cargando resumen de progreso"
+        ></div>
+    );
+    if (error) return <div className="p-6 text-red-600" role="alert">Error: {error}</div>;
     if (!data) return null;
 
     const trendData = data.progresoPorFase.map(fase => ({
@@ -69,20 +77,20 @@ export default function EnhancedProgressDashboard() {
         }));
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6" role="region" aria-label="Tablero de Progreso Mejorado">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-white p-6 rounded-xl border shadow-sm">
+                <div className="bg-white p-6 rounded-xl border shadow-sm" aria-label={`Semanas completadas: ${data.summary.totalSemanasCompletadas}`}>
                     <p className="text-sm text-gray-500 uppercase font-bold">Semanas</p>
                     <p className="text-4xl font-bold">{data.summary.totalSemanasCompletadas}</p>
                     <p className="text-xs text-gray-400">de {data.summary.totalSemanasIniciadas} iniciadas</p>
                 </div>
-                <div className="bg-white p-6 rounded-xl border shadow-sm">
+                <div className="bg-white p-6 rounded-xl border shadow-sm" aria-label={`Progreso total: ${data.summary.porcentajeTotalCompletado} por ciento`}>
                     <p className="text-sm text-gray-500 uppercase font-bold">Progreso Total</p>
                     <p className="text-4xl font-bold">{data.summary.porcentajeTotalCompletado}%</p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" role="region" aria-label="Gráficos de rendimiento">
                 <div className="bg-white p-4 rounded-xl border shadow-sm">
                     <TrendChart data={trendData} title="Tendencia" color="blue" />
                 </div>
@@ -97,7 +105,7 @@ export default function EnhancedProgressDashboard() {
                 </div>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4" role="list" aria-label="Progreso detallado por fase">
                 {data.progresoPorFase.map(fase => (
                     <PhaseProgressBar key={fase.faseId} {...fase} />
                 ))}

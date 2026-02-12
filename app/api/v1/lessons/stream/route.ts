@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', text, accumulated: fullText.length })}\n\n`));
                     }
 
-                    let parsed: any = null;
+                    let parsed: Record<string, unknown> | null = null;
                     try {
                         const jsonMatch = fullText.match(/```json\n?([\s\S]*?)\n?```/);
                         parsed = JSON.parse(jsonMatch ? jsonMatch[1] : fullText);
@@ -57,8 +57,9 @@ export async function POST(req: NextRequest) {
                     }
 
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'end', success: true, data: parsed })}\n\n`));
-                } catch (error: any) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: error.message })}\n\n`));
+                } catch (error: unknown) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: message })}\n\n`));
                 } finally {
                     controller.close();
                 }
@@ -73,7 +74,8 @@ export async function POST(req: NextRequest) {
             }
         });
 
-    } catch (error: any) {
-        return new Response(JSON.stringify({ error: error.message }), { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return new Response(JSON.stringify({ error: message }), { status: 500 });
     }
 }

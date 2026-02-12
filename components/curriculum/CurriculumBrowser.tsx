@@ -5,6 +5,13 @@ import PhaseCard from './PhaseCard';
 import WeekDetailsLoader from './WeekDetailsLoader';
 import { CurriculumSummary, Phase, Module, Week } from '../../types/curriculum';
 
+interface WeekDetails {
+    semana: number;
+    tituloSemana: string;
+    tematica: string;
+    [key: string]: unknown;
+}
+
 interface CurriculumBrowserProps {
     curriculumData: CurriculumSummary;
 }
@@ -16,11 +23,11 @@ export default function CurriculumBrowser({ curriculumData }: CurriculumBrowserP
 
     const [phaseModules, setPhaseModules] = useState<Record<number, Module[]>>({});
     const [loadingModules, setLoadingModules] = useState<Record<number, boolean>>({});
-    const [modulesError, setModulesError] = useState<Record<number, any>>({});
+    const [modulesError, setModulesError] = useState<Record<number, { message: string } | null>>({});
 
-    const [weekDetailsData, setWeekDetailsData] = useState<any>(null);
+    const [weekDetailsData, setWeekDetailsData] = useState<WeekDetails | null>(null);
     const [loadingWeekDetails, setLoadingWeekDetails] = useState(false);
-    const [weekDetailsError, setWeekDetailsError] = useState<any>(null);
+    const [weekDetailsError, setWeekDetailsError] = useState<{ message: string } | null>(null);
 
     const loadPhaseModules = async (phaseId: number) => {
         if (phaseModules[phaseId]) return;
@@ -31,8 +38,9 @@ export default function CurriculumBrowser({ curriculumData }: CurriculumBrowserP
             if (!response.ok) throw new Error('Error al cargar módulos');
             const data = await response.json();
             setPhaseModules(prev => ({ ...prev, [phaseId]: data.modulos }));
-        } catch (error: any) {
-            setModulesError(prev => ({ ...prev, [phaseId]: { message: error.message } }));
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            setModulesError(prev => ({ ...prev, [phaseId]: { message } }));
         } finally {
             setLoadingModules(prev => ({ ...prev, [phaseId]: false }));
         }
@@ -69,8 +77,9 @@ export default function CurriculumBrowser({ curriculumData }: CurriculumBrowserP
             if (!response.ok) throw new Error('Error al cargar detalles');
             const data = await response.json();
             setWeekDetailsData(data);
-        } catch (error: any) {
-            setWeekDetailsError({ message: error.message });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            setWeekDetailsError({ message });
         } finally {
             setLoadingWeekDetails(false);
         }

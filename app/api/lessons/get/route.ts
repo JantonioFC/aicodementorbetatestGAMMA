@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
         }
 
         const diaIndexForDB = diaNum - 1;
-        const savedContent: any = db.query(
+        const savedContent: Record<string, unknown>[] = db.query(
             'SELECT * FROM generated_content WHERE user_id = ? AND semana_id = ? AND dia_index = ? AND pomodoro_index = ? ORDER BY created_at DESC LIMIT 1',
             [userId, semanaId, diaIndexForDB, pomodoroIndex]
         );
@@ -37,14 +37,16 @@ export async function GET(req: NextRequest) {
             try { lessonContent = JSON.parse(lessonContent); } catch { }
         }
 
+        const lessonObj = (typeof lessonContent === 'object' && lessonContent !== null) ? lessonContent : {};
         return NextResponse.json({
-            ...lessonContent,
+            ...lessonObj as Record<string, unknown>,
             contentId: contentRecord.id,
             retrievedAt: new Date().toISOString(),
             location: { semanaId, dia: diaNum, pomodoroIndex }
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

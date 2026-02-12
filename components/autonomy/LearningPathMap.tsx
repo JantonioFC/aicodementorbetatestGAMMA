@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/observability/Logger';
 
 interface PathStep {
     id: string;
@@ -38,7 +39,7 @@ const LearningPathMap: React.FC = () => {
                 setPath(data.data);
             }
         } catch (error) {
-            console.error('Error fetching path:', error);
+            logger.error('Error fetching path', error);
         } finally {
             setLoading(false);
         }
@@ -57,7 +58,7 @@ const LearningPathMap: React.FC = () => {
                 fetchActivePath();
             }
         } catch (error) {
-            console.error('Error generating path:', error);
+            logger.error('Error generating path', error);
         } finally {
             setLoading(false);
         }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/auth/serverAuth';
 import { sharedLessonService } from '@/lib/services/community/SharedLessonService';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 /**
  * GET /api/v1/community/feed
@@ -9,7 +9,8 @@ import logger from '@/lib/logger';
  */
 export async function GET(req: NextRequest) {
     try {
-        const { userId } = await getServerAuth().catch(() => ({ userId: undefined }));
+        const { userId: rawUserId } = await getServerAuth().catch(() => ({ userId: undefined }));
+        const userId = rawUserId ?? undefined;
         const { searchParams } = new URL(req.url);
 
         const limit = parseInt(searchParams.get('limit') || '20');
@@ -27,11 +28,12 @@ export async function GET(req: NextRequest) {
             data: feed
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('[CommunityAPI] Error recuperando feed:', error);
+        const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({
             error: 'Error recuperando feed',
-            details: error.message
+            details: message
         }, { status: 500 });
     }
 }

@@ -2,7 +2,19 @@
  * PDF Export Utility for AI Code Mentor
  * Client-side PDF generation using pdf-lib
  */
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts, PDFFont } from 'pdf-lib';
+
+export interface PDFExportLesson {
+    title: string;
+    content: string;
+}
+
+export interface PDFExportProgress {
+    student_name: string;
+    completed_lessons: number;
+    avg_score: number;
+    learning_path: string;
+}
 
 // Constants
 const PAGE_WIDTH = 612;  // Letter size
@@ -15,7 +27,7 @@ const BODY_SIZE = 11;
 /**
  * Export a lesson to PDF
  */
-export async function exportLessonToPDF(lesson: any) {
+export async function exportLessonToPDF(lesson: PDFExportLesson): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
     const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
@@ -76,7 +88,7 @@ export async function exportLessonToPDF(lesson: any) {
 /**
  * Export user progress report to PDF
  */
-export async function exportProgressReportToPDF(progress: any) {
+export async function exportProgressReportToPDF(progress: PDFExportProgress): Promise<Uint8Array> {
     const pdfDoc = await PDFDocument.create();
     const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
@@ -91,6 +103,15 @@ export async function exportProgressReportToPDF(progress: any) {
         color: rgb(0.1, 0.1, 0.1)
     });
 
+    // Añadir más detalles del progreso si es necesario
+    y -= 40;
+    page.drawText(`Estudiante: ${progress.student_name}`, {
+        x: MARGIN,
+        y: y,
+        size: 12,
+        font: helveticaBold
+    });
+
     const pdfBytes = await pdfDoc.save();
     downloadPDF(pdfBytes, `reporte-progreso-${new Date().toISOString().split('T')[0]}.pdf`);
 
@@ -98,7 +119,7 @@ export async function exportProgressReportToPDF(progress: any) {
 }
 
 // Helper: Wrap text to fit width
-function wrapText(text: string, maxWidth: number, fontSize: number, font: any): string[] {
+function wrapText(text: string, maxWidth: number, fontSize: number, font: PDFFont): string[] {
     const words = text.split(' ');
     const lines: string[] = [];
     let currentLine = '';
@@ -122,7 +143,7 @@ function wrapText(text: string, maxWidth: number, fontSize: number, font: any): 
 // Helper: Download PDF
 function downloadPDF(pdfBytes: Uint8Array, filename: string): void {
     if (typeof window === 'undefined') return;
-    const blob = new Blob([pdfBytes as any], { type: 'application/pdf' });
+    const blob = new Blob([new Uint8Array(pdfBytes)], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;

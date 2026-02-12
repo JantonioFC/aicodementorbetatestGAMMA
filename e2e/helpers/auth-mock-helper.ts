@@ -8,7 +8,7 @@ import { Page, BrowserContext } from '@playwright/test';
 import * as jwt from 'jsonwebtoken';
 
 // Use same secret as backend for token validation
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-key-safe-for-local-only';
+const JWT_SECRET = process.env.JWT_SECRET || 'test-only-not-for-production';
 
 export interface MockUser {
     id: string;

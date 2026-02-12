@@ -1,12 +1,21 @@
 import { useState } from 'react';
 
+interface Exercise {
+    question?: string;
+    options?: string[];
+    correctAnswerIndex?: number;
+    correctAnswer?: string;
+    explanation?: string;
+    type?: string;
+}
+
 interface ExportButtonProps {
     generatedLesson: {
         title?: string;
         lesson?: string;
         generatedAt?: string;
         inputLength?: number;
-        exercises?: any[];
+        exercises?: Exercise[];
     };
 }
 

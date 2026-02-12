@@ -4,7 +4,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 // Tipos básicos para el usuario y la sesión
 export interface User {
@@ -14,17 +14,24 @@ export interface User {
     user_metadata?: {
         full_name?: string;
         avatar_url?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
     app_metadata?: {
         provider?: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
 export interface AuthSession {
     user: User;
     access_token?: string;
+}
+
+interface AuthResponse {
+    data?: Record<string, unknown>;
+    user?: User;
+    session?: AuthSession;
+    error?: string | null;
 }
 
 interface AuthContextType {
@@ -34,8 +41,8 @@ interface AuthContextType {
     authLoading: boolean;
     authState: 'loading' | 'authenticated' | 'unauthenticated';
     isAuthenticated: boolean;
-    signIn: (email: string, password: string) => Promise<{ data?: any; error?: string | null }>;
-    signUp: (email: string, password: string, metadata?: any) => Promise<{ data?: any; error?: string | null }>;
+    signIn: (email: string, password: string) => Promise<AuthResponse>;
+    signUp: (email: string, password: string, metadata?: Record<string, unknown>) => Promise<AuthResponse>;
     signOut: () => Promise<{ error: null }>;
     checkSession: () => Promise<void>;
 }
@@ -55,23 +62,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const refreshSession = useCallback(async (): Promise<boolean> => {
         try {
-            console.log('🔄 [USE-AUTH] Refreshing session...');
+            // Refreshing...
             const res = await fetch('/api/auth/refresh', { method: 'POST' });
 
             if (res.ok) {
-                console.log('✅ [USE-AUTH] Session refreshed');
+                // Session refreshed
                 return true;
             }
             return false;
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('Error refreshing session:', error);
             return false;
         }
     }, []);
 
-    const checkSession = useCallback(async () => {
+    const checkSession = useCallback(async (): Promise<void> => {
         try {
-            console.log('🔒 [USE-AUTH] Checking session (Client)...');
+            // Checking...
             setLoading(true);
 
             const res = await fetch(`/api/auth/user?t=${Date.now()}`, {
@@ -83,7 +90,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             });
 
             if (res.ok) {
-                const data = await res.json();
+                const data = await res.json() as { user: User };
                 setUser(data.user);
                 setAuthState('authenticated');
             } else {
@@ -94,7 +101,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     setAuthState('unauthenticated');
                 }
             }
-        } catch (error) {
+        } catch (error: unknown) {
             console.error('❌ [USE-AUTH] Session check error:', error);
             setUser(null);
             setAuthState('unauthenticated');
@@ -117,7 +124,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return () => clearInterval(refreshInterval);
     }, [authState, checkSession, refreshSession]);
 
-    const signIn = async (email: string, password: string) => {
+    const signIn = async (email: string, password: string): Promise<AuthResponse> => {
         try {
             setLoading(true);
             const res = await fetch('/api/auth/login', {
@@ -126,7 +133,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 body: JSON.stringify({ email, password })
             });
 
-            const data = await res.json();
+            const data = await res.json() as { user: User; error?: string };
 
             if (!res.ok) {
                 return { error: data.error || 'Error al iniciar sesión' };
@@ -134,16 +141,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             setUser(data.user);
             setAuthState('authenticated');
-            return { data, error: null };
+            return { data: data as unknown as Record<string, unknown>, user: data.user, error: null };
 
-        } catch (error: any) {
-            return { error: error.message };
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            return { error: message };
         } finally {
             setLoading(false);
         }
     };
 
-    const signUp = async (email: string, password: string, metadata: any = {}) => {
+    const signUp = async (email: string, password: string, metadata: Record<string, unknown> = {}): Promise<AuthResponse> => {
         try {
             setLoading(true);
             const res = await fetch('/api/auth/register', {
@@ -156,7 +164,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 })
             });
 
-            const data = await res.json();
+            const data = await res.json() as { user: User; error?: string };
 
             if (!res.ok) {
                 return { error: data.error || 'Error al registrarse' };
@@ -164,20 +172,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
             setUser(data.user);
             setAuthState('authenticated');
-            return { data, error: null };
+            return { data: data as unknown as Record<string, unknown>, user: data.user, error: null };
 
-        } catch (error: any) {
-            return { error: error.message };
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            return { error: message };
         } finally {
             setLoading(false);
         }
     };
 
-    const signOut = async () => {
+    const signOut = async (): Promise<{ error: null }> => {
         try {
             await fetch('/api/auth/logout', { method: 'POST' });
-        } catch (error) {
-            // @ts-ignore
+        } catch (error: unknown) {
             logger.error('Error signing out', error);
         } finally {
             setUser(null);

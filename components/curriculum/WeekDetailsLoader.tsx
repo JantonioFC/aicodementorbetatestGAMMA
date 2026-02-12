@@ -4,13 +4,13 @@
  * WEEK DETAILS LOADER - TypeScript Migration
  */
 
-import WeekDetails from './WeekDetails';
+import WeekDetails, { WeekDetailsProps } from './WeekDetails';
 import GuiaEstudio from './GuiaEstudio';
 import { ExclamationTriangleIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
 interface WeekDetailsLoaderProps {
     activeWeek: { semana: number; tituloSemana: string };
-    weekDetailsData: any;
+    weekDetailsData: Record<string, unknown> | null;
     loadingWeekDetails: boolean;
     weekDetailsError: { message: string; details?: string } | null;
     onRetry: () => void;
@@ -47,7 +47,8 @@ export default function WeekDetailsLoader({
     }
 
     if (weekDetailsData) {
-        const hasGuiaEstudio = weekDetailsData.guiaEstudio && Object.keys(weekDetailsData.guiaEstudio).length > 0;
+        const guiaEstudio = weekDetailsData.guiaEstudio as Record<string, unknown> | undefined;
+        const hasGuiaEstudio = !!(guiaEstudio && Object.keys(guiaEstudio).length > 0);
 
         return (
             <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -59,7 +60,9 @@ export default function WeekDetailsLoader({
                     <span className="text-[10px] text-green-600">Semana {activeWeek.semana}</span>
                 </div>
 
-                {hasGuiaEstudio ? <GuiaEstudio weekData={weekDetailsData} /> : <WeekDetails weekData={weekDetailsData} />}
+                {hasGuiaEstudio
+                    ? <GuiaEstudio weekData={weekDetailsData as Parameters<typeof GuiaEstudio>[0]['weekData']} />
+                    : <WeekDetails weekData={weekDetailsData as WeekDetailsProps['weekData']} />}
             </div>
         );
     }

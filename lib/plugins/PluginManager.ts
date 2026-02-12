@@ -1,10 +1,10 @@
-import { IPlugin, validatePlugin } from './interfaces/IPlugin';
+import { IPlugin, validatePlugin, PluginContext } from './interfaces/IPlugin';
 
 export class PluginManager {
     private plugins: Map<string, IPlugin> = new Map();
     private domainPlugins: Map<string, string[]> = new Map();
     private initialized: boolean = false;
-    private context: any = {};
+    private context: PluginContext = {};
 
     register(plugin: IPlugin): { success: boolean; error?: string } {
         const validation = validatePlugin(plugin);
@@ -46,7 +46,7 @@ export class PluginManager {
         return true;
     }
 
-    async initializeAll(context: any = {}): Promise<{ initialized: string[]; failed: string[] }> {
+    async initializeAll(context: PluginContext = {}): Promise<{ initialized: string[]; failed: string[] }> {
         this.context = context;
         const initialized: string[] = [];
         const failed: string[] = [];
@@ -87,7 +87,7 @@ export class PluginManager {
         return sorted;
     }
 
-    async analyze(code: string, context: any): Promise<any> {
+    async analyze(code: string, context: PluginContext): Promise<unknown> {
         let pc = code;
         let pctx = { ...context };
 
@@ -98,14 +98,16 @@ export class PluginManager {
             }
         }
 
-        const results = new Map();
-        const relevant = context.domain ? (this.domainPlugins.get(context.domain) || []).map(n => this.plugins.get(n)!) : Array.from(this.plugins.values());
+        const results = new Map<string, unknown>();
+        const relevant = (typeof context.domain === 'string')
+            ? (this.domainPlugins.get(context.domain) || []).map(n => this.plugins.get(n)!)
+            : Array.from(this.plugins.values());
 
         for (const p of relevant) {
-            try { results.set(p.name, await p.analyze(pc, pctx)); } catch (e) { }
+            try { if (p) results.set(p.name, await p.analyze(pc, pctx)); } catch (e) { }
         }
 
-        let combined = { code: pc, context: pctx, pluginResults: Object.fromEntries(results) };
+        let combined: unknown = { code: pc, context: pctx, pluginResults: Object.fromEntries(results) };
         for (const p of this.plugins.values()) {
             if (p.postProcess) combined = p.postProcess(combined, pctx);
         }

@@ -1,6 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWeekDetails, validateDatabase } from '@/lib/curriculum-sqlite';
 
+interface WeekDetailsResponse {
+    semana: number;
+    tituloSemana: string;
+    tematica: string;
+    objetivos: string[];
+    actividades: string[];
+    entregables: string | null;
+    recursos: string[];
+    ejercicios: string[];
+    esquemaDiario: unknown[];
+    officialSources: string[];
+    modulo: {
+        numero: number;
+        titulo: string;
+    };
+    fase: {
+        numero: number;
+        titulo: string;
+    };
+    guiaEstudio?: Record<string, unknown>;
+    metadata?: {
+        apiVersion: string;
+        dataSource: string;
+        generatedAt: string;
+        guiaEstudioIncluida: boolean;
+    };
+}
+
 export async function GET(
     req: NextRequest,
     { params }: { params: Promise<{ weekId: string }> }
@@ -23,7 +51,7 @@ export async function GET(
             return NextResponse.json({ error: 'Not Found', message: `Week ${weekNumber} not found` }, { status: 404 });
         }
 
-        const detailsResponse: any = {
+        const detailsResponse: WeekDetailsResponse = {
             semana: weekDetails.semana,
             tituloSemana: weekDetails.titulo_semana,
             tematica: weekDetails.tematica,
@@ -61,7 +89,8 @@ export async function GET(
 
         return NextResponse.json(detailsResponse);
 
-    } catch (error: any) {
-        return NextResponse.json({ error: 'Internal Server Error', message: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: 'Internal Server Error', message }, { status: 500 });
     }
 }

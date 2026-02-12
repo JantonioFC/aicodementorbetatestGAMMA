@@ -1,5 +1,6 @@
 import { db } from '../db';
 import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../observability/Logger';
 
 /**
  * Servicio para gestionar el feedback de los alumnos
@@ -14,11 +15,28 @@ export interface FeedbackInput {
     comment?: string;
 }
 
+/**
+ * Interfaces de Dominio para Feedback
+ */
+
+export interface LessonStats {
+    total_responses: number;
+    avg_rating: number;
+    helpful_count: number;
+    helpful_percentage: number;
+}
+
+export interface FeedbackEntry extends FeedbackInput {
+    id: string;
+    user_email?: string;
+    created_at: string;
+}
+
 const feedbackService = {
     /**
      * Guarda una valoración de lección
      */
-    async saveFeedback({ user_id, lesson_id, session_id, rating, was_helpful, difficulty, comment }: FeedbackInput) {
+    async saveFeedback({ user_id, lesson_id, session_id, rating, was_helpful, difficulty, comment }: FeedbackInput): Promise<{ id: string; success: boolean }> {
         const id = uuidv4();
 
         const query = `
@@ -41,8 +59,8 @@ const feedbackService = {
         try {
             db.run(query, params);
             return { id, success: true };
-        } catch (error) {
-            console.error('❌ [FEEDBACK-SERVICE] Error saving feedback:', error);
+        } catch (error: unknown) {
+            logger.error('FeedbackService error saving feedback', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     },
@@ -50,7 +68,7 @@ const feedbackService = {
     /**
      * Obtiene estadísticas de feedback para una lección específica
      */
-    async getLessonStats(lesson_id: string) {
+    async getLessonStats(lesson_id: string): Promise<LessonStats | undefined> {
         const query = `
       SELECT 
         COUNT(*) as total_responses,
@@ -62,9 +80,9 @@ const feedbackService = {
     `;
 
         try {
-            return db.get<any>(query, [lesson_id]);
-        } catch (error) {
-            console.error('❌ [FEEDBACK-SERVICE] Error getting lesson stats:', error);
+            return db.get<LessonStats>(query, [lesson_id]);
+        } catch (error: unknown) {
+            logger.error('FeedbackService error getting lesson stats', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     },
@@ -72,7 +90,7 @@ const feedbackService = {
     /**
      * Obtiene todos los feedbacks del sistema (Admin)
      */
-    async getAllFeedback(limit = 100) {
+    async getAllFeedback(limit = 100): Promise<FeedbackEntry[]> {
         const query = `
       SELECT f.*, u.email as user_email
       FROM lesson_feedback f
@@ -82,9 +100,9 @@ const feedbackService = {
     `;
 
         try {
-            return db.query<any>(query, [limit]);
-        } catch (error) {
-            console.error('❌ [FEEDBACK-SERVICE] Error fetching all feedback:', error);
+            return db.query<FeedbackEntry>(query, [limit]);
+        } catch (error: unknown) {
+            logger.error('FeedbackService error fetching all feedback', { error: error instanceof Error ? error.message : String(error) });
             throw error;
         }
     }

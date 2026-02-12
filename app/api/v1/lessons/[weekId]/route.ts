@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getWeekData, validateDatabase } from '@/lib/curriculum-sqlite';
 import { fetchRawHTML } from '@/lib/arm/retriever';
+import type { WeekData } from '@/lib/repositories/WeekRepository';
+
+interface ARMSource {
+    url: string;
+    content?: string;
+    status: string;
+    error?: string;
+}
 
 export async function GET(
     req: NextRequest,
@@ -24,7 +32,7 @@ export async function GET(
             return NextResponse.json({ error: 'Not Found' }, { status: 404 });
         }
 
-        let armSources: any[] = [];
+        let armSources: ARMSource[] = [];
         if (weekData.official_sources && weekData.official_sources.length > 0) {
             armSources = await processARMSources(weekData.official_sources);
         }
@@ -61,13 +69,14 @@ export async function GET(
             }
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: 'Internal Server Error', message: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: 'Internal Server Error', message }, { status: 500 });
     }
 }
 
-async function processARMSources(sources: string[]) {
-    const results: any[] = [];
+async function processARMSources(sources: string[]): Promise<ARMSource[]> {
+    const results: ARMSource[] = [];
     for (const url of sources.slice(0, 3)) {
         try {
             const html = await fetchRawHTML(url);
@@ -76,14 +85,15 @@ async function processARMSources(sources: string[]) {
                 content: html.replace(/<[^>]+>/g, ' ').substring(0, 2000),
                 status: 'success'
             });
-        } catch (e: any) {
-            results.push({ url, status: 'error', error: e.message });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            results.push({ url, status: 'error', error: message });
         }
     }
     return results;
 }
 
-function extractTopics(data: any) {
+function extractTopics(data: WeekData) {
     const topics = (data.objetivos || []).slice(0, 3);
     if (data.tematica && !topics.includes(data.tematica)) topics.push(data.tematica);
     return topics.slice(0, 5);

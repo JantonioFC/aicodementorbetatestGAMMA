@@ -18,6 +18,11 @@ export interface ValidationReport {
     };
 }
 
+interface Row {
+    id: string;
+    [key: string]: unknown;
+}
+
 export class CurriculumValidator {
     /**
      * Ejecuta una validación completa del currículo.
@@ -37,7 +42,7 @@ export class CurriculumValidator {
             }
         };
 
-        const weeks = db.query<any>('SELECT * FROM semanas ORDER BY semana');
+        const weeks = db.query<Row & { semana: number }>('SELECT * FROM semanas ORDER BY semana', []);
         report.stats.weeksProcessed = weeks.length;
 
         for (const week of weeks) {
@@ -47,7 +52,7 @@ export class CurriculumValidator {
             this._validateJsonField(week, 'ejercicios', report);
 
             // 2. Validar esquema diario
-            const days = db.query<any>('SELECT * FROM esquema_diario WHERE semana_id = ?', [week.id]);
+            const days = db.query<Row & { semana_id: string; dia: number; concepto: string }>('SELECT * FROM esquema_diario WHERE semana_id = ?', [week.id]);
             report.stats.daysProcessed += days.length;
 
             if (days.length === 0) {
@@ -72,17 +77,18 @@ export class CurriculumValidator {
         return report;
     }
 
-    private _validateJsonField(row: any, fieldName: string, report: ValidationReport): void {
+    private _validateJsonField(row: Row, fieldName: string, report: ValidationReport): void {
         const content = row[fieldName];
-        if (!content) return;
+        if (!content || typeof content !== 'string') return;
 
         try {
-            const parsed = JSON.parse(content);
-            if (!Array.isArray(parsed) && typeof parsed !== 'object') {
+            const parsed = JSON.parse(content) as unknown;
+            if (!parsed || (typeof parsed !== 'object')) {
                 this._addError(report, 'jsonIntegrity', `ID ${row.id}: Campo '${fieldName}' no es un objeto/array JSON válido`);
             }
-        } catch (e: any) {
-            this._addError(report, 'jsonIntegrity', `ID ${row.id}: Error parseando JSON en '${fieldName}': ${e.message}`);
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            this._addError(report, 'jsonIntegrity', `ID ${row.id}: Error parseando JSON en '${fieldName}': ${message}`);
         }
     }
 

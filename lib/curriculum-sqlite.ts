@@ -5,6 +5,7 @@
 import { weekRepository } from './repositories/WeekRepository';
 import { curriculumRepository } from './repositories/CurriculumRepository';
 import db from './db';
+import { logger } from './observability/Logger';
 
 const curriculumSqlite = {
     getWeekData: (id: number) => weekRepository.getWeekData(id),
@@ -14,8 +15,8 @@ const curriculumSqlite = {
     getPhasesOnly: () => curriculumRepository.getPhasesOnly(),
     validateDatabase: () => curriculumRepository.validateDatabase(),
     getDatabase: () => {
-        console.warn('⚠️ [DEPRECATED] getDatabase() called.');
-        return require('./db-instance');
+        logger.warn('[DEPRECATED] getDatabase() called. db-instance removed.');
+        throw new Error('Database instance is no longer available via this deprecated method.');
     },
     closeDatabase: () => {
         db.close();

@@ -1,5 +1,5 @@
 import { db } from '../../db';
-import logger from '../../logger';
+import { logger } from '../../observability/Logger';
 import { geminiRouter } from '../../ai/router/GeminiRouter';
 import { skillGapService, SkillGap } from './SkillGapService';
 import crypto from 'crypto';
@@ -12,6 +12,26 @@ export interface PathStep {
     estimated_difficulty: string;
     resource_type: 'lesson' | 'exercise' | 'project';
     reasoning: string;
+}
+
+export interface LearningPath {
+    id: string;
+    user_id: string;
+    title: string;
+    target_profile: string;
+    status: 'active' | 'completed' | 'archived';
+    created_at: string;
+}
+
+interface AISequenceStep {
+    topic: string;
+    difficulty: string;
+    type?: 'lesson' | 'exercise' | 'project';
+    reasoning: string;
+}
+
+interface AISequenceResponse {
+    steps: AISequenceStep[];
 }
 
 export class LearningPathGenerator {
@@ -45,14 +65,18 @@ export class LearningPathGenerator {
             });
 
             // 4. Parsear y guardar los pasos
-            const sequenceData = response.analysis;
-            const steps: PathStep[] = sequenceData.steps.map((s: any, index: number) => ({
+            const sequenceData = response.analysis as unknown as AISequenceResponse;
+            if (!sequenceData || !Array.isArray(sequenceData.steps)) {
+                throw new Error('Invalid sequence data from AI');
+            }
+
+            const steps: PathStep[] = sequenceData.steps.map((s, index: number) => ({
                 id: `step_${crypto.randomUUID()}`,
                 path_id: pathId,
                 step_number: index + 1,
                 topic: s.topic,
                 estimated_difficulty: s.difficulty,
-                resource_type: s.type || 'lesson',
+                resource_type: (s.type === 'lesson' || s.type === 'exercise' || s.type === 'project') ? s.type : 'lesson',
                 reasoning: s.reasoning
             }));
 
@@ -66,8 +90,9 @@ export class LearningPathGenerator {
             logger.info(`[PathGen] Ruta ${pathId} generada con ${steps.length} pasos para ${userId}.`);
             return pathId;
 
-        } catch (error: any) {
-            logger.error(`[PathGen] Error generando ruta para ${userId}:`, error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[PathGen] Error generando ruta para ${userId}: ${message}`);
             throw error;
         }
     }
@@ -100,11 +125,11 @@ export class LearningPathGenerator {
         `;
     }
 
-    async getActivePath(userId: string) {
-        const path = db.get('SELECT * FROM learning_paths WHERE user_id = ? AND status = "active" ORDER BY created_at DESC LIMIT 1', [userId]) as any;
+    async getActivePath(userId: string): Promise<(LearningPath & { steps: PathStep[] }) | null> {
+        const path = db.get<LearningPath>('SELECT * FROM learning_paths WHERE user_id = ? AND status = "active" ORDER BY created_at DESC LIMIT 1', [userId]);
         if (!path) return null;
 
-        const steps = db.query('SELECT * FROM path_steps WHERE path_id = ? ORDER BY step_number ASC', [path.id]);
+        const steps = db.query<PathStep>('SELECT * FROM path_steps WHERE path_id = ? ORDER BY step_number ASC', [path.id]);
         return { ...path, steps };
     }
 }

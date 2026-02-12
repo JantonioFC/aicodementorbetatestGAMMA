@@ -9,8 +9,11 @@ module.exports = {
 
     // Coverage settings
     collectCoverageFrom: [
-        'lib/**/*.js',
-        '!lib/**/*.test.js'
+        'lib/**/*.{js,ts,tsx}',
+        'components/**/*.{js,ts,tsx}',
+        '!**/*.d.ts',
+        '!lib/**/*.test.{js,ts,tsx}',
+        '!**/node_modules/**'
     ],
 
     // Test file patterns
@@ -21,7 +24,10 @@ module.exports = {
 
     // Transform ESM to CommonJS for Jest
     transform: {
-        '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest'
+        '^.+\\.(ts|tsx)$': ['ts-jest', {
+            tsconfig: 'tsconfig.json'
+        }],
+        '^.+\\.(js|jsx)$': 'babel-jest'
     },
 
     // Handle module name mapping for imports
@@ -51,7 +57,11 @@ module.exports = {
                 '/99_Archive_Temp/'
             ],
             transform: {
-                '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { configFile: './.babelrc.jest.js' }]
+                '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
+                '^.+\\.(js|jsx)$': ['babel-jest', { configFile: './.babelrc.jest.js' }]
+            },
+            moduleNameMapper: {
+                '^@/(.*)$': '<rootDir>/$1'
             }
         },
         {

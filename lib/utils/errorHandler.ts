@@ -16,12 +16,13 @@ export interface AIErrorDetails {
  */
 export class AIProviderError extends Error implements AIErrorDetails {
     public provider: string;
-    public originalError: any;
+    public originalError: unknown;
     public severity: ErrorSeverity = 'high';
     public recoverable: boolean = true;
 
-    constructor(provider: string, originalError: any) {
-        super(`Error en proveedor ${provider}: ${originalError.message}`);
+    constructor(provider: string, originalError: unknown) {
+        const message = originalError instanceof Error ? originalError.message : String(originalError);
+        super(`Error en proveedor ${provider}: ${message}`);
         this.name = 'AIProviderError';
         this.provider = provider;
         this.originalError = originalError;
@@ -50,11 +51,11 @@ export class RateLimitError extends Error implements AIErrorDetails {
  */
 export class InvalidResponseError extends Error implements AIErrorDetails {
     public provider: string;
-    public response: any;
+    public response: unknown;
     public severity: ErrorSeverity = 'high';
     public recoverable: boolean = true;
 
-    constructor(provider: string, response: any) {
+    constructor(provider: string, response: unknown) {
         super(`Respuesta inválida de ${provider}`);
         this.name = 'InvalidResponseError';
         this.provider = provider;
@@ -67,11 +68,11 @@ export class InvalidResponseError extends Error implements AIErrorDetails {
  */
 export class AllModelsFailedError extends Error implements AIErrorDetails {
     public attemptedModels: string[];
-    public errors: any[];
+    public errors: unknown[];
     public severity: ErrorSeverity = 'critical';
     public recoverable: boolean = false;
 
-    constructor(attemptedModels: string[], errors: any[]) {
+    constructor(attemptedModels: string[], errors: unknown[]) {
         super('Todos los modelos de IA fallaron');
         this.name = 'AllModelsFailedError';
         this.attemptedModels = attemptedModels;
@@ -100,16 +101,16 @@ export class ModelNotAvailableError extends Error implements AIErrorDetails {
  * Manejador central de errores de IA
  */
 export function handleAIError(
-    error: any,
+    error: unknown,
     context: {
         provider?: string,
         model?: string,
-        response?: any,
+        response?: unknown,
         attemptedModels?: string[],
-        errors?: any[]
+        errors?: unknown[]
     } = {}
 ): Error {
-    const errorMessage = error.message?.toLowerCase() || '';
+    const errorMessage = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
 
     // Rate limit
     if (errorMessage.includes('rate limit') ||
@@ -131,7 +132,7 @@ export function handleAIError(
         errorMessage.includes('unavailable')) {
         return new ModelNotAvailableError(
             context.model || 'unknown',
-            error.message
+            errorMessage
         );
     }
 
@@ -150,7 +151,10 @@ export function handleAIError(
 /**
  * Generar mensaje de error amigable para el usuario
  */
-export function getUserFriendlyMessage(error: any): string {
+/**
+ * Generar mensaje de error amigable para el usuario
+ */
+export function getUserFriendlyMessage(error: unknown): string {
     if (error instanceof RateLimitError) {
         return `Has alcanzado el límite de consultas temporalmente. Por favor espera ${error.retryAfter} segundos e intenta de nuevo.`;
     }
@@ -178,13 +182,18 @@ export function getUserFriendlyMessage(error: any): string {
 /**
  * Verificar si un error es recuperable
  */
-export function isRecoverable(error: any): boolean {
-    return (error as AIErrorDetails).recoverable === true;
+export function isRecoverable(error: unknown): boolean {
+    const aiError = error as AIErrorDetails;
+    return typeof aiError === 'object' && aiError !== null && 'recoverable' in aiError && aiError.recoverable === true;
 }
 
 /**
  * Obtener severidad del error
  */
-export function getSeverity(error: any): ErrorSeverity {
-    return (error as AIErrorDetails).severity || 'unknown';
+export function getSeverity(error: unknown): ErrorSeverity {
+    const aiError = error as AIErrorDetails;
+    if (typeof aiError === 'object' && aiError !== null && 'severity' in aiError) {
+        return aiError.severity;
+    }
+    return 'unknown';
 }

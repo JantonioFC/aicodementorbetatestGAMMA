@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'local-development-secret-change-this';
-const IRP_SECRET = process.env.IRP_JWT_SECRET || JWT_SECRET;
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('FATAL: JWT_SECRET must be defined in production.');
+    }
+}
+
+const SECRET_KEY: string = JWT_SECRET || '';
+const IRP_SECRET = process.env.IRP_JWT_SECRET || SECRET_KEY;
 const TOKEN_EXPIRATION = '15m';
 
 export async function POST(req: NextRequest) {
@@ -13,11 +21,15 @@ export async function POST(req: NextRequest) {
             return NextResponse.json({ success: false, error: 'Missing access_token' }, { status: 400 });
         }
 
-        let decoded: any;
+        let decoded: string | jwt.JwtPayload;
         try {
-            decoded = jwt.verify(access_token, JWT_SECRET);
+            decoded = jwt.verify(access_token, SECRET_KEY);
         } catch (e) {
             return NextResponse.json({ success: false, error: 'Invalid token' }, { status: 401 });
+        }
+
+        if (!decoded || typeof decoded === 'string') {
+            return NextResponse.json({ success: false, error: 'Invalid token structure' }, { status: 401 });
         }
 
         const userId = decoded.userId || decoded.sub;
@@ -36,7 +48,7 @@ export async function POST(req: NextRequest) {
         const internalToken = jwt.sign(
             internalTokenPayload,
             IRP_SECRET,
-            { expiresIn: TOKEN_EXPIRATION as any, issuer: 'ai-code-mentor-core', audience: 'microservicio-irp' }
+            { expiresIn: TOKEN_EXPIRATION, issuer: 'ai-code-mentor-core', audience: 'microservicio-irp' }
         );
 
         return NextResponse.json({
@@ -49,7 +61,7 @@ export async function POST(req: NextRequest) {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });
     }
 }

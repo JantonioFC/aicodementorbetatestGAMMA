@@ -1,6 +1,7 @@
 
 import { BaseProvider, AnalysisRequest, AnalysisResponse, AnalysisAnalysis, ProviderConfig } from './BaseProvider';
 import { GoogleGenerativeAI, GenerativeModel, ChatSession, Content } from '@google/generative-ai';
+import { logger } from '../../observability/Logger';
 
 /**
  * Configuración de modelos Gemini
@@ -200,20 +201,20 @@ IMPORTANTE: Responde SOLO con el JSON, sin texto adicional ni bloques de código
                 latency
             });
 
-        } catch (error: any) {
-            console.error(`[GeminiProvider] Error con ${this.modelName}:`, error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[GeminiProvider] Error con ${this.modelName}`, { error: message });
             throw error;
         }
     }
 
-    private formatResponse(rawResponse: any, metadata: { tokensUsed: number, latency: number }): AnalysisResponse {
+    private formatResponse(rawResponse: Record<string, unknown>, metadata: { tokensUsed: number, latency: number }): AnalysisResponse {
         const analysis: AnalysisAnalysis = {
-            feedback: rawResponse.feedback || '',
-            strengths: Array.isArray(rawResponse.strengths) ? rawResponse.strengths : [],
-            improvements: Array.isArray(rawResponse.improvements) ? rawResponse.improvements : [],
-            examples: Array.isArray(rawResponse.examples) ? rawResponse.examples : [],
-            score: typeof rawResponse.score === 'number' ? rawResponse.score : null,
-            ...rawResponse // Spread other properties
+            feedback: typeof rawResponse.feedback === 'string' ? rawResponse.feedback : '',
+            strengths: Array.isArray(rawResponse.strengths) ? rawResponse.strengths.filter((s): s is string => typeof s === 'string') : [],
+            improvements: Array.isArray(rawResponse.improvements) ? rawResponse.improvements.filter((i): i is string => typeof i === 'string') : [],
+            examples: Array.isArray(rawResponse.examples) ? rawResponse.examples.filter((e): e is string => typeof e === 'string') : [],
+            score: typeof rawResponse.score === 'number' ? rawResponse.score : null
         };
 
         return {

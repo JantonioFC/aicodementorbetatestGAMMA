@@ -37,8 +37,9 @@ export default function MasteryDashboard() {
                 if (!response.ok) throw new Error('Error al cargar analíticas');
                 const json = await response.json();
                 setData(json.data);
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                setError(message);
             } finally {
                 setLoading(false);
             }

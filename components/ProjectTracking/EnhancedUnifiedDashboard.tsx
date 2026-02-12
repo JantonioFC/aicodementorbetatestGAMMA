@@ -68,7 +68,7 @@ export default function EnhancedUnifiedDashboard() {
     );
 }
 
-function MetricCard({ label, value, color }: any) {
+function MetricCard({ label, value, color }: { label: string; value: string | number; color: string }) {
     return (
         <div className="bg-white p-6 rounded-2xl border-2 border-gray-50 text-center hover:border-indigo-100 transition-all">
             <p className="text-[10px] font-black text-gray-400 uppercase mb-1">{label}</p>

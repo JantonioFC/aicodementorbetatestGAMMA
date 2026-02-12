@@ -2,12 +2,27 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../lib/auth/useAuth';
+import { logger } from '@/lib/observability/Logger';
+
+interface Exercise {
+    question?: string;
+    options?: string[];
+    correctAnswerIndex?: number;
+    correctAnswer?: string;
+    explanation?: string;
+    type?: string;
+}
+
+interface GeneratedLessonData {
+    lesson: string;
+    exercises: Exercise[];
+}
 
 interface Generation {
     id: string;
     title: string;
     custom_content: string;
-    generated_lesson: any;
+    generated_lesson: GeneratedLessonData;
     created_at: string;
 }
 
@@ -30,7 +45,7 @@ export default function HistoryPanel({ onRestoreGeneration }: HistoryPanelProps)
             const data = await response.json();
             setGenerations(data.data?.generations || []);
         } catch (err) {
-            console.error(err);
+            logger.error('Error fetching sandbox history', err);
         } finally {
             setIsLoading(false);
         }
@@ -69,17 +84,26 @@ export default function HistoryPanel({ onRestoreGeneration }: HistoryPanelProps)
                     <div className="p-6 text-center text-gray-400 text-sm">No hay generaciones</div>
                 ) : (
                     filtered.map(gen => (
-                        <div key={gen.id} className="p-3 hover:bg-gray-50 cursor-pointer" onClick={() => setExpandedId(expandedId === gen.id ? null : gen.id)}>
-                            <div className="flex justify-between items-start gap-2">
-                                <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{gen.title}</h4>
-                                <span className="text-[10px] text-gray-400 whitespace-nowrap">{new Date(gen.created_at).toLocaleDateString()}</span>
-                            </div>
+                        <div key={gen.id} className="border-b last:border-b-0">
+                            <button
+                                className="w-full text-left p-3 hover:bg-gray-50 transition-colors focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500"
+                                onClick={() => setExpandedId(expandedId === gen.id ? null : gen.id)}
+                                aria-expanded={expandedId === gen.id}
+                                aria-controls={`details-${gen.id}`}
+                                aria-label={`Ver detalles de: ${gen.title}`}
+                            >
+                                <div className="flex justify-between items-start gap-2">
+                                    <h4 className="text-sm font-bold text-gray-800 line-clamp-1">{gen.title}</h4>
+                                    <span className="text-[10px] text-gray-400 whitespace-nowrap">{new Date(gen.created_at).toLocaleDateString()}</span>
+                                </div>
+                            </button>
                             {expandedId === gen.id && (
-                                <div className="mt-3 animate-in slide-in-from-top-2">
-                                    <p className="text-xs text-gray-500 line-clamp-3 bg-gray-50 p-2 rounded mb-3">{gen.custom_content}</p>
+                                <div id={`details-${gen.id}`} className="p-3 bg-gray-50 animate-in slide-in-from-top-2">
+                                    <p className="text-xs text-gray-500 line-clamp-3 mb-3">{gen.custom_content}</p>
                                     <button
                                         onClick={(e) => { e.stopPropagation(); onRestoreGeneration(gen); }}
-                                        className="w-full bg-indigo-600 text-white py-2 rounded text-xs font-bold"
+                                        className="w-full bg-indigo-600 text-white py-2 rounded text-xs font-bold hover:bg-indigo-700 transition-colors"
+                                        aria-label={`Restaurar lección: ${gen.title}`}
                                     >
                                         Restaurar
                                     </button>

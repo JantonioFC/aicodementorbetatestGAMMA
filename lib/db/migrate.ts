@@ -1,13 +1,14 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { db } from '../db'; // Import singleton database instance
+import { logger } from '../observability/Logger';
 
 /**
  * Sistema de Migraciones Simple para SQLite
  * Ejecuta archivos .sql en orden alfabético desde lib/db/migrations
  */
 export default function migrate(): void {
-    console.log('🔄 Iniciando migraciones de base de datos...');
+    logger.info('Starting database migrations');
 
     // 1. Crear tabla de control de versiones si no existe
     db.exec(`
@@ -24,7 +25,7 @@ export default function migrate(): void {
     // Asegurar que el directorio existe
     if (!fs.existsSync(migrationsDir)) {
         fs.mkdirSync(migrationsDir, { recursive: true });
-        console.log(`📂 Directorio de migraciones creado en: ${migrationsDir}`);
+        logger.info('Migrations directory created', { path: migrationsDir });
         return;
     }
 
@@ -37,10 +38,10 @@ export default function migrate(): void {
     // 3. Ejecutar cada migración
     for (const file of files) {
         // Verificar si ya fue aplicada
-        const isApplied = db.get<any>('SELECT 1 FROM _migrations WHERE name = ?', [file]);
+        const isApplied = db.get<{ '1': number }>('SELECT 1 FROM _migrations WHERE name = ?', [file]);
 
         if (!isApplied) {
-            console.log(`🚀 Aplicando migración: ${file}`);
+            logger.info('Applying migration', { file });
 
             const filePath = path.join(migrationsDir, file);
             const sql = fs.readFileSync(filePath, 'utf-8');
@@ -51,18 +52,19 @@ export default function migrate(): void {
                 // Registrar la migración
                 db.run('INSERT INTO _migrations (name) VALUES (?)', [file]);
 
-                console.log(`✅ Migración completada: ${file}`);
+                logger.info('Migration completed', { file });
                 appliedCount++;
-            } catch (error: any) {
-                console.error(`❌ Error aplicando ${file}:`, error.message);
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : String(error);
+                logger.error(`Error applying migration ${file}`, { error: message });
                 throw error; // Detener proceso si una falla
             }
         }
     }
 
     if (appliedCount === 0) {
-        console.log('✨ Base de datos actualizada (no hay migraciones pendientes).');
+        logger.info('Database up to date, no pending migrations');
     } else {
-        console.log(`🏁 Se aplicaron ${appliedCount} migraciones exitosamente.`);
+        logger.info('Migrations applied successfully', { count: appliedCount });
     }
 }

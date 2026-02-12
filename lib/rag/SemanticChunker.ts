@@ -6,7 +6,7 @@
 export interface Chunk {
     text: string;
     index: number;
-    metadata: any;
+    metadata: Record<string, unknown>;
     type: string;
     startPosition?: number;
     endPosition?: number;
@@ -50,7 +50,7 @@ export class SemanticChunker {
     /**
      * Divide texto en chunks semánticos.
      */
-    chunk(text: string, metadata: any = {}): Chunk[] {
+    chunk(text: string, metadata: Record<string, unknown> = {}): Chunk[] {
         if (!text || text.length <= this.maxChunkSize) {
             return [{
                 text,
@@ -148,7 +148,7 @@ export class SemanticChunker {
         const chunks: Chunk[] = [];
         let globalIndex = 0;
 
-        const weekMeta = {
+        const weekMeta: Record<string, unknown> = {
             semanaId: weekData.semana,
             titulo: weekData.titulo_semana,
             tematica: weekData.tematica

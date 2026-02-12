@@ -18,7 +18,7 @@ export async function GET() {
             totalPhases: curriculumSummary.totalPhases,
             totalModules: curriculumSummary.totalModules,
             totalWeeks: curriculumSummary.totalWeeks,
-            curriculum: curriculumSummary.curriculum.map((fase: any) => ({
+            curriculum: curriculumSummary.curriculum.map((fase: Record<string, unknown>) => ({
                 fase: fase.fase,
                 tituloFase: fase.tituloFase,
                 duracionMeses: fase.duracionMeses,
@@ -36,7 +36,8 @@ export async function GET() {
                 }
             }
         });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

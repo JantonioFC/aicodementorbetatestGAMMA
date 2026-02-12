@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { logger } from '@/lib/observability/Logger';
 
 interface Exercise {
     question?: string;
@@ -56,7 +57,7 @@ export default function Quiz(props: QuizProps) {
                 })
             });
         } catch (error) {
-            console.error('[Quiz] Error saving attempt:', error);
+            logger.error('Quiz error saving attempt', error);
         }
     };
 
@@ -76,10 +77,16 @@ export default function Quiz(props: QuizProps) {
             {ex.options && (
                 <div className="space-y-2 mb-4">
                     {ex.options.map((option, idx) => (
-                        <div key={idx} onClick={() => handleSelectOption(idx, option)} className={`p-3 border rounded-md transition-all ${getOptionStyle(idx)}`}>
+                        <button
+                            key={idx}
+                            onClick={() => handleSelectOption(idx, option)}
+                            className={`w-full text-left p-3 border rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-blue-500 ${getOptionStyle(idx)}`}
+                            disabled={isAnswered}
+                            aria-label={`Opción ${String.fromCharCode(65 + idx)}: ${option}`}
+                        >
                             <span className="font-bold mr-2">{String.fromCharCode(65 + idx)})</span>
                             {option}
-                        </div>
+                        </button>
                     ))}
                 </div>
             )}

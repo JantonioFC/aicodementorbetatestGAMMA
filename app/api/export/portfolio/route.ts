@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
 
         if (format === 'pdf') {
             const buffer = await exportService.generatePortfolioPDF(document);
-            return new NextResponse(buffer, {
+            return new NextResponse(new Uint8Array(buffer), {
                 headers: {
                     'Content-Type': 'application/pdf',
                     'Content-Disposition': 'attachment; filename=portfolio.pdf'
@@ -35,7 +35,8 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json({ success: true, message: 'Export initiated' });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

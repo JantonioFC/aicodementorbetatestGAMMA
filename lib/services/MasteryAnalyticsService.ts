@@ -1,5 +1,5 @@
 import { db } from '../db';
-import logger from '../logger';
+import { logger } from '../observability/Logger';
 
 export interface MasteryReport {
     userId: string;
@@ -27,6 +27,32 @@ export interface MasteryReport {
 /**
  * MasteryAnalyticsService - Procesa el registro de competencias para generar visualizaciones del progreso del alumno.
  */
+interface OverallStatsResult {
+    totalLogs: number;
+    uniqueCompetencies: number;
+    mastered: number;
+}
+
+interface CategoryProgressResult {
+    category: string;
+    count: number;
+    avgLevel: number;
+}
+
+interface RecentMasteryResult {
+    competency: string;
+    level: number;
+    date: string;
+}
+
+interface TopMasteryResult {
+    competency: string;
+    level: number;
+}
+
+/**
+ * MasteryAnalyticsService - Procesa el registro de competencias para generar visualizaciones del progreso del alumno.
+ */
 export class MasteryAnalyticsService {
 
     /**
@@ -35,7 +61,7 @@ export class MasteryAnalyticsService {
     async getUserMastery(userId: string): Promise<MasteryReport> {
         try {
             // 1. Estadísticas Generales
-            const stats: any = db.get(`
+            const stats = db.get<OverallStatsResult>(`
                 SELECT 
                     COUNT(*) as totalLogs,
                     COUNT(DISTINCT competency_name) as uniqueCompetencies,
@@ -45,7 +71,7 @@ export class MasteryAnalyticsService {
             `, [userId]);
 
             // 2. Progreso por Categoría
-            const categoryStats = db.query(`
+            const categoryStats = db.query<CategoryProgressResult>(`
                 SELECT 
                     competency_category as category,
                     COUNT(*) as count,
@@ -57,7 +83,7 @@ export class MasteryAnalyticsService {
             `, [userId]);
 
             // 3. Logros Recientes
-            const recent = db.query(`
+            const recent = db.query<RecentMasteryResult>(`
                 SELECT 
                     competency_name as competency,
                     level_achieved as level,
@@ -69,7 +95,7 @@ export class MasteryAnalyticsService {
             `, [userId]);
 
             // 4. Top Maestría (Mejor nivel por cada competencia única)
-            const top = db.query(`
+            const top = db.query<TopMasteryResult>(`
                 SELECT 
                     competency_name as competency,
                     MAX(level_achieved) as level
@@ -87,24 +113,25 @@ export class MasteryAnalyticsService {
                     masteredCount: stats?.mastered || 0,
                     uniqueCompetencies: stats?.uniqueCompetencies || 0
                 },
-                categoryProgress: categoryStats.map((c: any) => ({
+                categoryProgress: categoryStats.map((c) => ({
                     category: c.category,
                     count: c.count,
                     avgLevel: Math.round(c.avgLevel * 10) / 10
                 })),
-                recentMastery: recent.map((r: any) => ({
+                recentMastery: recent.map((r) => ({
                     competency: r.competency,
                     level: r.level,
                     date: r.date
                 })),
-                topMasteries: top.map((t: any) => ({
+                topMasteries: top.map((t) => ({
                     competency: t.competency,
                     level: t.level
                 }))
             };
 
-        } catch (error: any) {
-            logger.error(`[AnalyticsService] Error generando reporte para ${userId}:`, error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[AnalyticsService] Error generando reporte para ${userId}: ${message}`);
             throw error;
         }
     }
@@ -113,7 +140,7 @@ export class MasteryAnalyticsService {
      * Obtiene una lista de recomendaciones basada en competencias con nivel bajo.
      */
     async getRecommendations(userId: string): Promise<string[]> {
-        const weakPoints = db.query(`
+        const weakPoints = db.query<{ competency_name: string }>(`
             SELECT competency_name
             FROM competency_log
             WHERE user_id = ?
@@ -122,7 +149,7 @@ export class MasteryAnalyticsService {
             LIMIT 3
         `, [userId]);
 
-        return weakPoints.map((p: any) => p.competency_name);
+        return weakPoints.map((p) => p.competency_name);
     }
 }
 

@@ -1,6 +1,6 @@
 import { BaseAgent, AgentContext, AgentResponse } from './BaseAgent';
 import { geminiRouter } from '../ai/router/GeminiRouter';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 /**
  * Pedagogy Agent - Asegura que el contenido sea educativo, estructurado y adaptado al nivel del alumno.
@@ -41,20 +41,21 @@ Tu objetivo es estructurar la siguiente respuesta de forma educativa.
                 content: response.analysis.feedback || JSON.stringify(response.analysis),
                 metadata: {
                     agentName: this.name,
-                    confidence: 0.95,
+                    confidence: 0.98,
                     role: this.role,
                     model: response.metadata.model
                 }
             };
-        } catch (error: any) {
-            logger.error(`[PedagogyAgent] Error: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[PedagogyAgent] Error: ${message}`);
             return {
                 content: input, // Fallback to original input
                 metadata: {
                     agentName: this.name,
                     confidence: 0.1,
                     role: this.role,
-                    error: error.message
+                    error: message
                 }
             };
         }

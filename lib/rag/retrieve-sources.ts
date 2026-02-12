@@ -2,6 +2,8 @@
  * MOTOR RAG CORE - retrieve_sources() + ARM EXTERNO + ARQUITECTURA FEDERADA
  */
 import { enrichRAGWithExternalSources } from '../arm/external-retriever';
+import type { getWeekDataFederated as getWeekDataFederatedType, ExtendedWeekData } from '../federated/federated-router';
+import { logger } from '../observability/Logger';
 
 // Configuración del sistema RAG
 const RAG_CONFIG = {
@@ -11,6 +13,32 @@ const RAG_CONFIG = {
     MAX_PREREQUISITES: 3,
     PHASE_COUNT: 8 // Fases 0-7
 };
+
+
+// Interfaces para el sistema RAG
+export interface RAGResource {
+    title: string;
+    url?: string;
+    type?: string;
+}
+
+export interface RAGExercise {
+    title: string;
+    description?: string;
+    difficulty?: string;
+}
+
+export interface RAGPrerequisite {
+    weekId: number;
+    title: string;
+    keyTopics: string[];
+}
+
+export interface ExternalSource {
+    title: string;
+    url: string;
+    snippet?: string;
+}
 
 export interface RAGContext {
     weekId: number;
@@ -23,15 +51,15 @@ export interface RAGContext {
     mainTopic: string;
     activities: string[];
     deliverables: string;
-    resources: any[];
-    exercises: any[];
+    resources: RAGResource[];
+    exercises: RAGExercise[];
     pedagogicalApproach: string;
     difficultyLevel: string;
-    prerequisites: any[];
+    prerequisites: RAGPrerequisite[];
     retrievalTimestamp: string;
     sourceAuthority: string;
     contextVersion: string;
-    externalSources?: any[];
+    externalSources?: ExternalSource[];
     armStatus?: string;
     armError?: string;
 }
@@ -45,34 +73,39 @@ export async function retrieve_sources(weekId: number, includeExternalSources: b
         throw new Error(`WeekId inválido: ${weekId}. Debe estar entre 1-100.`);
     }
 
-    console.log(`🚀 [RAG FEDERADO] Recuperando datos para semana ${weekId} usando arquitectura federada...`);
+    logger.info('RAG federated retrieving week data', { weekId });
 
-    // Import dinámico para compatibilidad (permitir que el router federado se migre después si es necesario)
-    const { getWeekDataFederated } = await import('../federated/federated-router' as any);
-    const weekData = await (getWeekDataFederated as any)(weekId);
+    // Import dinámico para compatibilidad (evitar ciclos y persistir arquitectura de carga bajo demanda)
+    const { getWeekDataFederated } = await import('../federated/federated-router') as { getWeekDataFederated: typeof getWeekDataFederatedType };
+    const weekData = await getWeekDataFederated(weekId) as ExtendedWeekData | null;
 
     if (!weekData) {
         throw new Error(`Semana ${weekId} no encontrada en sistema federado`);
     }
 
-    console.log(`✅ [RAG FEDERADO] Semana ${weekId} cargada desde ${weekData.sourceFile}`);
+    logger.info('RAG federated week loaded', { weekId, sourceFile: weekData.sourceFile });
 
     // ENRIQUECIMIENTO CONTEXTUAL BÁSICO
+    const phaseValue = typeof weekData.fase === 'number' ? weekData.fase : parseInt(String(weekData.fase), 10) || 0;
+
     const basicContext: RAGContext = {
         weekId: weekId,
-        weekTitle: weekData.tituloSemana,
-        phase: weekData.fase,
-        phaseTitle: weekData.tituloFase,
-        module: weekData.modulo,
-        moduleTitle: weekData.tituloModulo,
-        objectives: weekData.objetivos || [],
-        mainTopic: weekData.tematica || '',
-        activities: weekData.actividades || [],
-        deliverables: weekData.entregables || '',
-        resources: weekData.recursos || [],
-        exercises: weekData.ejercicios || [],
-        pedagogicalApproach: determinePedagogicalApproach(weekData.fase),
-        difficultyLevel: calculateDifficultyLevel(weekId, weekData.fase),
+        weekTitle: weekData.tituloSemana || weekData.titulo,
+        phase: phaseValue,
+        phaseTitle: weekData.tituloFase || '',
+        module: weekData.modulo || 0,
+        moduleTitle: weekData.tituloModulo || '',
+        objectives: Array.isArray(weekData.objetivos) ? weekData.objetivos : [],
+        mainTopic: typeof weekData.tematica === 'string' ? weekData.tematica : '',
+        activities: Array.isArray(weekData.actividades) ? weekData.actividades : [],
+        deliverables: typeof weekData.entregables === 'string' ? weekData.entregables : '',
+        resources: (Array.isArray(weekData.recursos) ? weekData.recursos : []).map(r => ({
+            title: r.nombre || 'Sin título',
+            url: r.url
+        })) as RAGResource[],
+        exercises: (Array.isArray(weekData.ejercicios) ? weekData.ejercicios : []) as RAGExercise[],
+        pedagogicalApproach: determinePedagogicalApproach(phaseValue),
+        difficultyLevel: calculateDifficultyLevel(weekId, phaseValue),
         prerequisites: await getPrerequisites(weekId),
         retrievalTimestamp: new Date().toISOString(),
         sourceAuthority: RAG_CONFIG.SOURCE_AUTHORITY,
@@ -82,18 +115,19 @@ export async function retrieve_sources(weekId: number, includeExternalSources: b
     // ENRIQUECIMIENTO CON ARM EXTERNO
     if (includeExternalSources) {
         try {
-            console.log(`🚀 [RAG+ARM] Enriqueciendo contexto con fuentes externas...`);
+            logger.info('RAG+ARM enriching context with external sources');
             const enrichedContext = await enrichRAGWithExternalSources(basicContext);
-            console.log(`✅ [RAG+ARM] Contexto enriquecido: ${enrichedContext.externalSources?.length || 0} fuentes externas`);
+            logger.info('RAG+ARM context enriched', { externalSourceCount: enrichedContext.externalSources?.length || 0 });
             return enrichedContext;
-        } catch (armError: any) {
-            console.error(`❌ [RAG+ARM] Error en ARM externo: ${armError.message}`);
-            console.warn(`🔄 [RAG+ARM] Fallback: Devolviendo contexto básico sin fuentes externas`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('RAG+ARM external ARM error', { error: message });
+            logger.warn('RAG+ARM falling back to basic context without external sources');
             return {
                 ...basicContext,
                 externalSources: [],
                 armStatus: 'error',
-                armError: armError.message
+                armError: message
             };
         }
     }
@@ -131,26 +165,28 @@ export function calculateDifficultyLevel(weekId: number, phase: number): string 
 /**
  * Obtiene las semanas prerequisite para una semana dada usando sistema federado
  */
-export async function getPrerequisites(weekId: number): Promise<any[]> {
+export async function getPrerequisites(weekId: number): Promise<RAGPrerequisite[]> {
     if (weekId <= 1) return [];
 
-    const prerequisites: any[] = [];
+    const prerequisites: RAGPrerequisite[] = [];
     const startWeek = Math.max(1, weekId - RAG_CONFIG.MAX_PREREQUISITES);
 
-    const { getWeekDataFederated } = await import('../federated/federated-router' as any);
+    const { getWeekDataFederated } = await import('../federated/federated-router') as { getWeekDataFederated: typeof getWeekDataFederatedType };
+    const getWeekData = getWeekDataFederated;
 
     for (let i = startWeek; i < weekId; i++) {
         try {
-            const prevWeek = await (getWeekDataFederated as any)(i);
+            const prevWeek = await getWeekData(i) as ExtendedWeekData | null;
             if (prevWeek) {
                 prerequisites.push({
                     weekId: i,
-                    title: prevWeek.tituloSemana,
-                    keyTopics: prevWeek.objetivos ? prevWeek.objetivos.slice(0, 2) : []
+                    title: prevWeek.tituloSemana || prevWeek.titulo,
+                    keyTopics: Array.isArray(prevWeek.objetivos) ? prevWeek.objetivos.slice(0, 2) : []
                 });
             }
-        } catch (error: any) {
-            console.warn(`⚠️ [RAG FEDERADO] No se pudo cargar prerequisito semana ${i}:`, error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn('RAG federated could not load prerequisite week', { weekId: i, error: message });
         }
     }
 

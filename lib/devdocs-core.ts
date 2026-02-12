@@ -1,15 +1,53 @@
 import { promises as fs } from 'fs';
 import * as path from 'path';
+import { logger } from './observability/Logger';
 
 /**
  * DEVDOCS RETRIEVER - Sistema de Recuperación Autónomo para IRP
  */
 
+export interface DevDocsMasterItem {
+    slug: string;
+    name: string;
+    release?: string;
+    mtime?: number;
+}
+
+export interface DevDocsEntry {
+    name: string;
+    path: string;
+    type: string;
+    fallback?: boolean;
+}
+
+export interface DevDocsTechnologyIndex {
+    slug: string;
+    name: string;
+    entries: DevDocsEntry[];
+    version: string;
+    syncedAt: string;
+    syncMethod: string;
+    syncMetadata?: {
+        syncMethod?: string;
+    };
+}
+
+export interface DocumentationResult {
+    entity: string;
+    url: string;
+    title: string;
+    content: string;
+    technology: string;
+    retrievedAt: string;
+    source: string;
+    fallback: boolean;
+}
+
 // Cache en memoria para optimizar rendimiento local
 interface LocalDataCache {
-    masterIndex: any[] | null;
-    technologyIndexes: Map<string, { data: any; cachedAt: number }>;
-    contentCache: Map<string, any>;
+    masterIndex: DevDocsMasterItem[] | null;
+    technologyIndexes: Map<string, { data: DevDocsTechnologyIndex; cachedAt: number }>;
+    contentCache: Map<string, string>;
     lastLoaded: number | null;
     ttl: number;
 }
@@ -34,7 +72,7 @@ const LOCAL_CONFIG = {
 /**
  * Obtiene el índice maestro desde archivo local
  */
-export async function getMasterIndex(): Promise<any[]> {
+export async function getMasterIndex(): Promise<DevDocsMasterItem[]> {
     if (localDataCache.masterIndex && localDataCache.lastLoaded) {
         const cacheAge = Date.now() - localDataCache.lastLoaded;
         if (cacheAge < localDataCache.ttl) {
@@ -50,12 +88,13 @@ export async function getMasterIndex(): Promise<any[]> {
             throw new Error('DEVDOCS-RETRIEVER-FORMAT: Índice maestro local no es un array válido');
         }
 
-        localDataCache.masterIndex = indexData;
+        localDataCache.masterIndex = indexData as DevDocsMasterItem[];
         localDataCache.lastLoaded = Date.now();
 
-        return indexData;
-    } catch (error: any) {
-        console.error(`[DEVDOCS-RETRIEVER] Error leyendo índice maestro local: ${error.message}`);
+        return localDataCache.masterIndex;
+    } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error reading master index';
+        logger.error('[DEVDOCS-RETRIEVER] Error leyendo índice maestro local', { error: errorMessage });
         throw error;
     }
 }
@@ -63,7 +102,7 @@ export async function getMasterIndex(): Promise<any[]> {
 /**
  * Encuentra tecnología y carga su índice desde archivos locales
  */
-export async function getTechnologyIndex(technology: string): Promise<any> {
+export async function getTechnologyIndex(technology: string): Promise<DevDocsTechnologyIndex> {
     if (!technology || typeof technology !== 'string' || technology.trim().length === 0) {
         throw new Error('DEVDOCS-RETRIEVER-INPUT: Tecnología debe ser una cadena no vacía');
     }
@@ -88,14 +127,14 @@ export async function getTechnologyIndex(technology: string): Promise<any> {
 
     try {
         const techContent = await fs.readFile(techIndexPath, 'utf8');
-        const techIndex = JSON.parse(techContent);
+        const techIndex = JSON.parse(techContent) as DevDocsTechnologyIndex;
 
-        const result = {
+        const result: DevDocsTechnologyIndex = {
             slug: techIndex.slug || matchedDoc.slug,
             name: techIndex.name || matchedDoc.name,
-            entries: techIndex.entries,
+            entries: techIndex.entries || [],
             version: techIndex.version || 'latest',
-            syncedAt: techIndex.syncedAt,
+            syncedAt: techIndex.syncedAt || new Date().toISOString(),
             syncMethod: techIndex.syncMetadata?.syncMethod || 'official'
         };
 
@@ -118,8 +157,8 @@ export async function getTechnologyIndex(technology: string): Promise<any> {
 /**
  * Función principal - Recupera documentación desde archivos locales
  */
-export async function retrieveDocumentationForCode(codeSnippet: string, technology: string | null = null): Promise<any[]> {
-    if (!codeSnippet || typeof codeSnippet !== 'string' || codeSnippet.trim().length === 0) {
+export async function retrieveDocumentationForCode(codeSnippet: string, technology: string | null = null): Promise<DocumentationResult[]> {
+    if (codeSnippet === undefined || codeSnippet === null || typeof codeSnippet !== 'string' || codeSnippet.trim().length === 0) {
         throw new Error('DEVDOCS-RETRIEVER-CODE-INPUT: Código debe ser una cadena no vacía');
     }
 
@@ -130,7 +169,7 @@ export async function retrieveDocumentationForCode(codeSnippet: string, technolo
     if (entities.length === 0) return [];
 
     const techIndex = await getTechnologyIndex(detectedTechnology);
-    const documentationResults: any[] = [];
+    const documentationResults: DocumentationResult[] = [];
     const maxEntities = Math.min(entities.length, 5);
 
     for (let i = 0; i < maxEntities; i++) {
@@ -161,8 +200,9 @@ export async function retrieveDocumentationForCode(codeSnippet: string, technolo
                 source,
                 fallback: isFallback
             });
-        } catch (error: any) {
-            console.warn(`[DEVDOCS-RETRIEVER] Error for ${entity}: ${error.message}`);
+        } catch (error: unknown) {
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error retrieving entity docs';
+            logger.warn(`[DEVDOCS-RETRIEVER] Error for ${entity}`, { error: errorMessage });
         }
     }
 
@@ -173,7 +213,7 @@ export async function retrieveDocumentationForCode(codeSnippet: string, technolo
  * FUNCIONES AUXILIARES
  */
 
-function findTechnologyInIndex(masterIndex: any[], technology: string): any {
+function findTechnologyInIndex(masterIndex: DevDocsMasterItem[], technology: string): DevDocsMasterItem | undefined {
     const normalizedSearch = technology.toLowerCase();
     let match = masterIndex.find(doc => doc.name.toLowerCase() === normalizedSearch);
     if (match) return match;
@@ -198,8 +238,8 @@ function identifyCodeEntities(code: string, technology: string): string[] {
     return Array.from(entities);
 }
 
-function findEntityInTechnologyIndex(entity: string, techIndex: any): any {
-    return techIndex.entries.find((entry: any) => entry.name === entity || entry.name.includes(entity));
+function findEntityInTechnologyIndex(entity: string, techIndex: DevDocsTechnologyIndex): DevDocsEntry | undefined {
+    return techIndex.entries.find((entry: DevDocsEntry) => entry.name === entity || entry.name.includes(entity));
 }
 
 async function fetchLocalEntityDocumentation(entity: string, technologySlug: string): Promise<string> {
@@ -208,7 +248,7 @@ async function fetchLocalEntityDocumentation(entity: string, technologySlug: str
 
     try {
         const contentFile = await fs.readFile(contentPath, 'utf8');
-        const contentData = JSON.parse(contentFile);
+        const contentData = JSON.parse(contentFile) as { content?: string };
         return contentData.content || generateFallbackDocumentation(entity, technologySlug);
     } catch {
         return generateFallbackDocumentation(entity, technologySlug);
@@ -219,10 +259,10 @@ function generateFallbackDocumentation(entity: string, technologySlug: string): 
     return `### ${entity}\n\nDocumentación básica para ${entity} en ${technologySlug}. (Modo Fallback)`;
 }
 
-export function generateFallbackTechnologyIndex(matchedDoc: any, technologyName: string): any {
+export function generateFallbackTechnologyIndex(matchedDoc: DevDocsMasterItem, technologyName: string): DevDocsTechnologyIndex {
     return {
         slug: matchedDoc.slug,
-        name: matchedDoc.name,
+        name: matchedDoc.name || technologyName,
         entries: [],
         version: 'fallback',
         syncedAt: new Date().toISOString(),

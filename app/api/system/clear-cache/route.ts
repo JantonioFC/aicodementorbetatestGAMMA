@@ -11,7 +11,8 @@ export async function POST() {
             return NextResponse.json({ success: true, deletedCount: files.length });
         }
         return NextResponse.json({ success: true, deletedCount: 0 });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

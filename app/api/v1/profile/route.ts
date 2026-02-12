@@ -6,7 +6,7 @@ import { z } from 'zod';
 const updateProfileSchema = z.object({
     display_name: z.string().min(2).optional(),
     email: z.string().email().optional(),
-    preferences: z.record(z.any()).optional(),
+    preferences: z.record(z.unknown()).optional(),
     avatar_url: z.string().url().optional()
 });
 
@@ -15,6 +15,9 @@ export async function GET() {
         const { userId, user, isAuthenticated } = await getServerAuth();
 
         if (isAuthenticated) {
+            if (!userId || !user) {
+                return NextResponse.json({ error: 'Auth error' }, { status: 401 });
+            }
             const profile = await profileService.getProfile(userId, user.email);
             return NextResponse.json({
                 success: true,
@@ -30,8 +33,9 @@ export async function GET() {
                 limitations: ['Solo info básica']
             });
         }
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
 
@@ -39,6 +43,7 @@ export async function POST(req: NextRequest) {
     try {
         const { userId, isAuthenticated } = await getServerAuth();
         if (!isAuthenticated) return NextResponse.json({ error: 'Auth required' }, { status: 401 });
+        if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
         const parsed = updateProfileSchema.parse(body);
@@ -49,8 +54,9 @@ export async function POST(req: NextRequest) {
             message: 'Perfil actualizado',
             profile: updated
         });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
 
@@ -58,10 +64,12 @@ export async function DELETE() {
     try {
         const { userId, isAuthenticated } = await getServerAuth();
         if (!isAuthenticated) return NextResponse.json({ error: 'Auth required' }, { status: 401 });
+        if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         await profileService.deleteUser(userId);
         return NextResponse.json({ success: true, message: 'Cuenta eliminada' });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

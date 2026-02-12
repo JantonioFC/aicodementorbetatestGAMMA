@@ -16,8 +16,9 @@ export default function ProgressDashboard() {
                 const res = await fetch('/api/progress/summary');
                 if (!res.ok) throw new Error('Error al cargar progreso');
                 setData(await res.json());
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                setError(message);
             } finally {
                 setLoading(false);
             }
@@ -63,13 +64,20 @@ export default function ProgressDashboard() {
     );
 }
 
-function StatCard({ label, value, total, color }: any) {
-    const colors: any = {
+interface StatCardProps {
+    label: string;
+    value: number;
+    total: number;
+    color: string;
+}
+
+function StatCard({ label, value, total, color }: StatCardProps) {
+    const colors: Record<string, string> = {
         emerald: 'bg-emerald-50 text-emerald-700 border-emerald-100',
         indigo: 'bg-indigo-50 text-indigo-700 border-indigo-100'
     };
     return (
-        <div className={`p-6 rounded-2xl border ${colors[color]}`}>
+        <div className={`p-6 rounded-2xl border ${colors[color] || colors.emerald}`}>
             <p className="text-xs font-black uppercase mb-1 opacity-70">{label}</p>
             <p className="text-3xl font-black">{value} <span className="text-sm opacity-50">/ {total}</span></p>
         </div>

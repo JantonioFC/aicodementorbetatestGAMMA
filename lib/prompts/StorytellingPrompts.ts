@@ -57,10 +57,28 @@ export const PERSONALITY_MODIFIERS: Record<string, string> = {
     artistico: 'Conecta con creación y diseño.'
 };
 
+interface StoryContext {
+    tematica_semanal?: string;
+    concepto_del_dia?: string;
+    texto_del_pomodoro?: string;
+    [key: string]: string | undefined;
+}
+
+interface StoryOptions {
+    studentProfile?: string;
+    ragContext?: string;
+    [key: string]: string | undefined;
+}
+
+interface PromptMessage {
+    role: 'user';
+    content: string;
+}
+
 /**
  * Construye el prompt final con storytelling.
  */
-export function buildStorytellingPromptMessages(context: any, options: any = {}) {
+export function buildStorytellingPromptMessages(context: StoryContext, options: StoryOptions = {}): PromptMessage[] {
     let promptContent = STORYTELLING_LESSON_PROMPT
         .replace(/{tematica_semanal}/g, context.tematica_semanal || '')
         .replace(/{concepto_del_dia}/g, context.concepto_del_dia || '')
@@ -81,7 +99,7 @@ export function buildStorytellingPromptMessages(context: any, options: any = {})
     ];
 }
 
-export function buildStorytellingPrompt(context: any, options: any = {}) {
+export function buildStorytellingPrompt(context: StoryContext, options: StoryOptions = {}): string {
     const messages = buildStorytellingPromptMessages(context, options);
     return messages[0].content;
 }

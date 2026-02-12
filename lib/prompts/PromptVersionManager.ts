@@ -4,6 +4,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { logger } from '../observability/Logger';
 
 export interface PromptVersion {
     version: string;
@@ -11,6 +12,24 @@ export interface PromptVersion {
     createdAt: string;
     SYSTEM_PROMPT: string;
     LESSON_TEMPLATE: string;
+}
+
+interface VersionSummary {
+    version: string;
+    description: string;
+    createdAt: string;
+    isActive: boolean;
+}
+
+interface PromptContext {
+    tematica_semanal?: string;
+    concepto_del_dia?: string;
+    texto_del_pomodoro?: string;
+}
+
+interface PromptOptions {
+    studentProfile?: string;
+    ragContext?: string;
 }
 
 export class PromptVersionManager {
@@ -31,20 +50,24 @@ export class PromptVersionManager {
      */
     private _loadVersions(): void {
         try {
+            if (!fs.existsSync(this.versionsDir)) {
+                return;
+            }
             const files = fs.readdirSync(this.versionsDir);
 
             for (const file of files) {
                 if (file.endsWith('.js') && !file.startsWith('index')) {
                     const versionPath = path.join(this.versionsDir, file);
                     // Usamos require ya que son archivos JS que serán cargados en runtime
-                    const version = require(versionPath);
+                    const version = require(versionPath) as PromptVersion;
                     this.versions.set(version.version, version);
                 }
             }
 
-            console.log(`[PromptVersionManager] Loaded ${this.versions.size} versions`);
-        } catch (error: any) {
-            console.error('[PromptVersionManager] Error loading versions:', error.message);
+            logger.info('PromptVersionManager loaded versions', { count: this.versions.size });
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('PromptVersionManager error loading versions', { error: message });
         }
     }
 
@@ -78,13 +101,23 @@ export class PromptVersionManager {
      */
     private _getLatest(): PromptVersion {
         const sorted = [...this.versions.keys()].sort().reverse();
+        if (sorted.length === 0) {
+            // Fallback object to satisfy the return type if no versions found
+            return {
+                version: 'v0.0.0',
+                description: 'Initial Fallback',
+                createdAt: new Date().toISOString(),
+                SYSTEM_PROMPT: 'Default System Prompt',
+                LESSON_TEMPLATE: 'Default Lesson Template'
+            };
+        }
         return this.versions.get(sorted[0]) as PromptVersion;
     }
 
     /**
      * Lista todas las versiones disponibles.
      */
-    public list(): any[] {
+    public list(): VersionSummary[] {
         return [...this.versions.entries()].map(([id, v]) => ({
             version: id,
             description: v.description,
@@ -96,10 +129,10 @@ export class PromptVersionManager {
     /**
      * Construye prompt usando la versión activa.
      */
-    public buildPrompt(context: any, options: any = {}) {
+    public buildPrompt(context: PromptContext, options: PromptOptions = {}): { system: string; prompt: string; version: string } {
         const version = this.getActive();
 
-        let prompt = version.LESSON_TEMPLATE
+        const prompt = version.LESSON_TEMPLATE
             .replace(/{tematica_semanal}/g, context.tematica_semanal || '')
             .replace(/{concepto_del_dia}/g, context.concepto_del_dia || '')
             .replace(/{texto_del_pomodoro}/g, context.texto_del_pomodoro || '')
@@ -116,8 +149,12 @@ export class PromptVersionManager {
     /**
      * Selección A/B para experimentación.
      */
-    public selectABVariant(userId: string, variantVersions: string[] | null = null) {
+    public selectABVariant(userId: string, variantVersions: string[] | null = null): { variant: string; promptData: PromptVersion | null; isControl: boolean } {
         const variants = variantVersions || [...this.versions.keys()];
+
+        if (variants.length === 0) {
+            return { variant: this.activeVersion, promptData: this.getActive(), isControl: true };
+        }
 
         // Hash simple del userId para selección consistente
         const hash = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);

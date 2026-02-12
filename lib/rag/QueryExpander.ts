@@ -1,7 +1,7 @@
-
 import { geminiRouter } from '../ai/router/GeminiRouter';
 import { cacheService } from '../cache/CacheService';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
+import { AnalysisAnalysis } from '../ai/providers/BaseProvider';
 
 interface ExpansionOptions {
     useLLM: boolean;
@@ -78,17 +78,17 @@ Contexto: Plataforma educativa de programación para niños (Scratch, pensamient
                 messages: [{ role: 'user', content: prompt }]
             });
 
-            // Asumimos que la respuesta viene en 'analysis' y es un objeto o string JSON
-            const parsed = response.analysis;
-            const expansions = this._parseExpansions(parsed, query);
+            // Asumimos que la respuesta viene en 'analysis'
+            const expansions = this._parseExpansions(response.analysis, query);
 
             // Guardar en cache (1 hora)
             cacheService.set(cacheKey, expansions, 3600);
 
             return expansions;
 
-        } catch (error: any) {
-            logger.error(`[QueryExpander] Error LLM: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[QueryExpander] Error LLM: ${message}`);
             return [query];
         }
     }
@@ -110,30 +110,33 @@ Contexto: Plataforma educativa de programación para niños (Scratch, pensamient
     /**
      * Parsea la respuesta del LLM.
      */
-    private _parseExpansions(response: any, originalQuery: string): string[] {
+    private _parseExpansions(response: AnalysisAnalysis | string, originalQuery: string): string[] {
         try {
-            let parsed: any;
+            let parsed: LLMExpansionResponse | null = null;
+
             if (typeof response === 'string') {
                 const jsonMatch = response.match(/\{[\s\S]*\}/);
                 parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-            } else {
-                parsed = response;
+            } else if (response && typeof response === 'object') {
+                // If it's already an object, check if it has the expansions directly
+                if ('expansions' in response && Array.isArray(response.expansions)) {
+                    parsed = response as unknown as LLMExpansionResponse;
+                } else if ('feedback' in response && typeof response.feedback === 'string') {
+                    // Try parsing feedback if it contains JSON
+                    const jsonMatch = response.feedback.match(/\{[\s\S]*\}/);
+                    parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
+                }
             }
 
             if (parsed?.expansions && Array.isArray(parsed.expansions)) {
                 return [originalQuery, ...parsed.expansions];
             }
 
-            // Si es un objeto AnalysisAnalysis con feedback, intentar extraer de ahí si el prompt falló en dar JSON puro
-            if (response?.feedback) {
-                // Fallback simple si el modelo "conversó" en lugar de dar JSON
-                return [originalQuery];
-            }
-
             return [originalQuery];
 
-        } catch (e: any) {
-            logger.error(`[QueryExpander] Error parsing: ${e.message}`);
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            logger.error(`[QueryExpander] Error parsing: ${message}`);
             return [originalQuery];
         }
     }

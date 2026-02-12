@@ -3,6 +3,19 @@ import { getServerAuth } from '@/lib/auth/serverAuth';
 import db from '@/lib/db';
 import crypto from 'crypto';
 
+interface SandboxGeneration {
+    id: string;
+    title: string;
+    custom_content: string;
+    generated_lesson: string;
+    created_at: string;
+    updated_at: string;
+}
+
+interface CountResult {
+    total: number;
+}
+
 export async function GET(req: NextRequest) {
     try {
         const { userId } = await getServerAuth();
@@ -10,16 +23,16 @@ export async function GET(req: NextRequest) {
         const limit = parseInt(searchParams.get('limit') || '20');
         const offset = parseInt(searchParams.get('offset') || '0');
 
-        const rows = db.query(
-            `SELECT id, title, custom_content, generated_lesson, created_at, updated_at 
-       FROM sandbox_generations 
-       WHERE user_id = ? 
-       ORDER BY created_at DESC 
+        const rows = db.query<SandboxGeneration>(
+            `SELECT id, title, custom_content, generated_lesson, created_at, updated_at
+       FROM sandbox_generations
+       WHERE user_id = ?
+       ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
             [userId, limit, offset]
-        ) as any[];
+        );
 
-        const countResult: any = db.get(`SELECT count(*) as total FROM sandbox_generations WHERE user_id = ?`, [userId]);
+        const countResult = db.get<CountResult>(`SELECT count(*) as total FROM sandbox_generations WHERE user_id = ?`, [userId]);
         const total = countResult?.total || 0;
 
         const generations = rows.map(r => ({
@@ -36,8 +49,9 @@ export async function GET(req: NextRequest) {
                 hasMore: total > (offset + limit)
             }
         });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }
 
@@ -68,7 +82,8 @@ export async function POST(req: NextRequest) {
             success: true,
             data: { id, title, created_at: new Date().toISOString() }
         }, { status: 201 });
-    } catch (error: any) {
-        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ success: false, error: message }, { status: 500 });
     }
 }

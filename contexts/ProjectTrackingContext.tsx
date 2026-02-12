@@ -11,11 +11,13 @@ interface ProjectDashboardData {
     totalHours: number;
 }
 
-interface ProjectEntry {
+export type ProjectEntryValue = string | number | boolean | null | string[] | Record<string, unknown>;
+
+export interface ProjectEntry {
     id: number;
     entry_type: string;
     date: string;
-    [key: string]: any;
+    [key: string]: ProjectEntryValue | number | string | undefined;
 }
 
 interface ProjectTrackingContextType {
@@ -27,13 +29,14 @@ interface ProjectTrackingContextType {
     loadDashboardData: () => Promise<void>;
     refreshData: () => Promise<void>;
     selectedTemplate: string | null;
-    templates: Record<string, any>;
+    templates: Record<string, unknown>;
+    templateCategories: Record<string, string[]>;
     isModalOpen: boolean;
     closeModal: () => void;
-    createEntry: (template: string, content: string, metadata: any) => Promise<any>;
+    createEntry: (template: string, content: string, metadata: Record<string, ProjectEntryValue>) => Promise<{ success: boolean; entry?: ProjectEntry; error?: string }>;
     resetError: () => void;
-    addEntry: (entryType: string, entryData: any) => Promise<{ success: boolean; entry?: ProjectEntry; error?: string }>;
-    updateEntry: (entryId: number, updateData: any) => Promise<{ success: boolean; error?: string }>;
+    addEntry: (entryType: string, entryData: Record<string, ProjectEntryValue>) => Promise<{ success: boolean; entry?: ProjectEntry; error?: string }>;
+    updateEntry: (entryId: number, updateData: Record<string, ProjectEntryValue>) => Promise<{ success: boolean; error?: string }>;
     deleteEntry: (entryId: number, entryType: string) => Promise<{ success: boolean; error?: string }>;
     exportToPortfolio: () => Promise<{ success: boolean; message: string }>;
     resetAllData: () => Promise<{ success: boolean; error?: string }>;
@@ -64,7 +67,8 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
     const [error, setError] = useState<string | null>(null);
     const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-    const [templates, setTemplates] = useState<Record<string, any>>({});
+    const [templates] = useState<Record<string, unknown>>({});
+    const [templateCategories, setTemplateCategories] = useState<Record<string, string[]>>({});
 
     // Mock data for development
     const mockDashboardData: ProjectDashboardData = React.useMemo(() => ({
@@ -84,12 +88,19 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
 
     const mockRecentEntries: ProjectEntry[] = React.useMemo(() => [], []);
 
+    const mockTemplateCategories = React.useMemo(() => ({
+        'Reflexión y Seguimiento': ['daily_reflection', 'weekly_review'],
+        'Documentación Educativa': ['dde_entry', 'weekly_action_plan'],
+        'Control de Calidad': ['peer_review']
+    }), []);
+
     // Initialize with mock data
     useEffect(() => {
         setDashboardData(mockDashboardData);
         setEntryCounts(mockEntryCounts);
         setRecentEntries(mockRecentEntries);
-    }, [mockDashboardData, mockEntryCounts, mockRecentEntries]);
+        setTemplateCategories(mockTemplateCategories);
+    }, [mockDashboardData, mockEntryCounts, mockRecentEntries, mockTemplateCategories]);
 
     // Load dashboard data function - MVP implementation
     const loadDashboardData = useCallback(async () => {
@@ -104,18 +115,20 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
             setDashboardData(mockDashboardData);
             setEntryCounts(mockEntryCounts);
             setRecentEntries(mockRecentEntries);
+            setTemplateCategories(mockTemplateCategories);
 
             console.log('📊 [PROJECT_TRACKING] Dashboard data loaded (MVP mode)');
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error loading dashboard data';
             console.error('❌ [PROJECT_TRACKING] Error loading dashboard data:', err);
-            setError(err.message);
+            setError(errorMessage);
         } finally {
             setLoading(false);
         }
-    }, [mockDashboardData, mockEntryCounts, mockRecentEntries]);
+    }, [mockDashboardData, mockEntryCounts, mockRecentEntries, mockTemplateCategories]);
 
     // Add new entry function - MVP implementation
-    const addEntry = async (entryType: string, entryData: any) => {
+    const addEntry = async (entryType: string, entryData: Record<string, ProjectEntryValue>): Promise<{ success: boolean; entry?: ProjectEntry; error?: string }> => {
         setLoading(true);
         try {
             // In a real implementation, this would save to database
@@ -138,17 +151,18 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
             setRecentEntries(prev => [newEntry, ...prev.slice(0, 4)]); // Keep only 5 recent
 
             return { success: true, entry: newEntry };
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error adding entry';
             console.error('❌ [PROJECT_TRACKING] Error adding entry:', err);
-            setError(err.message);
-            return { success: false, error: err.message };
+            setError(errorMessage);
+            return { success: false, error: errorMessage };
         } finally {
             setLoading(false);
         }
     };
 
     // Update entry function - MVP implementation
-    const updateEntry = async (entryId: number, updateData: any) => {
+    const updateEntry = async (entryId: number, updateData: Record<string, ProjectEntryValue>): Promise<{ success: boolean; error?: string }> => {
         setLoading(true);
         try {
             console.log(`📝 [PROJECT_TRACKING] Updating entry: ${entryId}`, updateData);
@@ -161,17 +175,18 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
             );
 
             return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error updating entry';
             console.error('❌ [PROJECT_TRACKING] Error updating entry:', err);
-            setError(err.message);
-            return { success: false, error: err.message };
+            setError(errorMessage);
+            return { success: false, error: errorMessage };
         } finally {
             setLoading(false);
         }
     };
 
     // Delete entry function - MVP implementation
-    const deleteEntry = async (entryId: number, entryType: string) => {
+    const deleteEntry = async (entryId: number, entryType: string): Promise<{ success: boolean; error?: string }> => {
         setLoading(true);
         try {
             console.log(`🗑️ [PROJECT_TRACKING] Deleting entry: ${entryId}`);
@@ -186,10 +201,11 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
             setRecentEntries(prev => prev.filter(entry => entry.id !== entryId));
 
             return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error deleting entry';
             console.error('❌ [PROJECT_TRACKING] Error deleting entry:', err);
-            setError(err.message);
-            return { success: false, error: err.message };
+            setError(errorMessage);
+            return { success: false, error: errorMessage };
         } finally {
             setLoading(false);
         }
@@ -205,7 +221,7 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
     };
 
     // Reset all data function - MVP implementation
-    const resetAllData = async () => {
+    const resetAllData = async (): Promise<{ success: boolean; error?: string }> => {
         setLoading(true);
         try {
             console.log('🔄 [PROJECT_TRACKING] Resetting all data (MVP mode)');
@@ -216,10 +232,11 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
             setError(null);
 
             return { success: true };
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error resetting data';
             console.error('❌ [PROJECT_TRACKING] Error resetting data:', err);
-            setError(err.message);
-            return { success: false, error: err.message };
+            setError(errorMessage);
+            return { success: false, error: errorMessage };
         } finally {
             setLoading(false);
         }
@@ -242,9 +259,10 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
             window.location.href = `/crear-template?type=${templateType}`;
 
             return { success: true, templateType, action: 'routed_universal' };
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error selecting template';
             console.error('❌ [PROJECT_TRACKING] Error selecting template:', err);
-            return { success: false, error: err.message };
+            return { success: false, error: errorMessage };
         }
     };
 
@@ -262,9 +280,10 @@ export function ProjectTrackingProvider({ children }: ProjectTrackingProviderPro
         refreshData: loadDashboardData,
         selectedTemplate,
         templates,
+        templateCategories,
         isModalOpen,
         closeModal: () => setIsModalOpen(false),
-        createEntry: async (template: string, content: string, metadata: any) => {
+        createEntry: async (template: string, content: string, metadata: Record<string, ProjectEntryValue>) => {
             return addEntry(template, { content, ...metadata });
         },
         resetError: () => setError(null),

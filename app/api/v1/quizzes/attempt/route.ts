@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { getServerAuth } from '@/lib/auth/serverAuth';
 import { competencyService } from '@/lib/services/CompetencyService';
 import { badgeService } from '@/lib/services/gamification/BadgeService';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 /**
  * POST /api/v1/quizzes/attempt
@@ -12,6 +12,10 @@ import logger from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         const { userId } = await getServerAuth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const body = await req.json();
 
         const {
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
             // Intentar obtener el tema de la lección si no se pasó
             let competencyName = topic;
             if (!competencyName) {
-                const lesson: any = db.get('SELECT title FROM sandbox_generations WHERE id = ?', [lessonId]);
+                const lesson = db.get('SELECT title FROM sandbox_generations WHERE id = ?', [lessonId]) as Record<string, unknown> | undefined;
                 competencyName = lesson?.title || 'Conocimiento General';
             }
 
@@ -69,8 +73,9 @@ export async function POST(req: NextRequest) {
             message: isCorrect ? '¡Competencia registrada!' : 'Intento registrado'
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('[QuizAPI] Error procesando intento', error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

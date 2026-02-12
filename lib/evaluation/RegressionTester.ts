@@ -71,7 +71,7 @@ export class RegressionTester {
     /**
      * Añade un caso de prueba al baseline.
      */
-    addBaseline(testCase: { name: string; context: any; expectedOutput?: string; expectedTopics?: string[]; forbiddenTerms?: string[] }): string {
+    addBaseline(testCase: { name: string; context: Record<string, unknown>; expectedOutput?: string; expectedTopics?: string[]; forbiddenTerms?: string[] }): string {
         const id = `baseline-${Date.now()}`;
 
         db.run(`
@@ -162,23 +162,30 @@ export class RegressionTester {
     /**
      * Ejecuta todos los tests de regresión.
      */
-    async runAllTests(generator: (context: any) => Promise<string>): Promise<any> {
+    async runAllTests(generator: (context: Record<string, unknown>) => Promise<string>): Promise<{
+        total: number;
+        passed: number;
+        failed: number;
+        passRate: number;
+        results: (RegressionResult | { baselineId: string; testName: string; passed: boolean; error: string })[];
+    }> {
         const baselines = db.query<Baseline>('SELECT * FROM evaluation_baselines', []);
-        const results: any[] = [];
+        const results: (RegressionResult | { baselineId: string; testName: string; passed: boolean; error: string })[] = [];
 
         for (const baseline of baselines) {
-            const context = JSON.parse(baseline.input_context);
+            const context = JSON.parse(baseline.input_context) as Record<string, unknown>;
 
             try {
                 const generated = await generator(context);
                 const result = await this.runTest(baseline.id, generated);
-                results.push(result);
-            } catch (error: any) {
+                results.push(result as RegressionResult);
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : String(error);
                 results.push({
                     baselineId: baseline.id,
                     testName: baseline.test_name,
                     passed: false,
-                    error: error.message
+                    error: message
                 });
             }
         }
@@ -199,13 +206,13 @@ export class RegressionTester {
     /**
      * Obtiene historial de un baseline.
      */
-    getHistory(baselineId: string, limit: number = 10): any[] {
+    getHistory(baselineId: string, limit: number = 10): (Record<string, unknown> & { passed: boolean; run_at: string })[] {
         return db.query(`
             SELECT * FROM regression_runs 
             WHERE baseline_id = ? 
             ORDER BY run_at DESC 
             LIMIT ?
-        `, [baselineId, limit]);
+        `, [baselineId, limit]) as (Record<string, unknown> & { passed: boolean; run_at: string })[];
     }
 
     /**

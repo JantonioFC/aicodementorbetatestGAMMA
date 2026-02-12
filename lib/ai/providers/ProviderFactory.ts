@@ -2,7 +2,7 @@
 import { GeminiProvider } from './GeminiProvider';
 import { MockProvider } from './MockProvider';
 import { OpenRouterProvider } from './OpenRouterProvider';
-import { logger } from '../../utils/logger';
+import { logger } from '../../observability/Logger';
 import { AIProvider } from './BaseProvider';
 
 export class ProviderFactory {
@@ -32,7 +32,7 @@ export class ProviderFactory {
                     if (openRouter.isAvailable()) {
                         return openRouter;
                     }
-                    console.warn('[ProviderFactory] OpenRouter key missing or invalid.');
+                    logger.warn('[ProviderFactory] OpenRouter key missing or invalid.');
                     return new MockProvider();
 
                 case 'mock':

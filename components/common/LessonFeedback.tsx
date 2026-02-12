@@ -1,6 +1,7 @@
 
 import { useState } from 'react';
 import { SimpleInput } from '../ui/atoms/SimpleInput'; // Adjust import if needed
+import { logger } from '@/lib/observability/Logger';
 
 interface LessonFeedbackProps {
     lessonId: string | number;
@@ -25,7 +26,7 @@ export default function LessonFeedback({ lessonId, onSubmit, className = '' }: L
             // await feedbackService.submit({ lessonId, rating, comment });
 
             // Por ahora, solo log y callback
-            console.log('Feedback submitted:', { lessonId, rating, comment });
+            logger.info('Feedback submitted', { lessonId, rating, comment });
 
             if (onSubmit) {
                 onSubmit({ rating, comment });
@@ -33,7 +34,7 @@ export default function LessonFeedback({ lessonId, onSubmit, className = '' }: L
 
             setSubmitted(true);
         } catch (error) {
-            console.error('Error submitting feedback:', error);
+            logger.error('Error submitting feedback', error);
         } finally {
             setIsSubmitting(false);
         }

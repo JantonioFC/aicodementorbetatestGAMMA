@@ -20,8 +20,9 @@ export async function fetchRawHTML(url: string): Promise<string> {
         const html = await response.text();
         if (!html) throw new Error('ARM-RETRIEVER-EMPTY: Empty content');
         return html;
-    } catch (error: any) {
-        if (error.message.startsWith('ARM-RETRIEVER-')) throw error;
-        throw new Error(`ARM-RETRIEVER-NETWORK: ${error.message}`);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        if (message.startsWith('ARM-RETRIEVER-')) throw error;
+        throw new Error(`ARM-RETRIEVER-NETWORK: ${message}`);
     }
 }

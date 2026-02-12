@@ -1,7 +1,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { logger, LogLevel } from '../../../lib/utils/logger';
+import { logger, LogLevel } from '../../../lib/observability/Logger';
 
 // Mock fs and path
 jest.mock('fs');
@@ -97,16 +97,16 @@ describe('Logger', () => {
     describe('getDailyReport', () => {
         it('should generate a report from logs', async () => {
             // Mock getRecentLogs which is public
-            jest.spyOn(logger, 'getRecentLogs').mockImplementation(async (filename) => {
-                if (filename === 'success.log') {
+            jest.spyOn(logger, 'getRecentLogs').mockImplementation(async (filename: string) => {
+                if (filename === 'info.log') {
                     return [
-                        { timestamp: new Date().toISOString(), model: 'gpt-4', latency: 100 },
-                        { timestamp: new Date().toISOString(), model: 'gpt-3.5', latency: 50 },
+                        { timestamp: new Date().toISOString(), level: 'info' as const, message: 'Success', model: 'gpt-4', latency: 100 },
+                        { timestamp: new Date().toISOString(), level: 'info' as const, message: 'Success', model: 'gpt-3.5', latency: 50 },
                     ];
                 }
-                if (filename === 'errors.log') {
+                if (filename === 'error.log') {
                     return [
-                        { timestamp: new Date().toISOString(), model: 'gpt-4', errorMessage: 'Timeout' }
+                        { timestamp: new Date().toISOString(), level: 'error' as const, message: 'Timeout', model: 'gpt-4', errorMessage: 'Timeout' }
                     ];
                 }
                 return [];

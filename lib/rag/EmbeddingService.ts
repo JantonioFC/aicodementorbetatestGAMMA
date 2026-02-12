@@ -2,7 +2,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { cacheService } from '../cache/CacheService';
 import { db } from '../db';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 interface EmbeddingResult {
     semanaId: number;
@@ -10,7 +10,6 @@ interface EmbeddingResult {
     pomodoroIndex: number;
     text: string;
     similarity: number;
-    [key: string]: any;
 }
 
 interface IndexStats {
@@ -20,7 +19,7 @@ interface IndexStats {
 
 export class EmbeddingService {
     private genAI: GoogleGenerativeAI;
-    private model: any;
+    private model: { embedContent(text: string): Promise<{ embedding: { values: number[] } }> };
     private dimension: number;
     private cacheEnabled: boolean;
     private cacheTTL: number;
@@ -63,8 +62,9 @@ export class EmbeddingService {
             }
 
             return embedding;
-        } catch (error: any) {
-            logger.error(`[EmbeddingService] Error generando embedding: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[EmbeddingService] Error generando embedding: ${message}`);
             throw error;
         }
     }
@@ -168,8 +168,9 @@ export class EmbeddingService {
                         logger.info(`   ✅ Indexados: ${indexed}`);
                         await this._sleep(1000); // Pausa para evitar rate limits
                     }
-                } catch (error: any) {
-                    logger.error(`   ❌ Error indexando S${esquema.semana_id}/D${esquema.dia}/P${i}: ${error.message}`);
+                } catch (error: unknown) {
+                    const message = error instanceof Error ? error.message : String(error);
+                    logger.error(`   ❌ Error indexando S${esquema.semana_id}/D${esquema.dia}/P${i}: ${message}`);
                 }
             }
         }

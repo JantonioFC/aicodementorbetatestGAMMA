@@ -40,8 +40,11 @@ describe('SmartLessonGenerator (Agentic Logic)', () => {
     });
 
     test('should retry when clarity check fails', async () => {
+        const lowConfErr = new Error('Low confidence');
+        lowConfErr.name = 'LowConfidenceError';
+
         // @ts-ignore - accessing internal gate mock
-        smartLessonGenerator.gate.checkRelevance.mockRejectedValueOnce({ name: 'LowConfidenceError' }).mockResolvedValueOnce({ isRelevant: true });
+        smartLessonGenerator.gate.checkRelevance.mockRejectedValueOnce(lowConfErr).mockResolvedValueOnce({ isRelevant: true });
 
         await smartLessonGenerator.generateWithAutonomy({ topic: 'Unknown', difficulty: 'beginner' });
 
@@ -49,8 +52,11 @@ describe('SmartLessonGenerator (Agentic Logic)', () => {
     });
 
     test('should proceed after max retries', async () => {
+        const lowConfErr = new Error('Low confidence');
+        lowConfErr.name = 'LowConfidenceError';
+
         // @ts-ignore
-        smartLessonGenerator.gate.checkRelevance.mockRejectedValue({ name: 'LowConfidenceError' });
+        smartLessonGenerator.gate.checkRelevance.mockRejectedValue(lowConfErr);
 
         await smartLessonGenerator.generateWithAutonomy({ topic: 'Impossible', difficulty: 'beginner' });
 

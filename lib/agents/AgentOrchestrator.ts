@@ -2,7 +2,7 @@ import { BaseAgent, AgentContext, AgentResponse } from './BaseAgent';
 import { PedagogyAgent } from './PedagogyAgent';
 import { TechnicalAgent } from './TechnicalAgent';
 import { SupportAgent } from './SupportAgent';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 /**
  * Agent Orchestrator - El cerebro del sistema multi-agente.
@@ -49,8 +49,9 @@ export class AgentOrchestrator {
                     currentContent = response.content;
                     logger.info(`[Orchestrator] Refinamiento exitoso por ${agent.name}`);
                 }
-            } catch (error: any) {
-                logger.error(`[Orchestrator] Fallo en agente ${agent.name}: ${error.message}`);
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : String(error);
+                logger.error(`[Orchestrator] Fallo en agente ${agent.name}: ${message}`);
             }
         }
 

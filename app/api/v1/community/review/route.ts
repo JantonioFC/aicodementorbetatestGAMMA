@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/auth/serverAuth';
 import { peerReviewService } from '@/lib/services/community/PeerReviewService';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 /**
  * POST /api/v1/community/review
@@ -10,6 +10,10 @@ import logger from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         const { userId } = await getServerAuth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { sharedLessonId, rating, comment } = await req.json();
 
         if (!sharedLessonId || !rating) {
@@ -23,11 +27,12 @@ export async function POST(req: NextRequest) {
             id: result.id
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('[CommunityAPI] Error agregando revisión:', error);
+        const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({
             error: 'Error agregando revisión',
-            details: error.message
+            details: message
         }, { status: 500 });
     }
 }

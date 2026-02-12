@@ -1,6 +1,7 @@
 import { geminiRouter } from './router/GeminiRouter';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 import { promptLoader } from '../prompts/PromptLoader';
+import { AnalysisAnalysis } from './providers/BaseProvider';
 
 export interface RelevanceResult {
     relevance_score: number;
@@ -42,7 +43,7 @@ export class ClarityGate {
 
         const clarityPrompts = promptLoader.load('clarity.json');
 
-        const prompt = promptLoader.interpolate(clarityPrompts.relevance_check, {
+        const prompt = promptLoader.interpolate(clarityPrompts.relevance_check as string, {
             query: query,
             context_snippet: contextStr.substring(0, 3000) + ' ... (truncated)'
         });
@@ -56,7 +57,6 @@ export class ClarityGate {
             });
 
             // The provider now returns the parsed JSON in response.analysis
-            // Because we generalized AnalysisAnalysis, it contains extra properties from the raw response
             const result = this._parseResponse(response.analysis);
 
             logger.info(`[ClarityGate] Relevance Score: ${result.relevance_score} | ${result.reasoning}`);
@@ -70,31 +70,33 @@ export class ClarityGate {
 
             return true;
 
-        } catch (error: any) {
-            if (error instanceof LowConfidenceError || error.name === 'LowConfidenceError') throw error;
+        } catch (error: unknown) {
+            if (error instanceof LowConfidenceError || (error instanceof Error && error.name === 'LowConfidenceError')) throw error;
 
+            const message = error instanceof Error ? error.message : String(error);
             // If LLM fails, we fail open (log and proceed) to avoid blocking usage due to outage
-            logger.error(`[ClarityGate] Evaluation failed: ${error.message}. Proceeding with caution.`);
+            logger.error(`[ClarityGate] Evaluation failed: ${message}. Proceeding with caution.`);
             return true;
         }
     }
 
-    private _parseResponse(response: any): RelevanceResult {
+    private _parseResponse(response: AnalysisAnalysis | string): RelevanceResult {
         try {
-            // Check if response has a 'text' property (common in some router responses) or is the direct object
-            const content = response.text || response.content || response;
-
-            if (typeof content === 'object' && content !== null && 'relevance_score' in content) {
-                return content as RelevanceResult;
+            // Because our AnalysisAnalysis already has a structure that might match RelevanceResult 
+            // via its flexible properties, or it might be raw string
+            if (typeof response === 'object' && response !== null && 'relevance_score' in response) {
+                return response as unknown as RelevanceResult;
             }
 
-            const stringContent = typeof content === 'string' ? content : JSON.stringify(content);
+            const stringContent = typeof response === 'string' ? response : JSON.stringify(response);
             const jsonMatch = stringContent.match(/\{[\s\S]*\}/);
 
-            return jsonMatch
-                ? JSON.parse(jsonMatch[0])
-                : { relevance_score: 1.0, reasoning: "Parse Error" };
-        } catch (e) {
+            if (jsonMatch) {
+                return JSON.parse(jsonMatch[0]) as RelevanceResult;
+            }
+
+            return { relevance_score: 1.0, reasoning: "Parse Error" };
+        } catch (e: unknown) {
             return { relevance_score: 1.0, reasoning: "Fallback (Parse Error)" };
         }
     }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/auth/serverAuth';
 import { learningPathGenerator } from '@/lib/services/autonomy/LearningPathGenerator';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 /**
  * POST /api/v1/autonomy/generate-path
@@ -10,6 +10,10 @@ import logger from '@/lib/logger';
 export async function POST(req: NextRequest) {
     try {
         const { userId } = await getServerAuth();
+        if (!userId) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { targetProfile } = await req.json();
 
         const pathId = await learningPathGenerator.generatePath(userId, targetProfile || 'frontend-starter');
@@ -19,11 +23,12 @@ export async function POST(req: NextRequest) {
             id: pathId
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('[AutonomyAPI] Error generando ruta:', error);
+        const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({
             error: 'Error generando ruta de aprendizaje',
-            details: error.message
+            details: message
         }, { status: 500 });
     }
 }

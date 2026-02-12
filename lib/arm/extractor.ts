@@ -16,7 +16,7 @@ export function extractMainContent(htmlString: string): string | null {
         const $ = cheerio.load(htmlString);
         NOISE_SELECTORS.forEach(s => $(s).remove());
 
-        let mainElement: any = null;
+        let mainElement: ReturnType<typeof $> | null = null;
         for (const s of MAIN_CONTENT_SELECTORS) {
             const el = $(s);
             if (el.length > 0) {
@@ -34,12 +34,19 @@ export function extractMainContent(htmlString: string): string | null {
             .trim();
 
         return text || null;
-    } catch (error) {
+    } catch (error: unknown) {
         return null;
     }
 }
 
-export function getExtractionStats(htmlString: string) {
+interface ExtractionStats {
+    success: boolean;
+    textLength: number;
+    wordCount?: number;
+    lineCount?: number;
+}
+
+export function getExtractionStats(htmlString: string): ExtractionStats {
     const content = extractMainContent(htmlString);
     if (!content) return { success: false, textLength: 0 };
     return {

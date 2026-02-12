@@ -1,5 +1,5 @@
-import { db } from '../../db';
-import logger from '../../logger';
+import { db, QueryParams } from '../../db';
+import { logger } from '../../observability/Logger';
 import crypto from 'crypto';
 
 export interface SharedLesson {
@@ -10,7 +10,7 @@ export interface SharedLesson {
     description: string;
     category?: string;
     tags?: string[];
-    content: any;
+    content: unknown;
     is_public: boolean;
     views_count: number;
     votes_score: number;
@@ -19,15 +19,28 @@ export interface SharedLesson {
     owner_name?: string;
 }
 
+interface SandboxLessonRow {
+    id: string;
+    user_id: string;
+    generated_lesson: string;
+}
+
+interface SharedLessonVoteRow {
+    id: string;
+    user_id: string;
+    shared_lesson_id: string;
+    vote_value: number;
+    created_at: string;
+}
+
 export class SharedLessonService {
     /**
      * Share a lesson from sandbox or generated content to the community
      */
-    async shareLesson(userId: string, lessonId: string, title: string, description: string, category?: string, tags: string[] = []) {
+    async shareLesson(userId: string, lessonId: string, title: string, description: string, category?: string, tags: string[] = []): Promise<string> {
         try {
             // Find the original content (from sandbox_generations or generated_content)
-            // For now, prioritising sandbox_generations as it's the primary source for "finished" lessons
-            const sandboxLesson = db.findOne('sandbox_generations', { id: lessonId, user_id: userId }) as any;
+            const sandboxLesson = db.findOne<SandboxLessonRow>('sandbox_generations', { id: lessonId, user_id: userId } as Record<string, QueryParams>);
 
             if (!sandboxLesson) {
                 throw new Error('Lesson not found or you do not have permission to share it.');
@@ -48,12 +61,13 @@ export class SharedLessonService {
                 updated_at: new Date().toISOString()
             };
 
-            db.insert('shared_lessons', newSharedLesson);
+            db.insert('shared_lessons', newSharedLesson as unknown as Record<string, QueryParams>);
             logger.info(`[SharedLessonService] Lesson shared: ${title} by ${userId}`);
 
             return sharedId;
-        } catch (error) {
-            logger.error('[SharedLessonService] Error sharing lesson', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[SharedLessonService] Error sharing lesson: ${message}`);
             throw error;
         }
     }
@@ -61,7 +75,7 @@ export class SharedLessonService {
     /**
      * Get public lessons with optional filters and sorting
      */
-    async getPublicLessons(userId?: string, options: { category?: string, sort?: 'latest' | 'top', limit?: number } = {}) {
+    async getPublicLessons(userId?: string, options: { category?: string, sort?: 'latest' | 'top', limit?: number } = {}): Promise<SharedLesson[]> {
         try {
             const { category, sort = 'latest', limit = 20 } = options;
 
@@ -77,7 +91,7 @@ export class SharedLessonService {
                 WHERE sl.is_public = 1
             `;
 
-            const params: any[] = userId ? [userId] : [];
+            const params: QueryParams[] = userId ? [userId] : [];
 
             if (category) {
                 query += ' AND sl.category = ?';
@@ -95,16 +109,27 @@ export class SharedLessonService {
             query += ' LIMIT ?';
             params.push(limit);
 
-            const rows = db.query(query, params) as any[];
+            const rows = db.query<Record<string, unknown>>(query, params);
 
             return rows.map(row => ({
-                ...row,
-                tags: row.tags ? JSON.parse(row.tags) : [],
-                content: row.content ? JSON.parse(row.content) : null,
-                is_public: Boolean(row.is_public)
+                id: String(row.id),
+                owner_id: String(row.owner_id),
+                lesson_id: String(row.lesson_id),
+                title: String(row.title),
+                description: String(row.description),
+                category: row.category ? String(row.category) : undefined,
+                tags: row.tags ? JSON.parse(String(row.tags)) : [],
+                content: row.content ? JSON.parse(String(row.content)) : null,
+                is_public: Boolean(row.is_public),
+                views_count: Number(row.views_count),
+                votes_score: Number(row.votes_score),
+                user_vote: row.user_vote ? Number(row.user_vote) : undefined,
+                created_at: String(row.created_at),
+                owner_name: row.owner_name ? String(row.owner_name) : undefined
             }));
-        } catch (error) {
-            logger.error('[SharedLessonService] Error getting public lessons', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[SharedLessonService] Error getting public lessons: ${message}`);
             throw error;
         }
     }
@@ -112,13 +137,13 @@ export class SharedLessonService {
     /**
      * Vote for a shared lesson
      */
-    async voteLesson(userId: string, sharedId: string, value: number) {
+    async voteLesson(userId: string, sharedId: string, value: number): Promise<boolean> {
         try {
             if (![-1, 1].includes(value)) {
                 throw new Error('Invalid vote value. Must be 1 or -1.');
             }
 
-            const existingVote = db.findOne('shared_lesson_votes', { user_id: userId, shared_lesson_id: sharedId }) as any;
+            const existingVote = db.findOne<SharedLessonVoteRow>('shared_lesson_votes', { user_id: userId, shared_lesson_id: sharedId } as Record<string, QueryParams>);
 
             if (existingVote) {
                 if (existingVote.vote_value === value) {
@@ -126,7 +151,7 @@ export class SharedLessonService {
                     db.run('DELETE FROM shared_lesson_votes WHERE user_id = ? AND shared_lesson_id = ?', [userId, sharedId]);
                 } else {
                     // Update vote
-                    db.update('shared_lesson_votes', { vote_value: value }, { user_id: userId, shared_lesson_id: sharedId });
+                    db.update('shared_lesson_votes', { vote_value: value } as Record<string, QueryParams>, { user_id: userId, shared_lesson_id: sharedId } as Record<string, QueryParams>);
                 }
             } else {
                 // Insert new vote
@@ -136,12 +161,13 @@ export class SharedLessonService {
                     shared_lesson_id: sharedId,
                     vote_value: value,
                     created_at: new Date().toISOString()
-                });
+                } as Record<string, QueryParams>);
             }
 
             return true;
-        } catch (error) {
-            logger.error('[SharedLessonService] Error voting for lesson', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[SharedLessonService] Error voting for lesson: ${message}`);
             throw error;
         }
     }
@@ -149,11 +175,12 @@ export class SharedLessonService {
     /**
      * Increment view count
      */
-    async incrementViews(sharedId: string) {
+    async incrementViews(sharedId: string): Promise<void> {
         try {
             db.run('UPDATE shared_lessons SET views_count = views_count + 1 WHERE id = ?', [sharedId]);
-        } catch (error) {
-            logger.error('[SharedLessonService] Error incrementing views', error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[SharedLessonService] Error incrementing views: ${message}`);
         }
     }
 }

@@ -1,6 +1,6 @@
 import path from 'path';
 import { promptLoader } from '../PromptLoader';
-import { logger } from '../../utils/logger';
+import { logger } from '../../observability/Logger';
 
 export interface PromptContext {
     phase: string;
@@ -11,15 +11,22 @@ export interface PromptContext {
     customVariables?: Record<string, string>;
 }
 
+export interface PromptConstraints {
+    maxComplexitySuggestions?: number;
+    avoidConcepts: string[];
+    encourageConcepts: string[];
+    responseFormat: Record<string, unknown>;
+}
+
 export interface BuiltPrompt {
     system: string;
     user: string;
-    constraints: any;
+    constraints: PromptConstraints;
     domain: string;
 }
 
 export class PromptFactory {
-    private constraintsCache: any = null;
+    private constraintsCache: Record<string, PromptConstraints> | null = null;
 
     /**
      * Construir prompt completo para una consulta
@@ -55,9 +62,9 @@ export class PromptFactory {
     private loadSystemTemplate(phase: string, language: string, analysisType: string): string {
         // Intentar cargar desde external/lang/analysisType.json
         try {
-            const externalPrompt = promptLoader.load(`${analysisType}.json`, language, true);
+            const externalPrompt = promptLoader.load(`${analysisType}.json`, language, true) as { system?: string };
             if (externalPrompt?.system) return externalPrompt.system;
-        } catch (e) {
+        } catch (e: unknown) {
             // Silencio - Fallback a default
         }
 
@@ -71,12 +78,12 @@ export class PromptFactory {
         return fallbacks[phase] || fallbacks['fase-1'];
     }
 
-    private loadConstraints(phase: string, language: string): any {
+    private loadConstraints(phase: string, language: string): PromptConstraints {
         // Cargar constraints globales por fase (default)
         if (!this.constraintsCache) {
             try {
-                this.constraintsCache = promptLoader.load('by-phase.json', 'constraints', true);
-            } catch (e) {
+                this.constraintsCache = promptLoader.load('by-phase.json', 'constraints', true) as Record<string, PromptConstraints>;
+            } catch (e: unknown) {
                 logger.warn('[PromptFactory] Fallback de constraints activado');
                 this.constraintsCache = this.getDefaultConstraints();
             }
@@ -86,14 +93,14 @@ export class PromptFactory {
 
         // Intentar override por lenguaje (e.g., rust/constraints.json)
         try {
-            const langOverrides = promptLoader.load('constraints.json', language, true);
+            const langOverrides = promptLoader.load('constraints.json', language, true) as Partial<PromptConstraints>;
             return { ...baseConstraints, ...langOverrides };
-        } catch (e) {
+        } catch (e: unknown) {
             return baseConstraints;
         }
     }
 
-    private buildUserPrompt(code: string, language: string, analysisType: string, constraints: any): string {
+    private buildUserPrompt(code: string, language: string, analysisType: string, constraints: PromptConstraints): string {
         const langName = this.getLanguageDisplayName(language);
 
         // Manejo de Slash Commands o Tipos Especiales
@@ -115,11 +122,11 @@ export class PromptFactory {
             ''
         ];
 
-        if (constraints.avoidConcepts?.length > 0) {
+        if (constraints.avoidConcepts && constraints.avoidConcepts.length > 0) {
             parts.push(`**Evitar:** ${constraints.avoidConcepts.join(', ')}`);
         }
 
-        if (constraints.encourageConcepts?.length > 0) {
+        if (constraints.encourageConcepts && constraints.encourageConcepts.length > 0) {
             parts.push(`**Enfatizar:** ${constraints.encourageConcepts.join(', ')}`);
         }
 
@@ -141,10 +148,10 @@ export class PromptFactory {
             'rust': 'Rust',
             'go': 'Go'
         };
-        return names[code?.toLowerCase()] || code || 'JavaScript';
+        return names[code?.toLowerCase() || 'js'] || code || 'JavaScript';
     }
 
-    private getDefaultConstraints() {
+    private getDefaultConstraints(): Record<string, PromptConstraints> {
         return {
             'default': {
                 maxComplexitySuggestions: 3,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getDatabase } from '@/lib/curriculum-sqlite';
+import { getRawDb } from '@/lib/db';
 
 export async function GET(
     req: NextRequest,
@@ -13,8 +13,8 @@ export async function GET(
             return NextResponse.json({ error: 'Bad Request', message: 'Invalid phaseId' }, { status: 400 });
         }
 
-        const db = getDatabase();
-        const phaseExists = db.prepare('SELECT COUNT(*) as count FROM fases WHERE fase = ?').get(phaseNumber) as any;
+        const db = getRawDb();
+        const phaseExists = db.prepare('SELECT COUNT(*) as count FROM fases WHERE fase = ?').get(phaseNumber) as { count: number } | undefined;
 
         if (!phaseExists || phaseExists.count === 0) {
             return NextResponse.json({ error: 'Not Found', message: `Phase ${phaseNumber} not found` }, { status: 404 });
@@ -34,7 +34,7 @@ export async function GET(
       ORDER BY m.modulo, s.semana
     `;
 
-        const rawData = db.prepare(modulesQuery).all(phaseNumber) as any[];
+        const rawData = db.prepare(modulesQuery).all(phaseNumber) as { modulo: number; titulo_modulo: string; semana: number; titulo_semana: string; tematica: string | null }[];
 
         if (!rawData || rawData.length === 0) {
             return NextResponse.json({ error: 'Not Found', message: 'No modules found for this phase' }, { status: 404 });
@@ -69,7 +69,8 @@ export async function GET(
             }
         });
 
-    } catch (error: any) {
-        return NextResponse.json({ error: 'Internal Server Error', message: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: 'Internal Server Error', message }, { status: 500 });
     }
 }

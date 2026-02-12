@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/observability/Logger';
 
 interface SharedLesson {
     id: string;
@@ -31,7 +32,7 @@ const SharedLessonGallery: React.FC = () => {
                     setLessons(data.data);
                 }
             } catch (error) {
-                console.error('Error fetching feed:', error);
+                logger.error('Error fetching feed', error);
             } finally {
                 setLoading(false);
             }
@@ -59,7 +60,7 @@ const SharedLessonGallery: React.FC = () => {
                 }));
             }
         } catch (error) {
-            console.error('Error voting:', error);
+            logger.error('Error voting', error);
         }
     };
 
@@ -126,17 +127,19 @@ const SharedLessonGallery: React.FC = () => {
                                     <button
                                         onClick={() => handleVote(lesson.id, 1)}
                                         className={`p-2 rounded-xl transition-all ${lesson.user_vote === 1 ? 'bg-white text-indigo-600 shadow-md' : 'text-gray-300 hover:text-indigo-400'}`}
+                                        aria-label="Votar a favor"
                                     >
-                                        <span className="text-sm font-black">🔼</span>
+                                        <span className="text-sm font-black" role="img" aria-label="Flecha arriba">🔼</span>
                                     </button>
-                                    <span className={`text-sm font-black px-1 ${lesson.votes_score > 0 ? 'text-green-500' : 'text-gray-400'}`}>
+                                    <span className={`text-sm font-black px-1 ${lesson.votes_score > 0 ? 'text-green-500' : 'text-gray-400'}`} aria-label={`${lesson.votes_score} votos`}>
                                         {lesson.votes_score}
                                     </span>
                                     <button
                                         onClick={() => handleVote(lesson.id, -1)}
                                         className={`p-2 rounded-xl transition-all ${lesson.user_vote === -1 ? 'bg-white text-rose-500 shadow-md' : 'text-gray-300 hover:text-rose-400'}`}
+                                        aria-label="Votar en contra"
                                     >
-                                        <span className="text-sm font-black">🔽</span>
+                                        <span className="text-sm font-black" role="img" aria-label="Flecha abajo">🔽</span>
                                     </button>
                                 </div>
                             </div>

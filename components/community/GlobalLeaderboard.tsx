@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { logger } from '@/lib/observability/Logger';
 
 interface LeaderboardEntry {
     user_id: string;
@@ -28,7 +29,7 @@ const GlobalLeaderboard: React.FC = () => {
                 setRanking(data.data);
             }
         } catch (error) {
-            console.error('Error fetching ranking:', error);
+            logger.error('Error fetching ranking', error);
         } finally {
             setLoading(false);
         }
@@ -57,7 +58,7 @@ const GlobalLeaderboard: React.FC = () => {
             <div className="flex flex-row items-center justify-between mb-10 relative z-10">
                 <div>
                     <h2 className="text-3xl font-black text-gray-800 flex items-center gap-3">
-                        <span className="text-3xl">⭐</span>
+                        <span className="text-3xl" role="img" aria-label="Estrella">⭐</span>
                         Salón de la Fama
                     </h2>
                     <p className="text-gray-400 font-bold mt-1 uppercase tracking-tighter text-xs">
@@ -68,13 +69,14 @@ const GlobalLeaderboard: React.FC = () => {
                     onClick={() => fetchRanking(true)}
                     disabled={loading}
                     className={`p-3 rounded-2xl bg-gray-50 text-gray-400 hover:text-indigo-600 hover:bg-white hover:shadow-xl transition-all ${loading ? 'animate-spin' : 'active:scale-95'}`}
+                    aria-label="Recargar ranking"
                 >
-                    <span className="text-xl">🔄</span>
+                    <span className="text-xl" role="img" aria-label="Icono de recarga">🔄</span>
                 </button>
             </div>
 
             <div className="relative z-10 overflow-x-auto">
-                <table className="w-full text-left border-separate border-spacing-y-4">
+                <table className="w-full text-left border-separate border-spacing-y-4" aria-label="Tabla de ranking global">
                     <thead>
                         <tr className="text-[10px] font-black uppercase tracking-widest text-gray-300 border-b border-gray-50">
                             <th className="px-6 pb-2 text-center w-24">Posición</th>
@@ -137,8 +139,8 @@ const GlobalLeaderboard: React.FC = () => {
                 </table>
 
                 {!loading && ranking.length === 0 && (
-                    <div className="text-center py-20">
-                        <div className="text-5xl mb-4 text-gray-200">🏁</div>
+                    <div className="text-center py-20" aria-live="polite">
+                        <div className="text-5xl mb-4 text-gray-200" role="img" aria-label="Meta">🏁</div>
                         <p className="text-gray-400 font-black uppercase tracking-widest text-sm">Aún no hay pioneros en el ranking</p>
                     </div>
                 )}

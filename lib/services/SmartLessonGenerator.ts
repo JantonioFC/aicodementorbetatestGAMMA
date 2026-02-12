@@ -4,7 +4,7 @@ import { contentRetriever } from '../rag/ContentRetriever';
 import { competencyService } from './CompetencyService';
 import { agentOrchestrator } from '../agents/AgentOrchestrator';
 import { lessonService, LessonRequest, LessonContent } from './LessonService';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 export class SmartLessonGenerator {
     private gate: ClarityGate;
@@ -46,12 +46,12 @@ export class SmartLessonGenerator {
                 await this.gate.checkRelevance(params.topic, retrievalContext);
                 clarityPass = true;
                 logger.info(`[SmartGen] Clarity Check Passed (Attempt ${retries + 1})`);
-            } catch (error: any) {
-                if (error instanceof LowConfidenceError || error.name === 'LowConfidenceError') {
-                    logger.warn(`[SmartGen] Clarity Check Failed: ${error.message}. Retrying...`);
+            } catch (error: unknown) {
+                if (error instanceof LowConfidenceError || (error instanceof Error && error.name === 'LowConfidenceError')) {
+                    logger.warn(`[SmartGen] Clarity Check Failed: ${error instanceof Error ? error.message : String(error)}. Retrying...`);
 
-                    if (queryExpander && typeof (queryExpander as any).expand === 'function') {
-                        const expandedQueries: string[] = await (queryExpander as any).expand(params.topic, { useLLM: true });
+                    if (queryExpander) {
+                        const expandedQueries: string[] = await queryExpander.expand(params.topic, { useLLM: true });
                         const additionalContext = await Promise.all(
                             expandedQueries.map((q: string) => this._retrieve(q))
                         );
@@ -101,17 +101,18 @@ export class SmartLessonGenerator {
     private async _retrieve(query: string): Promise<string[]> {
         // Wrapper for ContentRetriever
         try {
-            if (contentRetriever && typeof (contentRetriever as any).retrieve === 'function') {
-                const results = await (contentRetriever as any).retrieve(query);
+            if (contentRetriever) {
+                const results = await contentRetriever.retrieve(query);
                 // Ensure array of strings
                 if (Array.isArray(results)) {
-                    return results.map((r: any) => typeof r === 'string' ? r : JSON.stringify(r));
+                    return results.map((r: unknown) => typeof r === 'string' ? r : JSON.stringify(r));
                 }
                 return [];
             }
             return []; // Fallback
-        } catch (e: any) {
-            logger.error(`[SmartGen] Retrieval error: ${e.message}`);
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            logger.error(`[SmartGen] Retrieval error: ${message}`);
             return [];
         }
     }

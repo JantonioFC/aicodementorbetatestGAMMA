@@ -1,33 +1,96 @@
 import db from '../db';
 
+export interface AnalyticsOverview {
+    lessons: {
+        total: number;
+        avgScore: number;
+    };
+    sessions: {
+        active: number;
+        totalUsers: number;
+    };
+    feedback: {
+        total: number;
+        avgRating: number;
+    };
+}
+
+export interface LessonPerDay {
+    date: string;
+    count: number;
+    avgScore: number;
+}
+
+export interface ScoreDistribution {
+    grade: string;
+    count: number;
+}
+
+export interface RecentFeedback {
+    id: string;
+    lesson_id: string;
+    rating: number;
+    feedback_type: string;
+    comment: string;
+    created_at: string;
+}
+
+export interface EvaluationMetricsResults {
+    avgFaithfulness: number;
+    avgRelevance: number;
+    avgLength: number;
+    avgStructure: number;
+    avgNoHallucination: number;
+    totalEvaluations: number;
+    passed: number;
+    withExamples: number;
+    withQuiz: number;
+}
+
+export interface ComponentMetrics {
+    components: {
+        faithfulness: number;
+        relevance: number;
+        length: number;
+        structure: number;
+        noHallucination: number;
+    };
+    totals: {
+        evaluations: number;
+        passRate: number;
+        withExamples: number;
+        withQuiz: number;
+    };
+}
+
 export class AnalyticsService {
     /**
      * Obtiene estadísticas generales del sistema.
      */
-    getOverview() {
-        const lessonsGenerated = (db.get(`
+    getOverview(): AnalyticsOverview {
+        const lessonsGenerated = db.get<{ total: number }>(`
             SELECT COUNT(*) as total FROM lesson_evaluations
-        `) as any)?.total || 0;
+        `)?.total || 0;
 
-        const avgScore = (db.get(`
+        const avgScore = db.get<{ avg: number }>(`
             SELECT AVG(overall_score) as avg FROM lesson_evaluations
-        `) as any)?.avg || 0;
+        `)?.avg || 0;
 
-        const activeSessions = (db.get(`
+        const activeSessions = db.get<{ total: number }>(`
             SELECT COUNT(*) as total FROM learning_sessions WHERE status = 'ACTIVE'
-        `) as any)?.total || 0;
+        `)?.total || 0;
 
-        const totalUsers = (db.get(`
+        const totalUsers = db.get<{ total: number }>(`
             SELECT COUNT(DISTINCT user_id) as total FROM learning_sessions
-        `) as any)?.total || 0;
+        `)?.total || 0;
 
-        const feedbackCount = (db.get(`
+        const feedbackCount = db.get<{ total: number }>(`
             SELECT COUNT(*) as total FROM lesson_feedback
-        `) as any)?.total || 0;
+        `)?.total || 0;
 
-        const avgFeedbackRating = (db.get(`
+        const avgFeedbackRating = db.get<{ avg: number }>(`
             SELECT AVG(rating) as avg FROM lesson_feedback
-        `) as any)?.avg || 0;
+        `)?.avg || 0;
 
         return {
             lessons: {
@@ -48,8 +111,8 @@ export class AnalyticsService {
     /**
      * Obtiene lecciones generadas por día.
      */
-    getLessonsPerDay(days = 30) {
-        return db.query(`
+    getLessonsPerDay(days = 30): LessonPerDay[] {
+        return db.query<LessonPerDay>(`
             SELECT 
                 date(created_at) as date,
                 COUNT(*) as count,
@@ -64,8 +127,8 @@ export class AnalyticsService {
     /**
      * Obtiene distribución de scores de evaluación.
      */
-    getScoreDistribution() {
-        return db.query(`
+    getScoreDistribution(): ScoreDistribution[] {
+        return db.query<ScoreDistribution>(`
             SELECT 
                 CASE 
                     WHEN overall_score >= 90 THEN 'A (90-100)'
@@ -91,8 +154,8 @@ export class AnalyticsService {
     /**
      * Obtiene feedback reciente.
      */
-    getRecentFeedback(limit = 10) {
-        return db.query(`
+    getRecentFeedback(limit = 10): RecentFeedback[] {
+        return db.query<RecentFeedback>(`
             SELECT 
                 id,
                 lesson_id,
@@ -109,8 +172,8 @@ export class AnalyticsService {
     /**
      * Obtiene métricas de evaluación por componente.
      */
-    getEvaluationMetrics() {
-        const metrics = db.get(`
+    getEvaluationMetrics(): ComponentMetrics {
+        const metrics = db.get<EvaluationMetricsResults>(`
             SELECT 
                 AVG(faithfulness_score) as avgFaithfulness,
                 AVG(relevance_score) as avgRelevance,
@@ -122,7 +185,9 @@ export class AnalyticsService {
                 SUM(CASE WHEN has_examples = 1 THEN 1 ELSE 0 END) as withExamples,
                 SUM(CASE WHEN has_quiz = 1 THEN 1 ELSE 0 END) as withQuiz
             FROM lesson_evaluations
-        `) as any;
+        `);
+
+        const totalEvaluations = metrics?.totalEvaluations || 0;
 
         return {
             components: {
@@ -133,9 +198,9 @@ export class AnalyticsService {
                 noHallucination: Math.round(metrics?.avgNoHallucination || 0)
             },
             totals: {
-                evaluations: metrics?.totalEvaluations || 0,
-                passRate: metrics?.totalEvaluations > 0
-                    ? Math.round((metrics.passed / metrics.totalEvaluations) * 100)
+                evaluations: totalEvaluations,
+                passRate: totalEvaluations > 0
+                    ? Math.round(((metrics?.passed || 0) / totalEvaluations) * 100)
                     : 0,
                 withExamples: metrics?.withExamples || 0,
                 withQuiz: metrics?.withQuiz || 0
@@ -146,8 +211,8 @@ export class AnalyticsService {
     /**
      * Obtiene actividad por semana del currículo.
      */
-    getActivityByWeek() {
-        return db.query(`
+    getActivityByWeek(): Array<{ semana: string; interactions: number }> {
+        return db.query<{ semana: string; interactions: number }>(`
             SELECT 
                 json_extract(content, '$.semana') as semana,
                 COUNT(*) as interactions
@@ -161,8 +226,8 @@ export class AnalyticsService {
     /**
      * Obtiene usuarios más activos.
      */
-    getTopUsers(limit = 10) {
-        return db.query(`
+    getTopUsers(limit = 10): Array<{ user_id: string; sessions: number; interactions: number; lastActive: string }> {
+        return db.query<{ user_id: string; sessions: number; interactions: number; lastActive: string }>(`
             SELECT 
                 ls.user_id,
                 COUNT(DISTINCT ls.id) as sessions,

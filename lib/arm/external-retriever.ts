@@ -4,6 +4,8 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import type { RAGContext, RAGResource, ExternalSource } from '../rag/retrieve-sources';
+import { logger } from '../observability/Logger';
 
 export interface ARMConfig {
     FETCH_TIMEOUT: number;
@@ -43,6 +45,23 @@ export interface FallbackContent {
     };
 }
 
+export interface CacheEntry {
+    content: string;
+    last_fetched_at: string;
+    expires_at: string;
+}
+
+export interface ARMProcessResult {
+    url: string;
+    content: string | null;
+    fromCache?: boolean;
+    status: 'success' | 'error' | 'fallback-success';
+    processTimeMs?: number;
+    error?: string;
+    type?: string;
+    name?: string;
+}
+
 const FALLBACK_CONTENT_DATABASE: Record<string, FallbackContent> = {
     'https://ai.google/responsibility/principles/': {
         type: 'ai-principles',
@@ -68,7 +87,7 @@ const FALLBACK_CONTENT_DATABASE: Record<string, FallbackContent> = {
  * Recuperador robusto de HTML.
  */
 export async function fetchRawHTML(url: string): Promise<string> {
-    console.log(`🔄 [ARM RECUPERADOR] Iniciando descarga: ${url}`);
+    logger.info('ARM retriever starting download', { url });
 
     try {
         new URL(url);
@@ -76,11 +95,11 @@ export async function fetchRawHTML(url: string): Promise<string> {
         throw new Error(`URL inválida: ${url}`);
     }
 
-    let lastError: any = null;
+    let lastError: Error | null = null;
 
     for (let attempt = 1; attempt <= ARM_CONFIG.RETRY_ATTEMPTS; attempt++) {
         try {
-            console.log(`   📡 Intento ${attempt}/${ARM_CONFIG.RETRY_ATTEMPTS}...`);
+            logger.debug('ARM retriever fetch attempt', { attempt, maxAttempts: ARM_CONFIG.RETRY_ATTEMPTS });
 
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), ARM_CONFIG.FETCH_TIMEOUT);
@@ -117,11 +136,11 @@ export async function fetchRawHTML(url: string): Promise<string> {
 
             return html;
 
-        } catch (error: any) {
-            lastError = error;
-            if (error.name === 'AbortError') {
-                console.log(`   ⏰ Timeout en intento ${attempt}`);
-            } else if (error.message.includes('No reintentar')) {
+        } catch (error: unknown) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            if (lastError.name === 'AbortError') {
+                logger.warn('ARM retriever timeout on attempt', { attempt });
+            } else if (lastError.message.includes('No reintentar')) {
                 break;
             }
             if (attempt < ARM_CONFIG.RETRY_ATTEMPTS) {
@@ -137,7 +156,7 @@ export async function fetchRawHTML(url: string): Promise<string> {
 /**
  * Extractor de contenido pedagógico.
  */
-export async function extractMainContent(html: string, url: string): Promise<string> {
+export async function extractMainContent(html: string, _url: string): Promise<string> {
     try {
         const cleaned = html
             .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
@@ -151,12 +170,13 @@ export async function extractMainContent(html: string, url: string): Promise<str
         }
 
         return cleaned.substring(0, 5000); // Límite razonable para prompt
-    } catch (error: any) {
-        throw new Error(`Error en extracción: ${error.message}`);
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Error en extracción: ${message}`);
     }
 }
 
-function readCacheFile(): any {
+function readCacheFile(): Record<string, CacheEntry> {
     try {
         if (!fs.existsSync(ARM_CONFIG.CACHE_FILE)) return {};
         return JSON.parse(fs.readFileSync(ARM_CONFIG.CACHE_FILE, 'utf8'));
@@ -185,7 +205,7 @@ export async function setCachedContent(url: string, content: string): Promise<vo
     fs.writeFileSync(ARM_CONFIG.CACHE_FILE, JSON.stringify(cache, null, 2));
 }
 
-export async function processExternalURL(url: string) {
+export async function processExternalURL(url: string): Promise<ARMProcessResult> {
     const startTime = Date.now();
     try {
         const cached = await getCachedContent(url);
@@ -202,35 +222,44 @@ export async function processExternalURL(url: string) {
             status: 'success',
             processTimeMs: Date.now() - startTime
         };
-    } catch (error: any) {
-        return { url, content: null, status: 'error', error: error.message };
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return { url, content: null, status: 'error', error: message };
     }
 }
 
-export async function enrichRAGWithExternalSources(ragContext: any): Promise<any> {
-    const urls: any[] = [];
+export async function enrichRAGWithExternalSources(ragContext: RAGContext): Promise<RAGContext> {
+    const urls: Array<{ url: string; type: string; name: string }> = [];
     if (ragContext.resources) {
-        ragContext.resources.forEach((r: any) => {
-            if (r.url?.startsWith('http')) urls.push({ url: r.url, type: 'resource', name: r.nombre });
+        ragContext.resources.forEach((r: RAGResource) => {
+            if (r.url?.startsWith('http')) {
+                urls.push({
+                    url: r.url,
+                    type: 'resource',
+                    name: r.title
+                });
+            }
         });
     }
 
     if (urls.length === 0) return { ...ragContext, externalSources: [], armStatus: 'no-sources' };
 
-    const externalSources: any[] = [];
+    const externalSources: ExternalSource[] = [];
     for (const u of urls) {
         const result = await processExternalURL(u.url);
-        if (result.status === 'success') {
-            externalSources.push({ ...result, type: u.type, name: u.name });
+        if (result.status === 'success' && result.content) {
+            externalSources.push({
+                title: u.name,
+                url: u.url,
+                snippet: result.content.substring(0, 500)
+            });
         } else {
             const fallback = FALLBACK_CONTENT_DATABASE[u.url];
             if (fallback) {
                 externalSources.push({
+                    title: u.name,
                     url: u.url,
-                    content: fallback.content,
-                    status: 'fallback-success',
-                    type: u.type,
-                    name: u.name
+                    snippet: fallback.content.substring(0, 500)
                 });
             }
         }

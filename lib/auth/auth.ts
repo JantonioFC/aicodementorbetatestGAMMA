@@ -6,23 +6,49 @@ import jwt from 'jsonwebtoken';
 import { serialize, parse } from 'cookie';
 import { NextApiRequest, NextApiResponse } from 'next';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'local-development-secret-change-this';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('FATAL: JWT_SECRET must be defined in production.');
+    }
+}
+
+const SECRET_KEY: string = JWT_SECRET || '';
 const COOKIE_NAME = 'ai-code-mentor-auth';
 
 export interface AuthUser {
     id: string;
     email: string;
+    role?: string; // RBAC support
     user_metadata: {
         full_name: string;
         avatar_url?: string;
     };
-    app_metadata?: any;
+    app_metadata?: Record<string, unknown>;
+}
+
+interface UserRow {
+    id: string;
+    email: string;
+    password_hash: string;
+    full_name: string;
+    avatar_url: string;
+    created_at: string;
+    role?: string; // RBAC support
+}
+
+interface JWTPayload {
+    userId: string;
+    email: string;
+    name: string;
+    role?: string; // RBAC support
 }
 
 /**
  * Helper to set auth cookie
  */
-export function setAuthCookie(res: NextApiResponse, token: string) {
+export function setAuthCookie(res: NextApiResponse, token: string): void {
     const cookie = serialize(COOKIE_NAME, token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -36,7 +62,7 @@ export function setAuthCookie(res: NextApiResponse, token: string) {
 /**
  * Helper to remove auth cookie
  */
-export function removeAuthCookie(res: NextApiResponse) {
+export function removeAuthCookie(res: NextApiResponse): void {
     const cookie = serialize(COOKIE_NAME, '', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
@@ -50,9 +76,9 @@ export function removeAuthCookie(res: NextApiResponse) {
 /**
  * Sign In with Email and Password
  */
-export async function signInWithEmail(email: string, password: string) {
+export async function signInWithEmail(email: string, password: string): Promise<{ user: AuthUser; session: { access_token: string } }> {
     try {
-        const user = db.findOne<any>('users', { email });
+        const user = db.findOne<UserRow>('users', { email });
 
         if (!user) {
             throw new Error('Invalid credentials');
@@ -65,8 +91,8 @@ export async function signInWithEmail(email: string, password: string) {
 
         // Create session/token
         const token = jwt.sign(
-            { userId: user.id, email: user.email, name: user.full_name },
-            JWT_SECRET,
+            { userId: user.id, email: user.email, name: user.full_name } as JWTPayload,
+            SECRET_KEY,
             { expiresIn: '7d' }
         );
 
@@ -78,7 +104,7 @@ export async function signInWithEmail(email: string, password: string) {
             },
             session: { access_token: token }
         };
-    } catch (error) {
+    } catch (error: unknown) {
         throw error;
     }
 }
@@ -86,9 +112,9 @@ export async function signInWithEmail(email: string, password: string) {
 /**
  * Sign Up with Email and Password
  */
-export async function signUpWithEmail(email: string, password: string, metadata: any = {}) {
+export async function signUpWithEmail(email: string, password: string, metadata: Record<string, unknown> = {}): Promise<{ user: AuthUser; session: { access_token: string } }> {
     try {
-        const existingUser = db.findOne<any>('users', { email });
+        const existingUser = db.findOne<UserRow>('users', { email });
         if (existingUser) {
             throw new Error('User already exists');
         }
@@ -100,14 +126,14 @@ export async function signUpWithEmail(email: string, password: string, metadata:
             id: userId,
             email,
             password_hash: hashedPassword,
-            full_name: metadata.full_name || '',
-            avatar_url: metadata.avatar_url || '',
+            full_name: (metadata.full_name as string) || '',
+            avatar_url: (metadata.avatar_url as string) || '',
             created_at: new Date().toISOString()
         });
 
         // Auto login
         return signInWithEmail(email, password);
-    } catch (error) {
+    } catch (error: unknown) {
         throw error;
     }
 }
@@ -115,7 +141,7 @@ export async function signUpWithEmail(email: string, password: string, metadata:
 /**
  * Sign Out
  */
-export async function signOut() {
+export async function signOut(): Promise<{ error: null }> {
     return { error: null };
 }
 
@@ -130,9 +156,9 @@ export async function getServerUser(req: NextApiRequest, res?: NextApiResponse):
 
         if (!token) return null;
 
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const decoded = jwt.verify(token, SECRET_KEY) as unknown as JWTPayload;
 
-        const user = db.findOne<any>('users', { id: decoded.userId });
+        const user = db.findOne<UserRow>('users', { id: decoded.userId });
         if (!user) return null;
 
         return {
@@ -141,7 +167,7 @@ export async function getServerUser(req: NextApiRequest, res?: NextApiResponse):
             user_metadata: { full_name: user.full_name, avatar_url: user.avatar_url },
             app_metadata: {}
         };
-    } catch (error) {
+    } catch (error: unknown) {
         return null;
     }
 }

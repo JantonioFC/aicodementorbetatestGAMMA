@@ -6,22 +6,22 @@
 
 import { NextApiRequest, NextApiResponse } from 'next';
 import { ZodError } from 'zod';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 // Generic Response Type
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
     success: boolean;
     data: T | null;
     error: string | null;
     meta: {
         timestamp: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
-    details?: any[]; // For Zod validation errors
+    details?: unknown[]; // For Zod validation errors
 }
 
 // Handler Type
-type ApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void | any>;
+type ApiHandler = (req: NextApiRequest, res: NextApiResponse) => Promise<void | unknown>;
 
 /**
  * HOF to wrap API handlers with error handling
@@ -30,7 +30,7 @@ export function createApiHandler(handler: ApiHandler) {
     return async (req: NextApiRequest, res: NextApiResponse) => {
         try {
             await handler(req, res);
-        } catch (error) {
+        } catch (error: unknown) {
             handleApiError(error, res);
         }
     };
@@ -39,7 +39,7 @@ export function createApiHandler(handler: ApiHandler) {
 /**
  * Send Success Response
  */
-export function sendSuccess<T>(res: NextApiResponse, data: T, meta: Record<string, any> = {}) {
+export function sendSuccess<T>(res: NextApiResponse, data: T, meta: Record<string, unknown> = {}) {
     const response: ApiResponse<T> = {
         success: true,
         data,
@@ -59,7 +59,7 @@ export function sendError(res: NextApiResponse, error: unknown, status = 500) {
     const message = error instanceof Error ? error.message : String(error);
 
     if (status === 500) {
-        console.error('[API Error]', error);
+        logger.error('[API Error]', error);
     }
 
     const response: ApiResponse<null> = {
@@ -84,7 +84,7 @@ function handleApiError(error: unknown, res: NextApiResponse) {
             success: false,
             data: null,
             error: 'Validation Error',
-            details: (error as any).errors || (error as any).issues,
+            details: error.errors,
             meta: { timestamp: new Date().toISOString() }
         } as ApiResponse<null>);
     }

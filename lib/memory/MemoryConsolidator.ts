@@ -15,6 +15,14 @@ export interface ConsolidationResult {
     summary?: string;
 }
 
+interface SessionInteraction {
+    id: number;
+    session_id: string;
+    type: string;
+    payload: string | Record<string, unknown>;
+    timestamp: string;
+}
+
 export class MemoryConsolidator {
     private maxDetailedInteractions: number;
     private consolidationThreshold: number;
@@ -28,7 +36,7 @@ export class MemoryConsolidator {
      * Consolida interacciones antiguas de una sesión.
      */
     async consolidate(sessionId: string): Promise<ConsolidationResult> {
-        const interactions = db.query<any>(
+        const interactions = db.query<SessionInteraction>(
             `SELECT * FROM session_interactions 
              WHERE session_id = ? 
              ORDER BY timestamp ASC`,
@@ -76,9 +84,9 @@ export class MemoryConsolidator {
     /**
      * Genera resumen usando LLM.
      */
-    private async _generateSummary(interactions: any[]): Promise<string> {
+    private async _generateSummary(interactions: SessionInteraction[]): Promise<string> {
         const interactionsSummary = interactions.map(i => {
-            const payload = typeof i.payload === 'string' ? JSON.parse(i.payload) : i.payload;
+            const payload = typeof i.payload === 'string' ? JSON.parse(i.payload) as Record<string, unknown> : i.payload;
             return `- ${i.type}: ${payload.topic || payload.lessonId || 'N/A'}`;
         }).join('\n');
 
@@ -100,12 +108,12 @@ Responde solo con el resumen (máximo 3 oraciones):`;
             });
             // Adaptado a la estructura AnalysisResponse
             return response.analysis?.feedback || interactionsSummary;
-        } catch (e) {
+        } catch (e: unknown) {
             // Fallback: resumen simple
             const topics = new Set<string>();
             interactions.forEach(i => {
-                const payload = typeof i.payload === 'string' ? JSON.parse(i.payload) : i.payload;
-                if (payload.topic) topics.add(payload.topic);
+                const payload = typeof i.payload === 'string' ? JSON.parse(i.payload) as Record<string, unknown> : i.payload;
+                if (payload.topic && typeof payload.topic === 'string') topics.add(payload.topic);
             });
             return `Estudiante revisó: ${[...topics].slice(0, 5).join(', ')}. Total ${interactions.length} interacciones.`;
         }
@@ -135,15 +143,17 @@ Responde solo con el resumen (máximo 3 oraciones):`;
 
         // Añadir resumen si existe
         if (summaries.length > 0) {
-            const payload = JSON.parse(summaries[0].payload);
-            parts.push(`**Historial resumido:** ${payload.summary}`);
+            const payload = JSON.parse(summaries[0].payload) as { summary?: string };
+            if (payload.summary) {
+                parts.push(`**Historial resumido:** ${payload.summary}`);
+            }
         }
 
         // Añadir recientes
         if (recent.length > 0) {
             parts.push('**Actividad reciente:**');
             recent.reverse().forEach(r => {
-                const p = JSON.parse(r.payload);
+                const p = JSON.parse(r.payload) as Record<string, unknown>;
                 parts.push(`- ${r.type}: ${p.topic || p.lessonId || ''}`);
             });
         }

@@ -2,6 +2,24 @@
  * Interfaz base para Plugins
  */
 
+export interface PluginContext {
+    userId?: string;
+    language?: string;
+    phase?: string;
+    metadata?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface PluginConfig {
+    enabled?: boolean;
+    options?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+export interface PluginProps {
+    [key: string]: unknown;
+}
+
 export interface IPlugin {
     name: string;
     version: string;
@@ -9,27 +27,25 @@ export interface IPlugin {
     domain?: string | null;
     dependencies?: string[];
 
-    initialize(context: any): Promise<boolean>;
-    analyze(code: string, context: any): Promise<any>;
-    preProcess?(code: string, context: any): { code: string; context: any };
-    postProcess?(result: any, context: any): any;
+    initialize(context: PluginContext): Promise<boolean>;
+    analyze(code: string, context: PluginContext): Promise<unknown>;
+    preProcess?(code: string, context: PluginContext): { code: string; context: PluginContext };
+    postProcess?(result: unknown, context: PluginContext): unknown;
     destroy(): void;
-    getConfig?(): any;
-    setConfig?(config: any): void;
-    render?(props: any): any;
+    getConfig?(): PluginConfig;
+    setConfig?(config: PluginConfig): void;
+    render?(props: PluginProps): unknown;
 }
 
-export function createPlugin(options: Partial<IPlugin> & Pick<IPlugin, 'name' | 'version' | 'description' | 'analyze'>): IPlugin {
+export function createPlugin(options: Partial<IPlugin> & Pick<IPlugin, 'name' | 'version' | 'description' | 'analyze' | 'initialize' | 'destroy'>): IPlugin {
     return {
         domain: null,
         dependencies: [],
-        initialize: async () => true,
-        destroy: () => { },
         ...options
-    };
+    } as IPlugin;
 }
 
-export function validatePlugin(plugin: any): { valid: boolean; errors: string[] } {
+export function validatePlugin(plugin: Partial<IPlugin>): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
     if (!plugin.name || typeof plugin.name !== 'string') errors.push('Missing name');
     if (!plugin.version || typeof plugin.version !== 'string') errors.push('Missing version');

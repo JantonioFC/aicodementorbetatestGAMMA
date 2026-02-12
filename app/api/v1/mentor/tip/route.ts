@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerAuth } from '@/lib/auth/serverAuth';
 import { ProactiveMentorAgent } from '@/lib/agents/ProactiveMentorAgent';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 const mentorAgent = new ProactiveMentorAgent();
 
@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
         logger.info(`[MentorAPI] Solicitando tip para ${userId} sobre ${topic}`);
 
         const response = await mentorAgent.process('', {
-            userId,
+            userId: userId ?? undefined,
             topic,
             difficulty: 'auto',
             language: 'es'
@@ -30,11 +30,12 @@ export async function GET(req: NextRequest) {
             metadata: response.metadata
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         logger.error('[MentorAPI] Error generando tip:', error);
         return NextResponse.json({
             error: 'Error generando tip',
-            details: error.message
+            details: message
         }, { status: 500 });
     }
 }

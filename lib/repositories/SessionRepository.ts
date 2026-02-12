@@ -14,13 +14,27 @@ export interface LearningSession {
     ended_at?: string;
 }
 
+export interface LessonGeneratedContent {
+    topic?: string;
+}
+
+export interface QuizAnsweredContent {
+    is_correct?: boolean;
+}
+
 export interface SessionInteraction {
     id: string;
     session_id: string;
     interaction_type: string;
-    content: any;
+    content: Record<string, unknown>;
     tokens_used: number;
     created_at?: string;
+}
+
+export interface SessionStats {
+    lessonsGenerated: number;
+    quizzesAnswered: number;
+    totalTokensUsed: number;
 }
 
 export class SessionRepository {
@@ -50,7 +64,7 @@ export class SessionRepository {
     /**
      * Registra una interacción en la sesión actual.
      */
-    logInteraction(sessionId: string, type: string, content: any, tokensUsed: number = 0): string {
+    logInteraction(sessionId: string, type: string, content: Record<string, unknown>, tokensUsed: number = 0): string {
         const id = uuidv4();
         db.run(
             `INSERT INTO session_interactions (id, session_id, interaction_type, content, tokens_used) 
@@ -64,7 +78,16 @@ export class SessionRepository {
      * Obtiene las últimas N interacciones de una sesión para construir contexto.
      */
     getRecentInteractions(sessionId: string, limit: number = 5): SessionInteraction[] {
-        const rows = db.query<any>(
+        interface RawInteractionRow {
+            id: string;
+            session_id: string;
+            interaction_type: string;
+            content: string;
+            tokens_used: number;
+            created_at: string;
+        }
+
+        const rows = db.query<RawInteractionRow>(
             `SELECT * FROM session_interactions 
              WHERE session_id = ? 
              ORDER BY created_at DESC 
@@ -75,7 +98,7 @@ export class SessionRepository {
         // Parsear JSON content
         return rows.map(row => ({
             ...row,
-            content: JSON.parse(row.content || '{}')
+            content: JSON.parse(row.content || '{}') as Record<string, unknown>
         }));
     }
 
@@ -91,10 +114,12 @@ export class SessionRepository {
 
         const summaryParts = interactions.map(i => {
             if (i.interaction_type === 'LESSON_GENERATED') {
-                return `- Se generó una lección sobre: "${i.content.topic || 'tema desconocido'}"`;
+                const content = i.content as LessonGeneratedContent;
+                return `- Se generó una lección sobre: "${content.topic || 'tema desconocido'}"`;
             }
             if (i.interaction_type === 'QUIZ_ANSWERED') {
-                const correct = i.content.is_correct ? 'correctamente' : 'incorrectamente';
+                const content = i.content as QuizAnsweredContent;
+                const correct = content.is_correct ? 'correctamente' : 'incorrectamente';
                 return `- El estudiante respondió ${correct} una pregunta de quiz.`;
             }
             return `- Interacción: ${i.interaction_type}`;
@@ -116,7 +141,7 @@ export class SessionRepository {
     /**
      * Obtiene estadísticas de la sesión.
      */
-    getSessionStats(sessionId: string) {
+    getSessionStats(sessionId: string): SessionStats {
         const lessonsCount = db.get<{ count: number }>(
             `SELECT COUNT(*) as count FROM session_interactions 
              WHERE session_id = ? AND interaction_type = 'LESSON_GENERATED'`,

@@ -51,8 +51,9 @@ const ResetSystem: React.FC<ResetSystemProps> = ({ className = '' }) => {
             if (!response.ok) throw new Error('Reset failed');
             await refreshData();
             setCompleted(true);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            setError(message);
         } finally {
             setIsProcessing(false);
         }

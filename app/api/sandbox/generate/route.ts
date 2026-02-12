@@ -3,7 +3,7 @@ import { getServerAuth } from '@/lib/auth/serverAuth';
 import { smartLessonGenerator } from '@/lib/services/SmartLessonGenerator';
 import { db } from '@/lib/db';
 import crypto from 'crypto';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 /**
  * POST /api/sandbox/generate
@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
         const lesson = await smartLessonGenerator.generateWithAutonomy({
             topic: topic || customContent.split('\n')[0].substring(0, 50),
             difficulty: 'auto',
-            userId,
+            userId: userId ?? undefined,
             language: 'es',
             context: {
                 tematica_semanal: domain || 'General',
@@ -65,11 +65,12 @@ export async function POST(req: NextRequest) {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('[SandboxAPI] Error en generación sandbox:', error);
+        const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({
             error: 'Error generando lección',
-            details: error.message
+            details: message
         }, { status: 500 });
     }
 }

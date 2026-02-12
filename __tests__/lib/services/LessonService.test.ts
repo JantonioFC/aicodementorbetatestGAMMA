@@ -1,11 +1,11 @@
 
 import { lessonService, LessonRequest } from '../../../lib/services/LessonService';
 import { geminiRouter } from '../../../lib/ai/router/GeminiRouter';
-import { logger } from '../../../lib/utils/logger';
+import { logger } from '../../../lib/observability/Logger';
 
 // Mock dependencies
 jest.mock('../../../lib/ai/router/GeminiRouter');
-jest.mock('../../../lib/utils/logger');
+jest.mock('../../../lib/observability/Logger');
 jest.mock('../../../lib/prompts/LessonPrompts', () => ({
     buildLessonPromptMessages: jest.fn().mockReturnValue([{ role: 'user', content: 'mock prompt' }])
 }));

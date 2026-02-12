@@ -1,13 +1,35 @@
 import { db } from '../../db';
-import logger from '../../logger';
+import { logger } from '../../observability/Logger';
 import crypto from 'crypto';
+
+export interface StudentStats {
+    totalLogs: number;
+    categories: Record<string, { total: number; mastered: number }>;
+    competencies: Record<string, number>;
+}
 
 export interface BadgeDefinition {
     key: string;
     name: string;
     description: string;
     icon: string;
-    rule: (stats: any) => boolean;
+    rule: (stats: StudentStats) => boolean;
+}
+
+export interface AchievementRecord {
+    id: string;
+    user_id: string;
+    achievement_key: string;
+    name: string;
+    description: string;
+    icon: string;
+    unlocked_at: string;
+}
+
+export interface CompetencyLogEntry {
+    competency_name: string;
+    competency_category: string;
+    level_achieved: number;
 }
 
 /**
@@ -28,14 +50,14 @@ export class BadgeService {
             name: 'Maestro de la Teoría',
             description: 'Alcanzaste nivel 3 en 3 conceptos teóricos diferentes.',
             icon: '📜',
-            rule: (stats) => stats.categories['Conceptos Teóricos']?.mastered >= 3
+            rule: (stats) => (stats.categories['Conceptos Teóricos']?.mastered || 0) >= 3
         },
         {
             key: 'logical_thinker',
             name: 'Pensador Lógico',
             description: 'Dominaste competencias de Lógica de Programación.',
             icon: '🧠',
-            rule: (stats) => stats.competencies['Lógica de Programación'] >= 3
+            rule: (stats) => (stats.competencies['Lógica de Programación'] || 0) >= 3
         },
         {
             key: 'quiz_crusher',
@@ -57,8 +79,8 @@ export class BadgeService {
             const stats = await this._getStudentStatsForRules(userId);
 
             // 2. Obtener logros ya poseídos
-            const existingBadges: any = db.query('SELECT achievement_key FROM achievements WHERE user_id = ?', [userId]);
-            const existingKeys = new Set(existingBadges.map((b: any) => b.achievement_key));
+            const existingBadges = await db.query<{ achievement_key: string }>('SELECT achievement_key FROM achievements WHERE user_id = ?', [userId]);
+            const existingKeys = new Set(existingBadges.map(b => b.achievement_key));
 
             const newBadges: string[] = [];
 
@@ -67,7 +89,7 @@ export class BadgeService {
                 if (!existingKeys.has(badge.key) && badge.rule(stats)) {
                     // Otorga el logro
                     const id = `ach_${crypto.randomUUID()}`;
-                    db.insert('achievements', {
+                    await db.insert('achievements', {
                         id,
                         user_id: userId,
                         achievement_key: badge.key,
@@ -83,8 +105,9 @@ export class BadgeService {
             }
 
             return { newBadges };
-        } catch (error: any) {
-            logger.error(`[BadgeService] Error verificando logros:`, error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[BadgeService] Error verificando logros:`, message);
             throw error;
         }
     }
@@ -92,8 +115,8 @@ export class BadgeService {
     /**
      * Obtiene los logros actuales del usuario.
      */
-    async getUserAchievements(userId: string) {
-        return db.query(`
+    async getUserAchievements(userId: string): Promise<Array<{ id: string; name: string; description: string; icon: string; unlockedAt: string }>> {
+        return db.query<{ id: string; name: string; description: string; icon: string; unlockedAt: string }>(`
             SELECT id, name, description, icon, unlocked_at as unlockedAt
             FROM achievements
             WHERE user_id = ?
@@ -104,16 +127,16 @@ export class BadgeService {
     /**
      * Genera un objeto de estadísticas optimizado para la evaluación de reglas.
      */
-    private async _getStudentStatsForRules(userId: string): Promise<any> {
-        const logs: any = db.query('SELECT competency_name, competency_category, level_achieved FROM competency_log WHERE user_id = ?', [userId]);
+    private async _getStudentStatsForRules(userId: string): Promise<StudentStats> {
+        const logs = await db.query<CompetencyLogEntry>('SELECT competency_name, competency_category, level_achieved FROM competency_log WHERE user_id = ?', [userId]);
 
-        const stats: any = {
+        const stats: StudentStats = {
             totalLogs: logs.length,
             categories: {},
             competencies: {}
         };
 
-        logs.forEach((log: any) => {
+        logs.forEach((log) => {
             // Stats por categoría
             if (!stats.categories[log.competency_category]) {
                 stats.categories[log.competency_category] = { total: 0, mastered: 0 };

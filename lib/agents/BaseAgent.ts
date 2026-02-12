@@ -4,7 +4,7 @@ export interface AgentResponse {
         agentName: string;
         confidence: number;
         role: string;
-        [key: string]: any;
+        [key: string]: unknown;
     };
 }
 
@@ -13,8 +13,8 @@ export interface AgentContext {
     topic: string;
     difficulty: string;
     language: string;
-    sessionHistory?: any[];
-    [key: string]: any;
+    sessionHistory?: Array<{ role: string; content: string }>;
+    [key: string]: unknown;
 }
 
 export interface BaseAgent {

@@ -1,5 +1,5 @@
 import { db } from '../db';
-import logger from '../logger';
+import { logger } from '../observability/Logger';
 
 export interface CompetencyEntry {
     id: string;
@@ -43,8 +43,8 @@ export class CompetencyService {
             db.insert('competency_log', entry);
             logger.info(`[CompetencyService] Competencia registrada para ${userId}: ${entry.competency_name}`);
             return id;
-        } catch (error) {
-            logger.error('[CompetencyService] Error registrando competencia', error);
+        } catch (error: unknown) {
+            logger.error('[CompetencyService] Error registrando competencia', error instanceof Error ? error : { error: String(error) });
             throw error;
         }
     }
@@ -75,8 +75,8 @@ export class CompetencyService {
             });
 
             return profile;
-        } catch (error) {
-            logger.error('[CompetencyService] Error obteniendo perfil de maestría', error);
+        } catch (error: unknown) {
+            logger.error('[CompetencyService] Error obteniendo perfil de maestría', error instanceof Error ? error : { error: String(error) });
             return { userId, competencies: {} };
         }
     }

@@ -21,18 +21,20 @@ export default function ModuleList({
         <div className="divide-y divide-gray-200">
             {modulos.map((modulo) => (
                 <div key={modulo.modulo} className="bg-white">
-                    <div
-                        className={`px-8 py-4 cursor-pointer transition-all duration-200 ${activeModule === modulo.modulo
-                                ? 'bg-indigo-50 border-l-4 border-indigo-500'
-                                : 'hover:bg-gray-50 border-l-4 border-transparent'
+                    <button
+                        className={`w-full text-left px-8 py-4 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 ${activeModule === modulo.modulo
+                            ? 'bg-indigo-50 border-l-4 border-indigo-500'
+                            : 'hover:bg-gray-50 border-l-4 border-transparent'
                             }`}
                         onClick={() => onModuleToggle(modulo.modulo)}
+                        aria-expanded={activeModule === modulo.modulo}
+                        aria-label={`Módulo ${modulo.modulo}: ${modulo.tituloModulo}. ${activeModule === modulo.modulo ? 'Contraer' : 'Expandir'}`}
                     >
                         <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-semibold ${activeModule === modulo.modulo
-                                        ? 'bg-indigo-100 text-indigo-700'
-                                        : 'bg-gray-100 text-gray-600'
+                                    ? 'bg-indigo-100 text-indigo-700'
+                                    : 'bg-gray-100 text-gray-600'
                                     }`}>
                                     {modulo.modulo}
                                 </div>
@@ -52,19 +54,21 @@ export default function ModuleList({
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </button>
 
                     {activeModule === modulo.modulo && (
                         <div className="bg-gray-50 px-8 py-4">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {modulo.weeks.map((semana) => (
-                                    <div
+                                    <button
                                         key={semana.semana}
-                                        className={`p-4 rounded-lg border cursor-pointer transition-all duration-200 ${activeWeek?.semana === semana.semana
-                                                ? 'bg-green-50 border-green-200 shadow-sm'
-                                                : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                        className={`p-4 rounded-lg border text-left transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-500 ${activeWeek?.semana === semana.semana
+                                            ? 'bg-green-50 border-green-200 shadow-sm'
+                                            : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                                             }`}
                                         onClick={() => onWeekSelect(semana)}
+                                        aria-label={`Semana ${semana.semana}: ${semana.tituloSemana}`}
+                                        aria-pressed={activeWeek?.semana === semana.semana}
                                     >
                                         <div className="flex items-start space-x-3">
                                             <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold ${activeWeek?.semana === semana.semana ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
@@ -79,7 +83,7 @@ export default function ModuleList({
                                                 <p className="text-xs text-gray-600 mt-1 line-clamp-2">{semana.tematica}</p>
                                             </div>
                                         </div>
-                                    </div>
+                                    </button>
                                 ))}
                             </div>
                         </div>

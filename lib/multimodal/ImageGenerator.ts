@@ -1,7 +1,34 @@
+import { logger } from '../observability/Logger';
+
 /**
  * Image Generator Service
  * Genera imágenes educativas usando APIs externas (fal.ai o Gemini).
  */
+
+export interface ImageGeneratorOptions {
+    provider?: 'fal' | 'gemini';
+    style?: 'educational' | 'diagram' | 'cartoon' | 'minimal';
+    size?: string;
+}
+
+export interface ImageGenerationResult {
+    success: boolean;
+    provider?: string;
+    url?: string;
+    prompt?: string;
+    error?: string;
+    placeholder?: {
+        type: string;
+        content: string;
+        description: string;
+    };
+}
+
+export interface LessonImageContext {
+    concepto_del_dia?: string;
+    texto_del_pomodoro?: string;
+    tematica_semanal?: string;
+}
 
 export class ImageGenerator {
     private providers: Record<string, { enabled: boolean; apiKey?: string; baseUrl?: string }>;
@@ -24,7 +51,7 @@ export class ImageGenerator {
     /**
      * Genera una imagen educativa basada en un prompt.
      */
-    async generate(prompt: string, options: any = {}) {
+    async generate(prompt: string, options: ImageGeneratorOptions = {}): Promise<ImageGenerationResult> {
         const {
             provider = 'fal',
             style = 'educational',
@@ -49,7 +76,7 @@ export class ImageGenerator {
     /**
      * Genera imagen con fal.ai
      */
-    private async _generateWithFal(prompt: string, size: string) {
+    private async _generateWithFal(prompt: string, size: string): Promise<ImageGenerationResult> {
         try {
             const response = await fetch(`${this.providers.fal.baseUrl}/fal-ai/flux/schnell`, {
                 method: 'POST',
@@ -68,7 +95,7 @@ export class ImageGenerator {
                 throw new Error(`Fal.ai error: ${response.status}`);
             }
 
-            const data = await response.json();
+            const data = await response.json() as { images?: Array<{ url: string }> };
 
             return {
                 success: true,
@@ -76,11 +103,12 @@ export class ImageGenerator {
                 url: data.images?.[0]?.url,
                 prompt
             };
-        } catch (error: any) {
-            console.error('[ImageGenerator] Fal.ai error:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[ImageGenerator] Fal.ai error: ${message}`);
             return {
                 success: false,
-                error: error.message,
+                error: message,
                 placeholder: this._getPlaceholder(prompt)
             };
         }
@@ -121,7 +149,7 @@ export class ImageGenerator {
     /**
      * Genera sugerencias de imágenes para una lección.
      */
-    public suggestImagesForLesson(context: any): { description: string; suggestedStyle: string }[] {
+    public suggestImagesForLesson(context: LessonImageContext): { description: string; suggestedStyle: string }[] {
         const { concepto_del_dia, texto_del_pomodoro, tematica_semanal } = context;
 
         const suggestions: { description: string; suggestedStyle: string }[] = [];

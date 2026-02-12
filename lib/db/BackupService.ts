@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import * as path from 'path';
 import * as fs from 'fs';
 import archiver from 'archiver';
+import { logger } from '../observability/Logger';
 
 /**
  * BackupService - Maneja respaldos automáticos de la base de datos SQLite
@@ -23,7 +24,7 @@ export class BackupService {
     init(): void {
         if (!fs.existsSync(this.backupDir)) {
             fs.mkdirSync(this.backupDir, { recursive: true });
-            console.log(`📂 [BackupService] Directorio de backups creado: ${this.backupDir}`);
+            logger.info('BackupService backup directory created', { path: this.backupDir });
         }
     }
 
@@ -38,7 +39,7 @@ export class BackupService {
         const zipFileName = `curriculum-backup-${timestamp}.zip`;
         const zipPath = path.join(this.backupDir, zipFileName);
 
-        console.log(`🚀 [BackupService] Iniciando backup: ${zipFileName}...`);
+        logger.info('BackupService starting backup', { fileName: zipFileName });
 
         try {
             // 1. Crear copia física de la DB usando el API de better-sqlite3
@@ -52,14 +53,15 @@ export class BackupService {
             // 3. Limpiar el temporal .db
             fs.unlinkSync(dbBackupPath);
 
-            console.log(`✅ [BackupService] Backup completado y comprimido: ${zipPath}`);
+            logger.info('BackupService backup completed and compressed', { path: zipPath });
 
             // Rotación de backups
             this.rotateBackups();
 
             return zipPath;
-        } catch (error) {
-            console.error(`❌ [BackupService] Error durante el backup:`, error);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('BackupService error during backup', { error: message });
             if (fs.existsSync(dbBackupPath)) fs.unlinkSync(dbBackupPath);
             throw error;
         }
@@ -89,7 +91,7 @@ export class BackupService {
         try {
             const files = fs.readdirSync(this.backupDir)
                 .filter(f => f.startsWith('curriculum-backup-') && f.endsWith('.zip'))
-                .map(f => ({
+                .map((f: string) => ({
                     name: f,
                     path: path.join(this.backupDir, f),
                     time: fs.statSync(path.join(this.backupDir, f)).mtime.getTime()
@@ -100,18 +102,19 @@ export class BackupService {
                 const toDelete = files.slice(this.maxBackups);
                 toDelete.forEach(file => {
                     fs.unlinkSync(file.path);
-                    console.log(`🗑️ [BackupService] Backup antiguo eliminado (rotación): ${file.name}`);
+                    logger.info('BackupService old backup removed during rotation', { fileName: file.name });
                 });
             }
-        } catch (error: any) {
-            console.warn(`⚠️ [BackupService] Error durante la rotación:`, error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.warn('BackupService error during rotation', { error: message });
         }
     }
 
     /**
      * Listar backups disponibles
      */
-    listBackups(): any[] {
+    listBackups(): { name: string; size: number; createdAt: Date }[] {
         this.init();
         return fs.readdirSync(this.backupDir)
             .filter(f => f.endsWith('.zip'))

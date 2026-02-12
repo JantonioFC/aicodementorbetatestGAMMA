@@ -1,11 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getCurriculumSummary } from '@/lib/curriculum-sqlite';
+import { CurriculumSummaryPhase, CurriculumSummaryModule } from '@/lib/repositories/CurriculumRepository';
 
 export async function GET() {
     try {
         const summary = getCurriculumSummary();
-        const formattedModules = summary.curriculum.flatMap(fase =>
-            fase.modulos.map(modulo => {
+        const formattedModules = summary.curriculum.flatMap((fase: CurriculumSummaryPhase) =>
+            fase.modulos.map((modulo: CurriculumSummaryModule) => {
                 const lessonProgress = 0; // Placeholder
                 const exerciseProgress = 0; // Placeholder
 
@@ -28,7 +29,7 @@ export async function GET() {
                     overallProgress: Math.round((lessonProgress + exerciseProgress) / 2)
                 };
             })
-        ).sort((a: any, b: any) => a.id - b.id);
+        ).sort((a, b) => Number(a.id) - Number(b.id));
 
         return NextResponse.json({
             success: true,
@@ -42,7 +43,8 @@ export async function GET() {
                 overallProgress: 0
             }
         });
-    } catch (error: any) {
-        return NextResponse.json({ error: 'Internal Server Error', details: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json({ error: 'Internal Server Error', details: message }, { status: 500 });
     }
 }

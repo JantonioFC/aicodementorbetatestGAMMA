@@ -1,6 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useProjectTracking } from '../../contexts/ProjectTrackingContext';
 import SimpleInput from '../ui/atoms/SimpleInput';
+import { logger } from '@/lib/observability/Logger';
+
+interface TemplateDefinition {
+    name: string;
+    icon: string;
+    subtitle?: string;
+    description: string;
+    template: string;
+    metadata_fields?: Record<string, string>;
+}
+
+type MetadataValue = string | number | boolean | string[];
 
 const TemplateModal: React.FC = () => {
     const {
@@ -14,7 +26,7 @@ const TemplateModal: React.FC = () => {
     } = useProjectTracking();
 
     const [content, setContent] = useState('');
-    const [metadata, setMetadata] = useState<Record<string, any>>({});
+    const [metadata, setMetadata] = useState<Record<string, MetadataValue>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const getWeekNumber = () => {
@@ -26,7 +38,7 @@ const TemplateModal: React.FC = () => {
 
     useEffect(() => {
         if (selectedTemplate && templates[selectedTemplate]) {
-            const template = templates[selectedTemplate];
+            const template = templates[selectedTemplate] as TemplateDefinition;
 
             const today = new Date().toLocaleDateString('es-ES', {
                 weekday: 'long',
@@ -42,7 +54,7 @@ const TemplateModal: React.FC = () => {
             setContent(templateContent);
 
             if (template.metadata_fields) {
-                const initialMetadata: Record<string, any> = {};
+                const initialMetadata: Record<string, MetadataValue> = {};
                 Object.entries(template.metadata_fields).forEach(([field, fieldType]) => {
                     if (fieldType === 'number') {
                         initialMetadata[field] = 0;
@@ -80,20 +92,20 @@ const TemplateModal: React.FC = () => {
             await createEntry(selectedTemplate, content, metadata);
             closeModal();
         } catch (error) {
-            console.error('Error creating entry:', error);
+            logger.error('Error creating entry', error);
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const handleMetadataChange = (field: string, value: any) => {
+    const handleMetadataChange = (field: string, value: string) => {
         if (!selectedTemplate) return;
-        const template = templates[selectedTemplate];
+        const template = templates[selectedTemplate] as TemplateDefinition | undefined;
         const fieldType = template?.metadata_fields?.[field];
 
-        let processedValue = value;
+        let processedValue: MetadataValue = value;
         if (fieldType === 'array') {
-            processedValue = typeof value === 'string' ? (value.trim() ? [value.trim()] : []) : value;
+            processedValue = value.trim() ? [value.trim()] : [];
         } else if (fieldType === 'number') {
             processedValue = parseInt(value) || 0;
         } else if (fieldType === 'boolean') {
@@ -118,7 +130,7 @@ const TemplateModal: React.FC = () => {
     };
 
     if (!isModalOpen || !selectedTemplate) return null;
-    const template = templates[selectedTemplate];
+    const template = templates[selectedTemplate] as TemplateDefinition | undefined;
     if (!template) return null;
 
     return (
@@ -152,8 +164,8 @@ const TemplateModal: React.FC = () => {
                                 {Object.entries(template.metadata_fields).map(([field, type]) => (
                                     <SimpleInput
                                         key={field}
-                                        type={type as any}
-                                        value={metadata[field]}
+                                        type={type as string}
+                                        value={typeof metadata[field] === 'boolean' ? String(metadata[field]) : metadata[field]}
                                         onChange={(e) => handleMetadataChange(field, e.target.value)}
                                         label={getFieldLabel(field)}
                                     />

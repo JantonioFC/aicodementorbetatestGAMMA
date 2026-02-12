@@ -8,7 +8,7 @@
 
 import { ProviderFactory } from '../providers/ProviderFactory';
 import { modelDiscovery, DiscoveredModel } from '../discovery/ModelDiscovery';
-import { logger } from '../../utils/logger';
+import { logger } from '../../observability/Logger';
 import {
     handleAIError,
     AllModelsFailedError,
@@ -88,7 +88,7 @@ export class GeminiRouter {
             }
         }
 
-        console.log(`[GeminiRouter] Inicializado con ${this.providers.size} modelos`);
+        logger.info(`[GeminiRouter] Inicializado con ${this.providers.size} modelos`);
         return models;
     }
 
@@ -102,7 +102,7 @@ export class GeminiRouter {
         const cacheKey = this.generateCacheKey(code, language, phase, messages);
         const cachedResult = this.getFromCache(cacheKey);
         if (cachedResult) {
-            console.log('[GeminiRouter] Respuesta obtenida de cache');
+            logger.info('[GeminiRouter] Respuesta obtenida de cache');
             logger.logSuccess({
                 model: cachedResult.metadata.model,
                 phase: phase || 'unknown',
@@ -128,12 +128,12 @@ export class GeminiRouter {
             if (circuit.state === 'OPEN') {
                 if (now < circuit.nextTry) {
                     // Circuito abierto, saltar modelo (Fail Fast)
-                    console.warn(`[GeminiRouter] Circuito ABIERTO para ${modelName}. Saltando...`);
+                    logger.warn(`[GeminiRouter] Circuito ABIERTO para ${modelName}. Saltando...`);
                     circuitBreakerTrippedFor++;
                     continue;
                 } else {
                     // Tiempo cumplido, probar (Half-Open)
-                    console.log(`[GeminiRouter] Circuito HALF-OPEN para ${modelName}. Probando...`);
+                    logger.info(`[GeminiRouter] Circuito HALF-OPEN para ${modelName}. Probando...`);
                     circuit.state = 'HALF-OPEN';
                 }
             }
@@ -156,9 +156,10 @@ export class GeminiRouter {
 
                 return result;
 
-            } catch (error: any) {
-                console.warn(`[GeminiRouter] ${modelName} falló:`, error.message);
-                errors.push({ model: modelName, error: error.message });
+            } catch (error: unknown) {
+                const message = error instanceof Error ? error.message : String(error);
+                logger.warn(`[GeminiRouter] ${modelName} falló: ${message}`);
+                errors.push({ model: modelName, error: message });
 
                 // Registrar fallo en circuito
                 this.recordFailure(modelName);
@@ -196,14 +197,14 @@ export class GeminiRouter {
         if (circuit.failures >= CIRCUIT_CONFIG.failureThreshold) {
             circuit.state = 'OPEN';
             circuit.nextTry = Date.now() + CIRCUIT_CONFIG.resetTimeoutMs;
-            console.error(`💥 [GeminiRouter] Circuito ABIERTO para ${modelName} por ${CIRCUIT_CONFIG.resetTimeoutMs}ms`);
+            logger.error(`💥 [GeminiRouter] Circuito ABIERTO para ${modelName} por ${CIRCUIT_CONFIG.resetTimeoutMs}ms`);
         }
     }
 
     private resetCircuit(modelName: string): void {
         const circuit = this.getCircuitState(modelName);
         if (circuit.failures > 0 || circuit.state !== 'CLOSED') {
-            console.log(`✅ [GeminiRouter] Circuito CERRADO/Restaurado para ${modelName}`);
+            logger.info(`✅ [GeminiRouter] Circuito CERRADO/Restaurado para ${modelName}`);
             circuit.failures = 0;
             circuit.state = 'CLOSED';
             circuit.nextTry = 0;
@@ -237,16 +238,17 @@ export class GeminiRouter {
      */
     async retryWithBackoff<T>(fn: () => Promise<T>, config: RetryConfig): Promise<T> {
         const { maxRetries, baseDelayMs, maxDelayMs } = config;
-        let lastError: any;
+        let lastError: unknown;
 
         for (let attempt = 0; attempt < maxRetries; attempt++) {
             try {
                 return await fn();
-            } catch (error: any) {
+            } catch (error: unknown) {
                 lastError = error;
+                const message = error instanceof Error ? error.message : String(error);
 
                 // No reintentar errores de rate limit
-                if (error.message?.includes('rate limit') || error.message?.includes('429')) {
+                if (message.includes('rate limit') || message.includes('429')) {
                     throw error;
                 }
 
@@ -256,7 +258,7 @@ export class GeminiRouter {
                     maxDelayMs
                 );
 
-                console.log(`[GeminiRouter] Reintento ${attempt + 1}/${maxRetries} en ${delay}ms`);
+                logger.info(`[GeminiRouter] Reintento ${attempt + 1}/${maxRetries} en ${delay}ms`);
                 await this.sleep(delay);
             }
         }
@@ -268,7 +270,7 @@ export class GeminiRouter {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
 
-    private generateCacheKey(code?: string, language?: string, phase?: string, messages?: any[]): string {
+    private generateCacheKey(code?: string, language?: string, phase?: string, messages?: Array<{ role: string; content: string }>): string {
         // Hash simple del código + parámetros + mensajes
         let content = `${code}-${language}-${phase}`;
 
@@ -313,10 +315,15 @@ export class GeminiRouter {
 
     clearCache(): void {
         this.cache.clear();
-        console.log('[GeminiRouter] Cache limpiado');
+        logger.info('[GeminiRouter] Cache limpiado');
     }
 
-    getStats(): any {
+    getStats(): {
+        loadedProviders: string[];
+        cacheSize: number;
+        cacheExpiryMs: number;
+        circuits: Record<string, string>;
+    } {
         // Mapear estado de circuitos para la UI/Logs
         const circuits = Object.fromEntries(
             Array.from(this.circuitState.entries()).map(([k, v]) => [k, v.state])

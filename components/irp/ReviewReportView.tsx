@@ -25,8 +25,9 @@ export default function ReviewReportView({ reviewId, onClose }: ReviewReportView
                 const res = await fetch(`/api/v1/irp/reviews/${reviewId}`);
                 if (!res.ok) throw new Error('Error al cargar reporte');
                 setReview(await res.json());
-            } catch (err: any) {
-                setError(err.message);
+            } catch (err: unknown) {
+                const message = err instanceof Error ? err.message : String(err);
+                setError(message);
             } finally {
                 setLoading(false);
             }

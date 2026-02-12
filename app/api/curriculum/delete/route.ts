@@ -9,7 +9,8 @@ export async function DELETE(req: NextRequest) {
 
         curriculumService.deleteModule(moduleId);
         return NextResponse.json({ success: true, message: 'Modulo eliminado' });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

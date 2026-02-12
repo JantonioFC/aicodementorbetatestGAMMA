@@ -1,7 +1,7 @@
 import { BaseAgent, AgentContext, AgentResponse } from './BaseAgent';
 import { geminiRouter } from '../ai/router/GeminiRouter';
 import { masteryAnalyticsService } from '../services/MasteryAnalyticsService';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 /**
  * ProactiveMentorAgent - Analiza el progreso del alumno y sugiere el siguiente paso.
@@ -60,15 +60,16 @@ Tu objetivo es dar un "Tip del Mentor" basado en el progreso actual del alumno.
                     recommendations
                 }
             };
-        } catch (error: any) {
-            logger.error(`[ProactiveMentor] Error: ${error.message}`);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error(`[ProactiveMentor] Error: ${message}`);
             return {
                 content: `¡Sigue así! Estás dominando ${context.topic} a un gran ritmo.`,
                 metadata: {
                     agentName: this.name,
                     confidence: 0.1,
                     role: this.role,
-                    error: error.message
+                    error: message
                 }
             };
         }

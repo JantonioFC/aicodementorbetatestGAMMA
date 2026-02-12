@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { logger } from '@/lib/observability/Logger';
 
 interface MentorTipProps {
     topic?: string;
@@ -22,7 +23,7 @@ export default function MentorTip({ topic }: MentorTipProps) {
                 setTip(data.tip);
             }
         } catch (err) {
-            console.error('[MentorTip] Error:', err);
+            logger.error('[MentorTip] Error', err);
         } finally {
             setLoading(false);
         }

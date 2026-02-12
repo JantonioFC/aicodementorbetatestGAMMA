@@ -54,9 +54,9 @@ describe('LessonEvaluator', () => {
                     'Imagina que tienes un sprite que necesita tomar decisiones. ' +
                     'Ejemplo: si tocas el borde, entonces rebota. '.repeat(50),
                 quiz: [
-                    { pregunta: 'Q1', opciones: ['a', 'b', 'c', 'd'], correcta: 0 },
-                    { pregunta: 'Q2', opciones: ['a', 'b', 'c', 'd'], correcta: 1 },
-                    { pregunta: 'Q3', opciones: ['a', 'b', 'c', 'd'], correcta: 2 }
+                    { pregunta: 'Q1', opciones: ['a', 'b', 'c', 'd'], respuesta_correcta: 'a', explicacion: 'Explicación Q1' },
+                    { pregunta: 'Q2', opciones: ['a', 'b', 'c', 'd'], respuesta_correcta: 'b', explicacion: 'Explicación Q2' },
+                    { pregunta: 'Q3', opciones: ['a', 'b', 'c', 'd'], respuesta_correcta: 'c', explicacion: 'Explicación Q3' }
                 ]
             };
 
@@ -69,9 +69,9 @@ describe('LessonEvaluator', () => {
             const structuredLesson = {
                 contenido: `# Título de la Lección\n## Introducción\nContenido aquí.\n## Ejemplo\n## Analogía`,
                 quiz: [
-                    { pregunta: 'Q1', opciones: ['a', 'b', 'c', 'd'], correcta: 0 },
-                    { pregunta: 'Q2', opciones: ['a', 'b', 'c', 'd'], correcta: 1 },
-                    { pregunta: 'Q3', opciones: ['a', 'b', 'c', 'd'], correcta: 2 }
+                    { pregunta: 'Q1', opciones: ['a', 'b', 'c', 'd'], respuesta_correcta: 'a', explicacion: 'Explicación Q1' },
+                    { pregunta: 'Q2', opciones: ['a', 'b', 'c', 'd'], respuesta_correcta: 'b', explicacion: 'Explicación Q2' },
+                    { pregunta: 'Q3', opciones: ['a', 'b', 'c', 'd'], respuesta_correcta: 'c', explicacion: 'Explicación Q3' }
                 ]
             };
 

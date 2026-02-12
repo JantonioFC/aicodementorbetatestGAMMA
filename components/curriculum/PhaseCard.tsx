@@ -32,10 +32,12 @@ export default function PhaseCard({
 
     return (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-            <div
-                className={`p-6 cursor-pointer transition-all duration-200 ${isActive ? 'bg-blue-50 border-b border-blue-100' : 'hover:bg-gray-50'
+            <button
+                className={`w-full text-left p-6 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 ${isActive ? 'bg-blue-50 border-b border-blue-100' : 'hover:bg-gray-50'
                     }`}
                 onClick={() => onPhaseToggle(fase.fase)}
+                aria-expanded={isActive}
+                aria-label={`Fase ${fase.fase}: ${fase.tituloFase}. ${isActive ? 'Contraer' : 'Expandir'}`}
             >
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -62,7 +64,7 @@ export default function PhaseCard({
                 <p className={`mt-4 text-sm leading-relaxed ${isActive ? 'text-blue-800' : 'text-gray-700'}`}>
                     {fase.proposito}
                 </p>
-            </div>
+            </button>
 
             {isActive && (
                 <div className="bg-gray-50">

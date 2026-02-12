@@ -5,8 +5,8 @@ import { useAuth } from '../../lib/auth/useAuth';
 import { ReviewRequestData } from '../../types/irp';
 
 interface ReviewRequestFormProps {
-    onSuccess?: (data: any) => void;
-    onError?: (error: any) => void;
+    onSuccess?: (data: unknown) => void;
+    onError?: (error: unknown) => void;
 }
 
 export default function ReviewRequestForm({ onSuccess, onError }: ReviewRequestFormProps) {
@@ -62,9 +62,10 @@ export default function ReviewRequestForm({ onSuccess, onError }: ReviewRequestF
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Error creating request');
             onSuccess?.(data);
-        } catch (err: any) {
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
             onError?.(err);
-            setErrors({ _form: err.message });
+            setErrors({ _form: message });
         } finally {
             setLoading(false);
         }

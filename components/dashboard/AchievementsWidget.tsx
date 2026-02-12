@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { logger } from '@/lib/observability/Logger';
 
 interface Achievement {
     id: string;
@@ -31,7 +32,7 @@ export default function AchievementsWidget() {
                 setMetadata(result.metadata);
             }
         } catch (err) {
-            console.error(err);
+            logger.error('Error fetching user achievements', err);
         } finally {
             setLoading(false);
         }
@@ -46,7 +47,7 @@ export default function AchievementsWidget() {
                 await fetchUserAchievements();
             }
         } catch (err) {
-            console.error(err);
+            logger.error('Error checking for new achievements', err);
         } finally {
             setChecking(false);
         }
@@ -71,6 +72,7 @@ export default function AchievementsWidget() {
                     onClick={checkForNewAchievements}
                     disabled={checking}
                     className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm disabled:opacity-50"
+                    aria-label={checking ? 'Verificando nuevos logros' : 'Verificar nuevos logros'}
                 >
                     {checking ? 'Verificando...' : 'Verificar'}
                 </button>
@@ -92,7 +94,7 @@ export default function AchievementsWidget() {
                 {achievements.map((achievement) => (
                     <div key={achievement.id} className="bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-xl p-4">
                         <div className="flex items-start">
-                            <span className="text-3xl mr-3">{achievement.icon}</span>
+                            <span className="text-3xl mr-3" role="img" aria-label={`Icono de logro: ${achievement.name}`}>{achievement.icon}</span>
                             <div>
                                 <h4 className="font-bold text-gray-800 text-sm">{achievement.name}</h4>
                                 <p className="text-xs text-gray-600">{achievement.description}</p>

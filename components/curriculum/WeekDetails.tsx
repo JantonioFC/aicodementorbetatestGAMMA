@@ -12,6 +12,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { useState } from 'react';
 import WeeklySchedule from './WeeklySchedule';
+import { DayData } from './WeeklySchedule';
 
 interface Resource {
     nombre: string;
@@ -24,7 +25,7 @@ interface Source {
     url: string;
 }
 
-interface WeekDetailsProps {
+export interface WeekDetailsProps {
     weekData: {
         semana: number;
         tituloSemana: string;
@@ -35,7 +36,7 @@ interface WeekDetailsProps {
         recursos?: Resource[];
         officialSources?: Source[];
         ejercicios?: Resource[];
-        esquemaDiario: any[];
+        esquemaDiario: DayData[];
     };
 }
 
@@ -105,7 +106,7 @@ export default function WeekDetails({ weekData }: WeekDetailsProps) {
     );
 }
 
-function Card({ icon, title, children }: { icon: any, title: string, children: React.ReactNode }) {
+function Card({ icon, title, children }: { icon: React.ReactNode, title: string, children: React.ReactNode }) {
     return (
         <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
             <div className="flex items-center gap-2 mb-3">

@@ -1,6 +1,6 @@
 import { ClarityGate, LowConfidenceError } from '../../../lib/ai/ClarityGate';
 import { geminiRouter } from '../../../lib/ai/router/GeminiRouter';
-import { logger } from '../../../lib/utils/logger';
+import { logger } from '../../../lib/observability/Logger';
 
 // Mock Gemini Router to prevent API calls
 jest.mock('../../../lib/ai/router/GeminiRouter', () => ({
@@ -10,7 +10,7 @@ jest.mock('../../../lib/ai/router/GeminiRouter', () => ({
 }));
 
 // Mock Logger
-jest.mock('../../../lib/utils/logger', () => ({
+jest.mock('../../../lib/observability/Logger', () => ({
     logger: {
         info: jest.fn(),
         warn: jest.fn(),

@@ -1,40 +1,41 @@
 /**
  * Analytics Service (Telemetry) - TypeScript Migration
  */
+import { logger } from './observability/Logger';
 
 const IS_DEV = process.env.NODE_ENV === 'development';
 
 interface AnalyticsProperties {
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
 export const Analytics = {
-    track: (eventName: string, properties: AnalyticsProperties = {}) => {
+    track: (eventName: string, properties: AnalyticsProperties = {}): void => {
         try {
-            if (IS_DEV || typeof window !== 'undefined') {
-                const timestamp = new Date().toISOString();
-                console.groupCollapsed(`📊 [Analytics] ${eventName}`);
-                console.log('Properties:', properties);
-                console.log('Timestamp:', timestamp);
-                console.groupEnd();
-            }
+            // No-op in production for tracking events, as per "silent" requirement.
+            // Error logging remains for critical issues.
         } catch (err) {
-            console.error('[Analytics] Error tracking event:', err);
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error('[Analytics] Error tracking event', { error: message });
         }
     },
 
-    identify: (userId: string, traits: AnalyticsProperties = {}) => {
+    identify: (userId: string, traits: AnalyticsProperties = {}): void => {
         try {
-            console.log(`👤 [Analytics] Identify: ${userId}`, traits);
+            // No-op in production for identifying users, as per "silent" requirement.
+            // Error logging remains for critical issues.
         } catch (err) {
-            console.error('[Analytics] Error identifying user:', err);
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error('[Analytics] Error identifying user', { error: message });
         }
     },
 
-    conversion: (label: string, value: number = 0.0) => {
+    conversion: (label: string, value: number = 0.0): void => {
         try {
-            console.log(`💰 [Analytics] Conversion: ${label} ($${value})`);
-            const win = window as any;
+            const win = window as unknown as {
+                fbq?: (type: string, name: string, data: Record<string, unknown>) => void;
+                gtag?: (type: string, name: string, data: Record<string, unknown>) => void;
+            };
             if (typeof win.fbq === 'function') {
                 win.fbq('track', label === 'purchase' ? 'Purchase' : 'CompleteRegistration', {
                     value: value,
@@ -49,7 +50,8 @@ export const Analytics = {
                 });
             }
         } catch (err) {
-            console.error('[Analytics] Error tracking conversion:', err);
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error('[Analytics] Error tracking conversion', { error: message });
         }
     }
 };

@@ -8,7 +8,8 @@ export async function POST(req: NextRequest) {
 
         const result = await curriculumService.processModule(filename, content);
         return NextResponse.json({ success: true, ...result });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

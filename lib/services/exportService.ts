@@ -1,7 +1,47 @@
 import jsPDF from 'jspdf';
 import JSZip from 'jszip';
-import fs from 'fs';
-import path from 'path';
+
+/**
+ * Interfaces de Dominio para Exportación
+ */
+
+export interface ReviewFeedback {
+    mensaje_tutor?: string;
+    puntos_fuertes?: Array<{ titulo: string; descripcion: string }>;
+    sugerencias_mejora?: Array<{ titulo: string; descripcion: string; codigo_ejemplo?: string }>;
+    preguntas_reflexion?: string[];
+}
+
+export interface ReviewScores {
+    clean_code: number;
+    architecture: number;
+    security: number;
+    testing: number;
+    [key: string]: number;
+}
+
+export interface ReviewData {
+    review_id: string;
+    created_at: string;
+    metadata?: {
+        display_name?: string;
+        [key: string]: unknown;
+    };
+    feedback?: ReviewFeedback;
+    scores?: ReviewScores;
+}
+
+export interface PortfolioDocument {
+    metadata: {
+        title: string;
+        student: string;
+        generatedAt: string;
+    };
+    sections: Array<{
+        title: string;
+        content: string;
+    }>;
+}
 
 /**
  * Servicio para exportar datos de lecciones y revisiones a diferentes formatos
@@ -10,7 +50,7 @@ const exportService = {
     /**
      * Convierte una revisión de IRP a formato Markdown
      */
-    convertToMarkdown(review: any) {
+    convertToMarkdown(review: ReviewData): string {
         const { feedback, metadata, review_id, created_at, scores } = review;
 
         let md = `# 🎓 AI Code Mentor - Informe de Revisión\n\n`;
@@ -24,14 +64,14 @@ const exportService = {
         md += `## 🚀 Resumen de Metas\n\n`;
         md += `| Categoría | Puntuación | Rebuscada? |\n`;
         md += `| :--- | :---: | :---: |\n`;
-        md += `| Clean Code | ${scores?.clean_code || 0}/5 | ${scores?.clean_code > 3 ? '✅' : '❌'} |\n`;
-        md += `| Arquitectura | ${scores?.architecture || 0}/5 | ${scores?.architecture > 3 ? '✅' : '❌'} |\n`;
-        md += `| Seguridad | ${scores?.security || 0}/5 | ${scores?.security > 3 ? '✅' : '❌'} |\n`;
-        md += `| Testing | ${scores?.testing || 0}/5 | ${scores?.testing > 3 ? '✅' : '❌'} |\n\n`;
+        md += `| Clean Code | ${scores?.clean_code || 0}/5 | ${scores && scores.clean_code > 3 ? '✅' : '❌'} |\n`;
+        md += `| Arquitectura | ${scores?.architecture || 0}/5 | ${scores && scores.architecture > 3 ? '✅' : '❌'} |\n`;
+        md += `| Seguridad | ${scores?.security || 0}/5 | ${scores && scores.security > 3 ? '✅' : '❌'} |\n`;
+        md += `| Testing | ${scores?.testing || 0}/5 | ${scores && scores.testing > 3 ? '✅' : '❌'} |\n\n`;
 
         md += `## ✅ Puntos Fuertes\n\n`;
         if (feedback?.puntos_fuertes && feedback.puntos_fuertes.length > 0) {
-            feedback.puntos_fuertes.forEach((p: any) => {
+            feedback.puntos_fuertes.forEach((p) => {
                 md += `### 🟢 ${p.titulo}\n`;
                 md += `${p.descripcion}\n\n`;
             });
@@ -41,7 +81,7 @@ const exportService = {
 
         md += `## 💡 Sugerencias de Mejora\n\n`;
         if (feedback?.sugerencias_mejora && feedback.sugerencias_mejora.length > 0) {
-            feedback.sugerencias_mejora.forEach((s: any) => {
+            feedback.sugerencias_mejora.forEach((s) => {
                 md += `### 🟠 ${s.titulo}\n`;
                 md += `${s.descripcion}\n\n`;
                 if (s.codigo_ejemplo) {
@@ -54,7 +94,7 @@ const exportService = {
 
         md += `## 🤔 Preguntas para la Reflexión\n\n`;
         if (feedback?.preguntas_reflexion && feedback.preguntas_reflexion.length > 0) {
-            feedback.preguntas_reflexion.forEach((q: any) => {
+            feedback.preguntas_reflexion.forEach((q) => {
                 md += `- ${q}\n`;
             });
         } else {
@@ -69,7 +109,7 @@ const exportService = {
     /**
      * Genera un PDF de portfolio
      */
-    async generatePortfolioPDF(document: any) {
+    async generatePortfolioPDF(document: PortfolioDocument): Promise<Buffer> {
         const pdf = new jsPDF();
         pdf.setFontSize(20);
         pdf.text(document.metadata.title, 20, 30);
@@ -77,12 +117,12 @@ const exportService = {
         pdf.text(`Estudiante: ${document.metadata.student}`, 20, 45);
         pdf.text(`Fecha: ${document.metadata.generatedAt}`, 20, 52);
 
-        document.sections.forEach((section: any) => {
+        document.sections.forEach((section) => {
             pdf.addPage();
             pdf.setFontSize(16);
             pdf.text(section.title, 20, 30);
             pdf.setFontSize(10);
-            const lines = pdf.splitTextToSize(section.content.replace(/<[^>]*>?/gm, ''), 170);
+            const lines = pdf.splitTextToSize(section.content.replace(/<[^>]*>?/gm, ''), 170) as string[];
             pdf.text(lines, 20, 50);
         });
 
@@ -92,7 +132,7 @@ const exportService = {
     /**
      * Genera un ZIP para GitHub Pages
      */
-    async generateGitHubZip(htmlContent: string, readme: string) {
+    async generateGitHubZip(htmlContent: string, readme: string): Promise<Buffer> {
         const zip = new JSZip();
         zip.file('index.html', htmlContent);
         zip.file('README.md', readme);

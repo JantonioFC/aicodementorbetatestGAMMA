@@ -91,11 +91,11 @@ export async function POST(request: NextRequest): Promise<NextResponse<VerifyRes
             UPDATE device_codes 
             SET status = 'authorized', user_id = ?
             WHERE code = ?
-        `, [userId, cleanCode]);
+        `, [userId ?? null, cleanCode]);
 
         return NextResponse.json({ success: true, message: 'Dispositivo conectado correctamente' });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('[Device Verify] Error:', error);
         return NextResponse.json(
             { error: 'internal_server_error', message: 'Error interno al verificar código' },

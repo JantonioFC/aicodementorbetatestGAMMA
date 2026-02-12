@@ -10,13 +10,13 @@ export async function GET() {
       SELECT lesson_id, completed, completed_at, progress_percentage, time_spent_seconds
       FROM user_lesson_progress
       WHERE user_id = ?
-    `, [userId]) as any[];
+    `, [userId]) as { lesson_id: string; completed: number; completed_at: string | null; progress_percentage: number; time_spent_seconds: number }[];
 
         const exerciseProgress = db.query(`
       SELECT exercise_id, lesson_id, completed, completed_at, attempts_count, best_score, time_spent_seconds
       FROM user_exercise_progress
       WHERE user_id = ?
-    `, [userId]) as any[];
+    `, [userId]) as { exercise_id: string; lesson_id: string; completed: number; completed_at: string | null; attempts_count: number; best_score: number; time_spent_seconds: number }[];
 
         const completedLessons = lessonProgress.filter(l => l.completed === 1);
         const completedExercises = exerciseProgress.filter(e => e.completed === 1);
@@ -38,7 +38,8 @@ export async function GET() {
             stats,
             lastUpdated: new Date().toISOString()
         });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

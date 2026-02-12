@@ -17,7 +17,7 @@ export async function GET() {
             version: curriculumIndex.version || '9.0.0-sqlite',
             totalPhases: curriculumIndex.totalPhases,
             totalWeeks: curriculumIndex.totalWeeks,
-            phaseMapping: curriculumIndex.phaseMapping.map((phase: any) => ({
+            phaseMapping: curriculumIndex.phaseMapping.map((phase) => ({
                 fase: phase.fase,
                 fileName: `fase-${phase.fase}.json`,
                 startWeek: phase.startWeek,
@@ -32,7 +32,8 @@ export async function GET() {
                 generatedAt: new Date().toISOString()
             }
         });
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

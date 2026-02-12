@@ -3,13 +3,15 @@
  * Mejora la precisión del RAG reordenando los documentos por relevancia.
  */
 import { geminiRouter } from '../ai/router/GeminiRouter';
+import { logger } from '../observability/Logger';
 
 export interface RerankDocument {
     id: string;
     text?: string;
     content?: string;
     score?: number;
-    [key: string]: any;
+    metadata?: Record<string, unknown>;
+    rerankScore?: number;
 }
 
 export class Reranker {
@@ -46,8 +48,9 @@ export class Reranker {
             const ranking = this._parseRankingResponse(response.analysis, documents);
             return ranking.slice(0, topK);
 
-        } catch (error: any) {
-            console.error('[Reranker] Error, retornando orden original:', error.message);
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : String(error);
+            logger.error('[Reranker] Error, retornando orden original', { error: message });
             return documents.slice(0, topK);
         }
     }
@@ -78,26 +81,27 @@ ${docList}
     /**
      * Parsea la respuesta del LLM y reordena los documentos.
      */
-    private _parseRankingResponse(response: any, originalDocs: RerankDocument[]): RerankDocument[] {
+    private _parseRankingResponse(response: unknown, originalDocs: RerankDocument[]): RerankDocument[] {
         try {
-            let parsed: any;
+            let parsed: Record<string, unknown> | null = null;
             if (typeof response === 'string') {
                 const jsonMatch = response.match(/\{[\s\S]*\}/);
-                parsed = jsonMatch ? JSON.parse(jsonMatch[0]) : null;
-            } else {
-                parsed = response;
+                parsed = jsonMatch ? JSON.parse(jsonMatch[0]) as Record<string, unknown> : null;
+            } else if (typeof response === 'object' && response !== null) {
+                parsed = response as Record<string, unknown>;
             }
 
-            if (parsed?.ranking && Array.isArray(parsed.ranking)) {
-                return parsed.ranking
-                    .filter((idx: number) => idx >= 0 && idx < originalDocs.length)
+            if (parsed && Array.isArray(parsed.ranking)) {
+                return (parsed.ranking as unknown[])
+                    .filter((idx): idx is number => typeof idx === 'number' && idx >= 0 && idx < originalDocs.length)
                     .map((idx: number) => originalDocs[idx]);
             }
 
             return originalDocs;
 
-        } catch (e: any) {
-            console.error('[Reranker] Error parsing response:', e.message);
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : String(e);
+            logger.error('[Reranker] Error parsing response', { error: message });
             return originalDocs;
         }
     }

@@ -4,7 +4,21 @@
  */
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'local-development-secret-change-this';
+const JWT_SECRET = process.env.JWT_SECRET;
+
+if (!JWT_SECRET) {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('FATAL: JWT_SECRET must be defined in production.');
+    }
+}
+
+const SECRET_KEY: string = JWT_SECRET || '';
+
+interface JWTPayload {
+    userId: string;
+    email: string;
+    role?: string;
+}
 
 export interface AuthVerificationResult {
     isValid: boolean;
@@ -26,7 +40,7 @@ export async function verifyAuthToken(token: string): Promise<AuthVerificationRe
             };
         }
 
-        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const decoded = jwt.verify(token, SECRET_KEY) as unknown as JWTPayload;
 
         if (decoded && decoded.userId) {
             return {
@@ -42,11 +56,13 @@ export async function verifyAuthToken(token: string): Promise<AuthVerificationRe
             error: 'Token no autorizado'
         };
 
-    } catch (error: any) {
-        console.error('[AUTH] Error verificando token:', error.message);
+    } catch (error: unknown) {
+        const isTokenError = error instanceof jwt.JsonWebTokenError ||
+            error instanceof jwt.TokenExpiredError ||
+            error instanceof jwt.NotBeforeError;
         return {
             isValid: false,
-            error: 'Error interno de autenticación: ' + error.message
+            error: isTokenError ? 'Token inválido o expirado' : 'Error interno de autenticación'
         };
     }
 }

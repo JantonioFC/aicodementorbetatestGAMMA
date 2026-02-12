@@ -19,6 +19,9 @@ export interface Lesson {
     topics: string[];
     exercises: Exercise[];
     generated_at?: string;
+    estimated_time?: string;
+    cached?: boolean;
+    source_url?: string;
 }
 
 interface LessonHistoryItem {

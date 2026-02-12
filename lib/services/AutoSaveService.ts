@@ -9,8 +9,14 @@ const AUTO_SAVE_DIRS = {
     sessions: 'exports/sesiones'
 };
 
+export interface AutoSaveStats {
+    total_lessons: number;
+    total_exercises: number;
+    total_sessions: number;
+}
+
 export class AutoSaveService {
-    ensureDirectories() {
+    ensureDirectories(): void {
         Object.values(AUTO_SAVE_DIRS).forEach(dir => {
             const fullPath = path.join(process.cwd(), dir);
             if (!fs.existsSync(fullPath)) {
@@ -19,7 +25,7 @@ export class AutoSaveService {
         });
     }
 
-    saveLesson(lesson: any, metadata: any = {}) {
+    saveLesson(lesson: { path: string } & Record<string, unknown>, metadata: Record<string, unknown> = {}): { filename: string } {
         this.ensureDirectories();
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const filename = `${lesson.path.replace(/\./g, '_')}_${timestamp}`;
@@ -32,7 +38,7 @@ export class AutoSaveService {
         return { filename };
     }
 
-    saveSession(sessionData: any) {
+    saveSession(sessionData: Record<string, unknown>): string {
         this.ensureDirectories();
         const id = `session_${Date.now()}`;
         fs.writeFileSync(
@@ -42,8 +48,8 @@ export class AutoSaveService {
         return id;
     }
 
-    getStatistics() {
-        const stats: any = { total_lessons: 0, total_exercises: 0, total_sessions: 0 };
+    getStatistics(): AutoSaveStats {
+        const stats: AutoSaveStats = { total_lessons: 0, total_exercises: 0, total_sessions: 0 };
         const lessonDir = path.join(process.cwd(), AUTO_SAVE_DIRS.lessons);
         if (fs.existsSync(lessonDir)) stats.total_lessons = fs.readdirSync(lessonDir).length;
         return stats;

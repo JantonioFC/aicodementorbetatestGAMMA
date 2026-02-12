@@ -4,7 +4,10 @@ export interface BackupData {
     version: string;
     createdAt: string;
     type: string;
-    data: any;
+    data: {
+        analyses: unknown[];
+        draft: unknown | null;
+    };
     metadata: {
         analysisCount: number;
         hasDraft: boolean;
@@ -17,7 +20,7 @@ class BackupManager {
 
     async createBackup(options: { encrypt?: boolean; password?: string | null } = {}): Promise<BackupData> {
         await storage.init();
-        const exportedData = await storage.exportAll();
+        const exportedData = await storage.exportAll() as { analyses?: unknown[]; draft?: unknown };
 
         const backup: BackupData = {
             version: '1.0.0',
@@ -42,16 +45,19 @@ class BackupManager {
         return backup;
     }
 
-    private saveLastBackupTimestamp() {
+    private saveLastBackupTimestamp(): void {
         if (typeof window !== 'undefined') {
             localStorage.setItem(this.lastBackupKey, new Date().toISOString());
         }
     }
 
-    async restoreFromBackup(backupData: BackupData) {
+    async restoreFromBackup(backupData: BackupData): Promise<{ success: boolean }> {
         await storage.init();
         if (backupData.data.analyses) {
-            for (const a of backupData.data.analyses) await storage.saveAnalysis(a);
+            for (const a of backupData.data.analyses) {
+                // We cast to any here because saveAnalysis expects a specific type that we are restoring
+                await storage.saveAnalysis(a as unknown as Parameters<typeof storage.saveAnalysis>[0]);
+            }
         }
         return { success: true };
     }

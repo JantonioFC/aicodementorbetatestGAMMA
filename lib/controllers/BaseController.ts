@@ -1,42 +1,48 @@
 
 // lib/controllers/BaseController.ts
 import { NextApiRequest, NextApiResponse } from 'next';
-import { logger } from '../utils/logger';
+import { logger } from '../observability/Logger';
 
 export abstract class BaseController {
-    protected handleSuccess(res: NextApiResponse, data: any, status: number = 200) {
-        return res.status(status).json({
+    protected handleSuccess(res: NextApiResponse, data: Record<string, unknown> | unknown[], status: number = 200): void {
+        res.status(status).json({
             success: true,
             data
         });
     }
 
-    protected handleError(res: NextApiResponse, error: any, context: string) {
-        logger.error(`[${context}] Error: ${error.message}`, { error });
+    protected handleError(res: NextApiResponse, error: unknown, context: string): void {
+        const message = error instanceof Error ? error.message : String(error);
+        const errorName = error instanceof Error ? error.name : 'UnknownError';
+
+        logger.error(`[${context}] Error: ${message}`, { error });
 
         // Map known errors
-        if (error.name === 'ZodError') {
-            return res.status(400).json({
+        if (errorName === 'ZodError') {
+            const details = (error as { errors?: unknown }).errors;
+            res.status(400).json({
                 success: false,
                 error: 'Validation Error',
-                details: error.errors
+                details
             });
+            return;
         }
 
-        if (error.name === 'LowConfidenceError') {
-            return res.status(422).json({
+        if (errorName === 'LowConfidenceError') {
+            res.status(422).json({
                 success: false,
                 error: 'AI Context Verification Failed',
-                message: error.message
+                message
             });
+            return;
         }
 
-        const statusCode = error.status || 500;
-        const message = error.message || 'Internal Server Error';
+        const statusCode = (error as { status?: number }).status || 500;
+        const msg = message || 'Internal Server Error';
 
-        return res.status(statusCode).json({
+        res.status(statusCode).json({
             success: false,
-            error: message
+            error: msg
         });
     }
 }

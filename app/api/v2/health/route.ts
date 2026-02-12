@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { geminiRouter } from '@/lib/ai/router/GeminiRouter';
-import { logger } from '@/lib/utils/logger';
+import { logger } from '@/lib/observability/Logger';
 
 export async function GET() {
     try {
@@ -15,7 +15,7 @@ export async function GET() {
             router: { initialized: true, ...routerStats },
             models: {
                 available: availableModels.length,
-                list: availableModels.map((m: any) => ({
+                list: availableModels.map((m) => ({
                     name: m.name,
                     displayName: m.displayName,
                     priority: m.priority
@@ -24,10 +24,11 @@ export async function GET() {
             usage: usageReport,
             geminiApiConfigured: !!process.env.GEMINI_API_KEY
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
+        const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({
             status: 'unhealthy',
-            error: error.message,
+            error: message,
             timestamp: new Date().toISOString()
         }, { status: 500 });
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { leaderboardService } from '@/lib/services/community/LeaderboardService';
-import logger from '@/lib/logger';
+import { logger } from '@/lib/observability/Logger';
 
 /**
  * GET /api/v1/community/leaderboard
@@ -23,11 +23,12 @@ export async function GET(req: NextRequest) {
             data: ranking
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         logger.error('[CommunityAPI] Error recuperando leaderboard:', error);
+        const message = error instanceof Error ? error.message : String(error);
         return NextResponse.json({
             error: 'Error recuperando leaderboard',
-            details: error.message
+            details: message
         }, { status: 500 });
     }
 }

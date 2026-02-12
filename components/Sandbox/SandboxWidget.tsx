@@ -8,12 +8,21 @@ import HistoryPanel from './HistoryPanel';
 import ExportButton from './ExportButton';
 import MentorTip from '../mentorship/MentorTip';
 
+interface Exercise {
+    question?: string;
+    options?: string[];
+    correctAnswerIndex?: number;
+    correctAnswer?: string;
+    explanation?: string;
+    type?: string;
+}
+
 interface ProcessedLesson {
     id?: string;
     title: string;
     lesson: string;
-    exercises: any[];
-    metadata: any;
+    exercises: Exercise[];
+    metadata: Record<string, unknown>;
     generatedAt: string;
     inputLength: number;
 }
@@ -76,8 +85,9 @@ export default function SandboxWidget() {
             });
 
             recordAPICall('sandbox_generation', true);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            setError(message);
         } finally {
             setIsLoading(false);
         }

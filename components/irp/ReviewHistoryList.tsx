@@ -22,8 +22,9 @@ export default function ReviewHistoryList({ onViewDetails }: ReviewHistoryListPr
             const data = await res.json();
             if (!res.ok) throw new Error(data.message || 'Error fetching history');
             setReviews(data.reviews || []);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : String(err);
+            setError(message);
         } finally {
             setLoading(false);
         }
@@ -70,7 +71,7 @@ export default function ReviewHistoryList({ onViewDetails }: ReviewHistoryListPr
 }
 
 function StatusBadge({ status }: { status: string }) {
-    const configs: any = {
+    const configs: Record<string, { icon: string; color: string }> = {
         pending_assignment: { icon: '⏳', color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
         completed: { icon: '✅', color: 'bg-green-50 text-green-700 border-green-200' },
         in_progress: { icon: '📝', color: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
