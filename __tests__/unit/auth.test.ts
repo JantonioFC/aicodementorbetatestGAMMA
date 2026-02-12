@@ -33,13 +33,13 @@ describe('Auth Unit Tests', () => {
         (compare as jest.Mock).mockResolvedValue(true);
         (hash as jest.Mock).mockResolvedValue('hashed_password');
         (jwt.sign as jest.Mock).mockReturnValue('mock_token');
-        (jwt.verify as jest.Mock).mockReturnValue({ userId: mockUser.id, email: mockUser.email });
+        (jwt.verify as jest.Mock).mockReturnValue({ sub: mockUser.id, email: mockUser.email });
     });
 
     describe('verifyAuthToken', () => {
         it('should return valid result for valid token', async () => {
             const token = 'valid_token';
-            (jwt.verify as jest.Mock).mockReturnValue({ userId: '123', email: 'test@test.com', role: 'user' });
+            (jwt.verify as jest.Mock).mockReturnValue({ sub: '123', email: 'test@test.com', role: 'user' });
 
             const result = await verifyAuthToken(token);
 
