@@ -63,19 +63,41 @@ export async function authenticateDemo(page: Page, targetPath: string = '/panel-
         await page.fill('input[type="email"]', TEST_CONFIG.DEMO_EMAIL);
         await page.fill('input[type="password"]', 'demo123'); // Password hardcoded for now, or use config
 
-        // Click en botón de login (buscar por texto o tipo submit)
+        // Interceptar la respuesta del login para diagnóstico
+        const loginResponsePromise = page.waitForResponse(
+            resp => resp.url().includes('/api/auth/login') && resp.request().method() === 'POST',
+            { timeout: 15000 }
+        );
+
+        // Click en botón de login
         await page.click('button[type="submit"]');
+        console.log('🔒 [AUTH-LOCAL] Formulario enviado. Esperando respuesta API...');
 
-        // Esperar navegación o feedback
-        console.log('🔒 [AUTH-LOCAL] Formulario enviado. Esperando redirección...');
+        // Esperar la respuesta del login API
+        try {
+            const loginResponse = await loginResponsePromise;
+            const status = loginResponse.status();
+            console.log(`🔒 [AUTH-LOCAL] Login API respondió: HTTP ${status}`);
 
-        // MEJORA V6.1: Esperar a que la URL cambie O que aparezca un elemento del dashboard
-        // Esto es más robusto que solo waitForURL que a veces falla en SPAs lentas
-        await Promise.race([
-            page.waitForURL(/panel-de-control/, { timeout: 45000, waitUntil: 'domcontentloaded' }),
-            page.waitForSelector('h1:has-text("Panel de Control")', { timeout: 45000 }),
-            page.waitForSelector('text=Bienvenido', { timeout: 45000 })
-        ]);
+            if (status !== 200) {
+                const body = await loginResponse.text();
+                console.log(`❌ [AUTH-LOCAL] Login falló: ${body}`);
+            } else {
+                console.log('✅ [AUTH-LOCAL] Login exitoso. Esperando redirección...');
+            }
+        } catch (e) {
+            console.log('⚠️ [AUTH-LOCAL] No se capturó respuesta del login API');
+        }
+
+        // Esperar a que la URL cambie al dashboard (no usar text=Bienvenido, existe en login page)
+        try {
+            await page.waitForURL(/panel-de-control|sandbox|modulos|portfolio/, {
+                timeout: 30000,
+                waitUntil: 'domcontentloaded'
+            });
+        } catch {
+            // URL no cambió, el login probablemente falló
+        }
     }
 
     // 3. Verificar que estamos en la página correcta (o panel)
