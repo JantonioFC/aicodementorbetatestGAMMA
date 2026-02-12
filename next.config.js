@@ -8,6 +8,9 @@ const withBundleAnalyzer = require('@next/bundle-analyzer')({
 const nextConfig = {
   reactStrictMode: true,
 
+  // Native modules must be external in standalone mode (not bundled by webpack)
+  serverExternalPackages: ['better-sqlite3'],
+
   // FIX: Optimize barrel imports for better HMR (from react-best-practices skill)
   experimental: {
     optimizePackageImports: [

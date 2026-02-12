@@ -97,15 +97,18 @@ jobs:
 
     - name: Verify Auth API
       run: |
-        E2E_TEST_MODE=true JWT_SECRET='ci-test-secret-minimum-32-chars' node .next/standalone/server.js &
+        E2E_TEST_MODE=true JWT_SECRET='ci-test-secret-minimum-32-chars' node .next/standalone/server.js > /tmp/server.log 2>&1 &
         SERVER_PID=$!
-        sleep 3
+        sleep 4
         echo "=== Login test ==="
         curl -s -v -X POST http://localhost:3000/api/auth/login \
           -H "Content-Type: application/json" \
           -d '{"email":"demo@aicodementor.com","password":"demo123"}' 2>&1
         echo ""
-        echo "=== DB tables ==="
+        echo "=== Server logs (stdout+stderr) ==="
+        cat /tmp/server.log
+        echo ""
+        echo "=== DB check ==="
         node -e "const D=require('better-sqlite3');const d=new D('database/sqlite/curriculum.db');console.log(d.prepare(\"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('refresh_tokens','user_profiles')\").all());d.close();"
         kill $SERVER_PID 2>/dev/null || true
       env:

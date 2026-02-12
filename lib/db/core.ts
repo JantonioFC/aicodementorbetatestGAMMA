@@ -24,6 +24,7 @@ function getDb(): Database.Database {
             // Data Integrity (DAT-01): Enforce Foreign Keys
             dbInstance.pragma('foreign_keys = ON');
         } catch (err) {
+            console.error('[DB] SQLite connection failed:', err);
             logger.error('SQLite connection failed', err);
             throw err;
         }

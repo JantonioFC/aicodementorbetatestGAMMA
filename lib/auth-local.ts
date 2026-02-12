@@ -137,6 +137,8 @@ const AuthLocal = {
             };
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
+            const stack = error instanceof Error ? error.stack : '';
+            console.error(`[AuthLocal] Login error: ${message}`, stack);
             logger.error(`[AuthLocal] Login error: ${message}`);
             return { error: 'Error de inicio de sesión' };
         }
