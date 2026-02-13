@@ -116,8 +116,16 @@ jobs:
         echo "=== DB check ==="
         node -e "const D=require('better-sqlite3');const d=new D('database/sqlite/curriculum.db');console.log(d.prepare(\"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('refresh_tokens','user_profiles')\").all());d.close();"
         kill $SERVER_PID 2>/dev/null || true
+        # Also clean up anything else on 3000 just in case
+        npx wait-on -t 5000 http://localhost:3000 && (fuser -k 3000/tcp || pkill -9 -f server.js) || true
       env:
         JWT_SECRET: 'ci-test-secret-minimum-32-chars'
+
+    - name: Ensure Port 3000 is Free
+      run: |
+        # Forceful cleanup of any lingering processes
+        lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+        echo "✅ Port 3000 checked and cleared"
 
     - name: Run E2E Tests
       run: npx playwright test --retries=2
