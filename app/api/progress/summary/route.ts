@@ -33,7 +33,8 @@ export async function GET() {
             summary: {
                 totalSemanasCompletadas: Math.floor(completedLessons.length / 5),
                 totalSemanasIniciadas: Math.ceil(lessonProgress.length / 5),
-                porcentajeTotalCompletado: Math.round((completedLessons.length / 40) * 100)
+                porcentajeTotalCompletado: Math.round((completedLessons.length / 40) * 100),
+                progresoPorFase: [] // Default empty array to prevent frontend map errors
             },
             stats,
             lastUpdated: new Date().toISOString()

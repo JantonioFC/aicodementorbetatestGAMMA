@@ -18,7 +18,7 @@ interface ProvidersProps {
 }
 
 /** Public routes that should NOT be blocked by AuthGate loading screen */
-const PUBLIC_PATHS = ['/login', '/register', '/'];
+const PUBLIC_PATHS = ['/login', '/register', '/', '/challenge'];
 
 /**
  * AuthGate Component (App Router version)
