@@ -9,6 +9,10 @@ import { setupPortfolioTest, switchToTab, expectTabToBeActive } from './helpers/
 test.describe('📊 Portfolio - Caracterización de UI', () => {
 
     test.beforeEach(async ({ page }) => {
+        // [DEBUG] Capture console logs and errors
+        page.on('console', msg => console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`));
+        page.on('pageerror', err => console.log(`[BROWSER ERROR]: ${err.message}`));
+
         // Usar helper tipado para setup completo
         await setupPortfolioTest(page);
     });

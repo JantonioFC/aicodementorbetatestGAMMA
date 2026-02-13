@@ -156,6 +156,11 @@ test.describe('📊 ANALÍTICAS - Suite de Pruebas', () => {
 
     test.beforeEach(async ({ page }) => {
         await authenticateDemo(page);
+
+        // [DEBUG] Capture console logs and errors
+        page.on('console', msg => console.log(`[BROWSER] ${msg.type()}: ${msg.text()}`));
+        page.on('pageerror', err => console.log(`[BROWSER ERROR]: ${err.message}`));
+
         await page.goto(TEST_CONFIG.PAGES.ANALITICAS, { waitUntil: 'load', timeout: 30000 });
         // Wait for React hydration and ProtectedRoute auth check
         await expect(page).toHaveURL(/.*\/analiticas/);

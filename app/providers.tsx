@@ -11,21 +11,30 @@ import { LessonProvider } from '../contexts/LessonContext';
 import { ProjectTrackingProvider } from '../contexts/ProjectTrackingContext';
 // @ts-ignore: Componente JS pendiente de migración
 import LoadingScreen from '../components/auth/LoadingScreen';
+import { usePathname } from 'next/navigation';
 
 interface ProvidersProps {
     children: React.ReactNode;
 }
 
+/** Public routes that should NOT be blocked by AuthGate loading screen */
+const PUBLIC_PATHS = ['/login', '/register', '/'];
+
 /**
  * AuthGate Component (App Router version)
  * Maneja el estado de carga inicial de la sesión.
+ * No bloquea páginas públicas (login, register, landing).
  */
 function AuthGate({ children }: ProvidersProps) {
     const { authState, loading }: { authState: string, loading: boolean } = useAuth();
+    const pathname = usePathname();
 
-    console.log('🚪 [APP-AUTH-GATE] Render - authState:', authState, 'loading:', loading);
+    const isPublicPath = PUBLIC_PATHS.includes(pathname ?? '/');
 
-    if (authState === 'loading' || loading) {
+    console.log('🚪 [APP-AUTH-GATE] Render - authState:', authState, 'loading:', loading, 'path:', pathname, 'public:', isPublicPath);
+
+    // Don't block public pages with loading screen
+    if (!isPublicPath && (authState === 'loading' || loading)) {
         return <LoadingScreen message="Sincronizando con el Mentor IA..." />;
     }
 
