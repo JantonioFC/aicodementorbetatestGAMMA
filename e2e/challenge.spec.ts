@@ -28,33 +28,28 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
     });
 
     test('should pass validation when syntax is fixed', async ({ page }) => {
-        // Fix the code in the textarea
-        // Original: print "Hello " + name
-        // Fixed:    print("Hello " + name)
-
         const fixedCode = 'def greet(name):\n    print("Hello " + name)  # Fixed!';
 
-        // Wait for React hydration before interacting with the textarea
+        // Dismiss cookie banner so it doesn't intercept clicks
+        await page.getByText('Aceptar').click().catch(() => {});
+
+        // Wait for React hydration
         const textarea = page.locator('textarea');
         await expect(textarea).toBeEditable({ timeout: 10000 });
 
-        // Use native value setter to bypass React controlled input issues
-        // (Playwright's fill() can concatenate instead of replacing on React controlled textareas)
-        await textarea.evaluate((el: HTMLTextAreaElement, value: string) => {
-            const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!;
-            nativeSetter.call(el, value);
-            el.dispatchEvent(new Event('input', { bubbles: true }));
-        }, fixedCode);
+        // Replace textarea content using real keyboard actions
+        // (Playwright's fill() concatenates on React controlled textareas)
+        await textarea.click();
+        await page.keyboard.press('Control+a');
+        await page.keyboard.insertText(fixedCode);
 
-        // Verify React state updated (auto-retries until value matches)
+        // Verify React processed the change
         await expect(textarea).toHaveValue(fixedCode);
 
-        // Click Run (button text is "Run Protocol")
-        // force: true bypasses cookie banner overlay that intercepts pointer events
-        await page.getByText('Run Protocol').click({ force: true });
+        // Click Run
+        await page.getByText('Run Protocol').click();
 
-        // Verify success state
-        // Use Promise.all to check both before the 1500ms redirect to /signup destroys the page
+        // Verify success state before the 1500ms redirect to /signup destroys the page
         await Promise.all([
             expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 15000 }),
             expect(page.getByText('TEST PASSED')).toBeVisible({ timeout: 15000 }),

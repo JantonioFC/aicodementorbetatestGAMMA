@@ -78,10 +78,11 @@ test.describe('IRP Integration Tests (Integrated Architecture)', () => {
         console.log('[TEST] Verificando navegación a /peer-review...');
 
         // Navegar (puede redirigir a /login por ProtectedRoute)
-        await page.goto('/peer-review', { waitUntil: 'domcontentloaded' });
+        await page.goto('/peer-review');
 
-        // Esperar a que cualquier redirección de ProtectedRoute se complete
-        await page.waitForLoadState('networkidle');
+        // Esperar a que ProtectedRoute procese y redirija (client-side redirect)
+        await page.waitForTimeout(3000);
+        await page.waitForLoadState('domcontentloaded');
 
         const url = page.url();
         const title = await page.title();
