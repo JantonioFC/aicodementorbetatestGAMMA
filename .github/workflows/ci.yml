@@ -92,6 +92,11 @@ jobs:
       run: |
         node scripts/init-sqlite.js --force
         node scripts/create-demo-user.js
+        # Copy fresh database into standalone directory
+        # (standalone server uses process.cwd() = .next/standalone/)
+        mkdir -p .next/standalone/database/sqlite
+        cp database/sqlite/curriculum.db .next/standalone/database/sqlite/curriculum.db
+        echo "✅ Database copied to standalone directory"
       env:
         JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-minimum-32-chars' }}
 
