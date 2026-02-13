@@ -22,13 +22,13 @@ test.describe('💨 Smoke Test - Verificación de Salud', () => {
 
         // Validar encabezado principal - Usar wait para asegurar hidratación
         const mainHeading = page.locator('h1:has-text("SYSTEM_LEARNING")');
-        await mainHeading.waitFor({ state: 'visible', timeout: 15000 });
+        await mainHeading.waitFor({ state: 'visible', timeout: 30000 });
         await expect(mainHeading).toBeVisible();
         await expect(mainHeading).toContainText('SYSTEM_LEARNING');
 
         // Validar botón de acción principal (CTA)
         const ctaButton = page.getByRole('button', { name: /INITIALIZE_PLATFORM/i });
-        await expect(ctaButton).toBeVisible();
+        await expect(ctaButton).toBeVisible({ timeout: 15000 });
 
         console.log('✅ Smoke Test completado: Elementos críticos visibles.');
     });

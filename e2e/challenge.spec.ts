@@ -14,8 +14,8 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
     });
 
     test('should compile Python code and fail with original bug', async ({ page }) => {
-        // Click Run without changes
-        await page.getByText('Run Code').click();
+        // Click Run without changes (button text is "Run Protocol")
+        await page.getByText('Run Protocol').click();
 
         // Check for error output
         await expect(page.getByText(/SyntaxError: Missing parentheses/)).toBeVisible();
@@ -31,8 +31,8 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
 
         await page.locator('textarea').fill(fixedCode);
 
-        // Click Run
-        await page.getByText('Run Code').click();
+        // Click Run (button text is "Run Protocol")
+        await page.getByText('Run Protocol').click();
 
         // Verify success state
         await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 10000 });

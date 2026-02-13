@@ -16,9 +16,15 @@ export async function setupPortfolioTest(page: Page, options: any = {}) {
     // Usar login real que funciona en CI
     await authenticateDemo(page, url);
 
-    // Esperar a que el componente principal esté visible
+    // After login, the app may redirect to /panel-de-control instead of /portfolio
+    // Ensure we're on the correct page
+    if (!page.url().includes('/portfolio')) {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    }
+
+    // Esperar a que el componente principal esté visible (ProtectedRoute may show loading first)
     await page.waitForSelector('h1:has-text("Gestión de Portfolio")', {
-        timeout: 20000,
+        timeout: 30000,
         state: 'visible'
     });
 

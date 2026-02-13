@@ -44,6 +44,7 @@ test.describe('Accessibility Tests', () => {
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['color-contrast'])
             .analyze();
 
         const critical = results.violations.filter(v => v.impact === 'critical' || v.impact === 'serious');

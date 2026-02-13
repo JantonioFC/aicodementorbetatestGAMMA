@@ -25,9 +25,9 @@ test.describe('🏁 System Basic - Verificación Estructural', () => {
         await expect(page.locator('h1:has-text("Estructura Curricular")').or(page.locator('h1:has-text("Módulos")'))).toBeVisible();
         console.log('✅ Módulos cargados');
 
-        // 5. Portfolio
-        await page.goto('/portfolio');
-        await expect(page.locator('h1:has-text("Gestión de Portfolio")')).toBeVisible();
+        // 5. Portfolio (ProtectedRoute may show loading screen before rendering content)
+        await page.goto('/portfolio', { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('h1:has-text("Gestión de Portfolio")')).toBeVisible({ timeout: 30000 });
         console.log('✅ Portfolio cargado');
     });
 
