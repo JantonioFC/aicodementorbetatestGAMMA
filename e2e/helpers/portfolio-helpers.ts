@@ -119,7 +119,8 @@ export async function expectTabToBeActive(page: Page, tabName: string) {
     // Hay DOS botones con el mismo texto: uno en sidebar, otro en tabs
     // Usamos .last() para seleccionar el tab real (el segundo botón)
     const tab = page.locator(`button:has-text("${tabName}")`).last();
-    await expect(tab).toHaveClass(/from-blue-500/); // Tiene degradado azul cuando activo
+    // Active tab has bg-blue-600 (solid blue) class
+    await expect(tab).toHaveClass(/bg-blue-600/);
 }
 
 /**
@@ -139,7 +140,7 @@ export async function switchToTab(page: Page, tabName: string) {
     await tabButton.evaluate(node => (node as HTMLElement).click());
 
     // Esperar a que el tab cambie de estado (debe tener la clase activa)
-    await expect(tabButton).toHaveClass(/from-blue-500/, { timeout: 5000 });
+    await expect(tabButton).toHaveClass(/bg-blue-600/, { timeout: 5000 });
 
     await page.waitForTimeout(300); // Pequeña pausa para animaciones
 }

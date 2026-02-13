@@ -91,7 +91,7 @@ export async function authenticateDemo(page: Page, targetPath: string = '/panel-
 
         // Esperar a que la URL cambie al dashboard (no usar text=Bienvenido, existe en login page)
         try {
-            await page.waitForURL(/panel-de-control|sandbox|modulos|portfolio/, {
+            await page.waitForURL(/panel-de-control|sandbox|modulos|portfolio|analiticas|codigo/, {
                 timeout: 30000,
                 waitUntil: 'domcontentloaded'
             });

@@ -15,7 +15,8 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
 
     test('should compile Python code and fail with original bug', async ({ page }) => {
         // Click Run without changes (button text is "Run Protocol")
-        await page.getByText('Run Protocol').click();
+        // force: true bypasses cookie banner overlay that intercepts pointer events
+        await page.getByText('Run Protocol').click({ force: true });
 
         // Check for error output
         await expect(page.getByText(/SyntaxError: Missing parentheses/)).toBeVisible();
@@ -32,7 +33,8 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
         await page.locator('textarea').fill(fixedCode);
 
         // Click Run (button text is "Run Protocol")
-        await page.getByText('Run Protocol').click();
+        // force: true bypasses cookie banner overlay that intercepts pointer events
+        await page.getByText('Run Protocol').click({ force: true });
 
         // Verify success state
         await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 10000 });

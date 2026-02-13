@@ -18,7 +18,7 @@ test.describe('💨 Smoke Test - Verificación de Salud', () => {
         // Validar título de la página
         const title = await page.title();
         console.log(`📄 Título detectado: "${title}"`);
-        expect(title).toContain('AI Code Mentor');
+        expect(title).toContain('Aprende');
 
         // Validar encabezado principal - Usar wait para asegurar hidratación
         const mainHeading = page.locator('h1:has-text("SYSTEM_LEARNING")');

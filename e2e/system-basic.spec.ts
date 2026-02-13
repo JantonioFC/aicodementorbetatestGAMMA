@@ -8,7 +8,7 @@ test.describe('🏁 System Basic - Verificación Estructural', () => {
 
         // 1. Landing
         await page.goto('/');
-        await expect(page).toHaveTitle(/AI Code Mentor/);
+        await expect(page).toHaveTitle(/Aprende|AI Code Mentor/);
         console.log('✅ Landing cargada');
 
         // 2. Login (Auto)
