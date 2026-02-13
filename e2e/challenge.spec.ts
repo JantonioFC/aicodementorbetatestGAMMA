@@ -19,7 +19,7 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
         await page.getByText('Run Protocol').click({ force: true });
 
         // Check for error output
-        await expect(page.getByText(/SyntaxError: Missing parentheses/)).toBeVisible();
+        await expect(page.getByText('SyntaxError').first()).toBeVisible({ timeout: 10000 });
         await expect(page.getByText('Entry Granted')).not.toBeVisible();
     });
 

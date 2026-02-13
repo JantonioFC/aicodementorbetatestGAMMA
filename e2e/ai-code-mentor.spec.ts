@@ -158,7 +158,7 @@ test.describe('📊 ANALÍTICAS - Suite de Pruebas', () => {
         await authenticateDemo(page);
         await page.goto(TEST_CONFIG.PAGES.ANALITICAS, { waitUntil: 'load', timeout: 30000 });
         // Wait for React hydration and ProtectedRoute auth check
-        await page.waitForTimeout(2000);
+        await expect(page).toHaveURL(/.*\/analiticas/);
         await expect(page.locator('h1:has-text("Analíticas Detalladas")')).toBeVisible({ timeout: 30000 });
     });
 

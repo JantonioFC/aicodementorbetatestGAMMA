@@ -16,7 +16,7 @@ export default defineConfig({
         ]
         : [['list']],
 
-    timeout: 90000,
+    timeout: 60000,
 
     use: {
         headless: isCI || process.env.HEADLESS === 'true',

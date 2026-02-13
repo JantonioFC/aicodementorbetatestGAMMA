@@ -37,7 +37,7 @@ test.describe('📊 Portfolio - Caracterización de UI', () => {
         await expectTabToBeActive(page, 'Gestión de Ciclos');
 
         // Verificar contenido de Ciclos
-        await expect(page.locator('h3:has-text("Finalizar Ciclo Actual")')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('h2:has-text("Sistema de Reset de Ciclo")')).toBeVisible({ timeout: 10000 });
 
         // 2. Volver a Export Portfolio
         await switchToTab(page, 'Export Portfolio');
