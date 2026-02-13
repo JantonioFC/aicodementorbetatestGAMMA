@@ -62,7 +62,7 @@ playwright-report/
 GATE3-VALIDATION-PROTOCOL.md
 run-gate3-validation.js
 fix-race-condition.js
-analyze/
+/analyze/
 
 # Microservicio IRP - Prisma Generated Files (Misión 259)
 # Estos archivos son generados automáticamente y no deben versionarse

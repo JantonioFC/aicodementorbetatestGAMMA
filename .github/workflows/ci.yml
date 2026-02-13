@@ -102,7 +102,7 @@ jobs:
 
     - name: Verify Auth API
       run: |
-        E2E_TEST_MODE=true JWT_SECRET='ci-test-secret-minimum-32-chars' node .next/standalone/server.js > /tmp/server.log 2>&1 &
+        cd .next/standalone && E2E_TEST_MODE=true JWT_SECRET='ci-test-secret-minimum-32-chars' node server.js > /tmp/server.log 2>&1 &
         SERVER_PID=$!
         sleep 4
         echo "=== Login test ==="
