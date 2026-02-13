@@ -4,22 +4,21 @@
  */
 
 import { Page, expect } from '@playwright/test';
-import { setupAuthenticatedPage } from './auth-mock-helper';
+import { authenticateDemo } from './authHelper';
 
 /**
  * Setup completo para tests de Portfolio
- * Incluye navegación + autenticación mockeada
+ * Usa login real via authenticateDemo (probado en CI)
  */
 export async function setupPortfolioTest(page: Page, options: any = {}) {
     const url = '/portfolio';
 
-    // Usar helper de auth que configura todo
-    await setupAuthenticatedPage(page, url, options);
+    // Usar login real que funciona en CI
+    await authenticateDemo(page, url);
 
     // Esperar a que el componente principal esté visible
-    // Usar timeout más largo para dar tiempo a que cargue
     await page.waitForSelector('h1:has-text("Gestión de Portfolio")', {
-        timeout: 15000,
+        timeout: 20000,
         state: 'visible'
     });
 

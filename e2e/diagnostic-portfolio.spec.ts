@@ -17,7 +17,7 @@ test('DIAGNOSTIC - Capturar HTML de portfolio con real auth', async ({ page }) =
 
     // Navigate to target page after authentication
     await page.goto(url);
-    await page.waitForLoadState('networkidle');
+    await page.waitForLoadState('domcontentloaded');
 
     // Capturar información de debug
     const currentUrl = page.url();

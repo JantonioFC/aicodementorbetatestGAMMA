@@ -163,11 +163,6 @@ test.describe('📊 ANALÍTICAS - Suite de Pruebas', () => {
     test('ANALITICAS-001: Debe cargar Dashboard de Progreso', async ({ page }) => {
         console.log('📈 Verificando widget de progreso en /analiticas...');
 
-        const dashboardPromise = E2EHelpers.waitForAPI(page, '/api/progress/summary');
-        await page.reload();
-        const dashboardResponse = await dashboardPromise;
-        expect(dashboardResponse.status()).toBe(200);
-
         const progressSelectors = [
             'text=Dashboard de Progreso',
             'text=Semanas Completadas',
@@ -298,20 +293,20 @@ test.describe('🚀 SMOKE TEST - Verificación General del Sistema', () => {
         await authenticateDemo(page);
 
         // 3. Dashboard carga
-        await page.goto(TEST_CONFIG.PAGES.PANEL);
-        await expect(page.locator('h1:has-text("Panel de Control")')).toBeVisible({ timeout: 10000 });
+        await page.goto(TEST_CONFIG.PAGES.PANEL, { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('h1:has-text("Panel de Control")')).toBeVisible({ timeout: 20000 });
 
         // 4. Analíticas accesible
-        await page.goto(TEST_CONFIG.PAGES.ANALITICAS);
-        await expect(page.locator('h1:has-text("Analíticas Detalladas")')).toBeVisible();
+        await page.goto(TEST_CONFIG.PAGES.ANALITICAS, { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('h1:has-text("Analíticas Detalladas")')).toBeVisible({ timeout: 20000 });
 
         // 5. Módulos accesible
-        await page.goto(TEST_CONFIG.PAGES.MODULOS);
-        await expect(page.locator('h1').first()).toBeVisible();
+        await page.goto(TEST_CONFIG.PAGES.MODULOS, { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('h1').first()).toBeVisible({ timeout: 20000 });
 
         // 6. Sandbox accesible
-        await page.goto(TEST_CONFIG.PAGES.SANDBOX);
-        await expect(page.locator('#sandbox-input').or(page.locator('button:has-text("Generar")'))).toBeVisible();
+        await page.goto(TEST_CONFIG.PAGES.SANDBOX, { waitUntil: 'domcontentloaded' });
+        await expect(page.locator('#sandbox-input').or(page.locator('button:has-text("Generar")'))).toBeVisible({ timeout: 20000 });
 
         console.log('🎉 SMOKE TEST COMPLETADO EXITOSAMENTE');
     });

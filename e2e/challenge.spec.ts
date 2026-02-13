@@ -4,12 +4,12 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
 
     test.beforeEach(async ({ page }) => {
         await page.goto('/challenge');
+        await page.waitForLoadState('domcontentloaded');
     });
 
     test('should load the challenge interface', async ({ page }) => {
-        await expect(page).toHaveTitle(/Prove You Are Human/);
+        await expect(page).toHaveTitle(/Desafíos/);
         await expect(page.getByText('Fix the Bug')).toBeVisible();
-        console.log('DEBUG: Challenge Page Content', (await page.content()).substring(0, 500));
         await expect(page.getByText(/SyntaxError/)).toBeVisible();
     });
 
@@ -19,7 +19,7 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
 
         // Check for error output
         await expect(page.getByText(/SyntaxError: Missing parentheses/)).toBeVisible();
-        await expect(page.getByText('Access Granted')).not.toBeVisible();
+        await expect(page.getByText('Entry Granted')).not.toBeVisible();
     });
 
     test('should pass validation when syntax is fixed', async ({ page }) => {
@@ -35,11 +35,8 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
         await page.getByText('Run Code').click();
 
         // Verify success state
-        await expect(page.getByText('Access Granted')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 10000 });
         await expect(page.getByText('TEST PASSED')).toBeVisible();
-
-        // Verify redirect (optional, might take time)
-        // await expect(page).toHaveURL(/signup/, { timeout: 5000 });
     });
 
 });
