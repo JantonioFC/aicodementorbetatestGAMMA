@@ -85,8 +85,20 @@ jobs:
     - name: Prepare Standalone Server
       run: |
         # Copy static assets into standalone directory (required for standalone mode)
-        cp -r .next/static .next/standalone/.next/static
-        cp -r public .next/standalone/public 2>/dev/null || true
+        # Corrected: copy into .next/ and current dir of standalone to match Next.js expectations
+        mkdir -p .next/standalone/.next
+        cp -r .next/static .next/standalone/.next/
+        cp -r public .next/standalone/
+        echo "✅ Assets copied to standalone directory"
+
+    - name: Verify Asset Structure
+      run: |
+        echo "=== Standalone Directory Structure ==="
+        ls -R .next/standalone/.next/static | head -n 20
+        echo "---"
+        ls -R .next/standalone/public | head -n 10
+        echo "---"
+        find .next/standalone -name "server.js"
 
     - name: Initialize Database & Seed Demo User
       run: |
@@ -104,11 +116,20 @@ jobs:
       run: |
         cd .next/standalone && E2E_TEST_MODE=true JWT_SECRET='ci-test-secret-minimum-32-chars' node server.js > /tmp/server.log 2>&1 &
         SERVER_PID=$!
-        sleep 4
+        sleep 5
         echo "=== Login test ==="
         curl -s -v -X POST http://localhost:3000/api/auth/login \
           -H "Content-Type: application/json" \
           -d '{"email":"demo@aicodementor.com","password":"demo123"}' 2>&1
+        echo ""
+        echo "=== Asset accessibility check ==="
+        # Look for a common CSS file in .next/static/css
+        CSS_FILE=$(find .next/standalone/.next/static/css -name "*.css" | head -n 1 | xargs basename)
+        if [ ! -z "$CSS_FILE" ]; then
+          curl -s -I http://localhost:3000/_next/static/css/$CSS_FILE
+        else
+          echo "⚠️ No CSS file found for check"
+        fi
         echo ""
         echo "=== Server logs (stdout+stderr) ==="
         cat /tmp/server.log

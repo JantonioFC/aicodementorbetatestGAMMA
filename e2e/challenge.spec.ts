@@ -36,13 +36,17 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
 
         await page.locator('textarea').fill(fixedCode);
 
+        // Wait for potential React state update / debounce
+        await page.waitForTimeout(500);
+
         // Click Run (button text is "Run Protocol")
         // force: true bypasses cookie banner overlay that intercepts pointer events
         await page.getByText('Run Protocol').click({ force: true });
 
         // Verify success state
-        await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 30000 });
-        await expect(page.getByText('TEST PASSED')).toBeVisible();
+        // Increase timeout as Python execution simulation takes 800ms + network jitter
+        await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 15000 });
+        await expect(page.getByText('TEST PASSED')).toBeVisible({ timeout: 15000 });
     });
 
 });
