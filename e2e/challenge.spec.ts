@@ -38,7 +38,13 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
         const textarea = page.locator('textarea');
         await expect(textarea).toBeEditable({ timeout: 10000 });
 
-        await textarea.fill(fixedCode);
+        // Use native value setter to bypass React controlled input issues
+        // (Playwright's fill() can concatenate instead of replacing on React controlled textareas)
+        await textarea.evaluate((el: HTMLTextAreaElement, value: string) => {
+            const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value')!.set!;
+            nativeSetter.call(el, value);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+        }, fixedCode);
 
         // Verify React state updated (auto-retries until value matches)
         await expect(textarea).toHaveValue(fixedCode);
