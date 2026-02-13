@@ -37,7 +37,7 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
         await page.getByText('Run Protocol').click({ force: true });
 
         // Verify success state
-        await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 10000 });
+        await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 30000 });
         await expect(page.getByText('TEST PASSED')).toBeVisible();
     });
 

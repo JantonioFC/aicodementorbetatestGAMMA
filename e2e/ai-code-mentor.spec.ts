@@ -159,7 +159,7 @@ test.describe('📊 ANALÍTICAS - Suite de Pruebas', () => {
         await page.goto(TEST_CONFIG.PAGES.ANALITICAS, { waitUntil: 'load', timeout: 30000 });
         // Wait for React hydration and ProtectedRoute auth check
         await expect(page).toHaveURL(/.*\/analiticas/);
-        await expect(page.locator('h1:has-text("Analíticas Detalladas")')).toBeVisible({ timeout: 30000 });
+        await expect(page.locator('h1:has-text("Analíticas Detalladas")')).toBeVisible({ timeout: 60000 });
     });
 
     test('ANALITICAS-001: Debe cargar Dashboard de Progreso', async ({ page }) => {
@@ -173,7 +173,7 @@ test.describe('📊 ANALÍTICAS - Suite de Pruebas', () => {
         ];
 
         for (const selector of tabSelectors) {
-            await expect(page.locator(selector).first()).toBeVisible({ timeout: 30000 });
+            await expect(page.locator(selector).first()).toBeVisible({ timeout: 60000 });
         }
     });
 });

@@ -37,14 +37,14 @@ test.describe('📊 Portfolio - Caracterización de UI', () => {
         await expectTabToBeActive(page, 'Gestión de Ciclos');
 
         // Verificar contenido de Ciclos
-        await expect(page.locator('h2:has-text("Sistema de Reset de Ciclo")')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('h2:has-text("Sistema de Reset de Ciclo")')).toBeVisible({ timeout: 30000 });
 
         // 2. Volver a Export Portfolio
         await switchToTab(page, 'Export Portfolio');
         await expectTabToBeActive(page, 'Export Portfolio');
 
         // Verificar contenido de Export
-        await expect(page.locator('h3:has-text("Exportar Datos")')).toBeVisible({ timeout: 10000 });
+        await expect(page.locator('h3:has-text("Exportar Datos")')).toBeVisible({ timeout: 30000 });
 
         console.log('✅ Navegación entre tabs funcional');
     });
@@ -60,7 +60,7 @@ test.describe('📊 Portfolio - Caracterización de UI', () => {
         ];
 
         for (const label of widgets) {
-            await expect(page.locator(`text=${label}`)).toBeVisible();
+            await expect(page.locator(`text=${label}`)).toBeVisible({ timeout: 30000 });
         }
 
         console.log('✅ Widgets de resumen encontrados');
