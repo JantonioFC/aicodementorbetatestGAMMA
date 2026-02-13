@@ -77,10 +77,11 @@ test.describe('IRP Integration Tests (Integrated Architecture)', () => {
     test('IRP-004: Navegación UI a Peer Review', async ({ page }) => {
         console.log('[TEST] Verificando navegación a /peer-review...');
 
-        // Navegar
+        // Navegar (puede redirigir a /login por ProtectedRoute)
         await page.goto('/peer-review');
 
-        // Esperar a que cargue
+        // Esperar cualquier redirección y que el DOM esté listo
+        await page.waitForURL('**/*', { timeout: 10000 });
         await page.waitForLoadState('domcontentloaded');
 
         const url = page.url();

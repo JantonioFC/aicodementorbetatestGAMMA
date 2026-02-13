@@ -44,9 +44,11 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
         await page.getByText('Run Protocol').click({ force: true });
 
         // Verify success state
-        // Increase timeout as Python execution simulation takes 800ms + network jitter
-        await expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 15000 });
-        await expect(page.getByText('TEST PASSED')).toBeVisible({ timeout: 15000 });
+        // Use Promise.all to check both before the 1500ms redirect to /signup destroys the page
+        await Promise.all([
+            expect(page.getByText('Entry Granted')).toBeVisible({ timeout: 15000 }),
+            expect(page.getByText('TEST PASSED')).toBeVisible({ timeout: 15000 }),
+        ]);
     });
 
 });

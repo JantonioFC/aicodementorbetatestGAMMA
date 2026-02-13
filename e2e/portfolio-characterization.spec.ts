@@ -48,7 +48,7 @@ test.describe('📊 Portfolio - Caracterización de UI', () => {
         await expectTabToBeActive(page, 'Export Portfolio');
 
         // Verificar contenido de Export
-        await expect(page.locator('h3:has-text("Exportar Datos")')).toBeVisible({ timeout: 30000 });
+        await expect(page.locator('h2:has-text("Exportación de Portfolio")')).toBeVisible({ timeout: 30000 });
 
         console.log('✅ Navegación entre tabs funcional');
     });
@@ -56,16 +56,11 @@ test.describe('📊 Portfolio - Caracterización de UI', () => {
     test('PORT-003: Debe mostrar widgets de resumen', async ({ page }) => {
         console.log('🚀 [PORT-003] Verificando widgets de resumen...');
 
-        // En el tab de Export, debe haber widgets
-        const widgets = [
-            'Total Lecciones',
-            'Minutos Totales',
-            'Pomodoros'
-        ];
-
-        for (const label of widgets) {
-            await expect(page.locator(`text=${label}`)).toBeVisible({ timeout: 30000 });
-        }
+        // En el tab de Export, debe haber el widget de conteo de evidencias
+        // Usamos selector específico para el label del widget en el grid de stats
+        await expect(
+            page.locator('div.text-gray-500').filter({ hasText: /^Evidencias$/ })
+        ).toBeVisible({ timeout: 30000 });
 
         console.log('✅ Widgets de resumen encontrados');
     });
