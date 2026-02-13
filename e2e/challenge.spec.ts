@@ -34,10 +34,14 @@ test.describe('🧩 Challenge Page (Onboarding)', () => {
 
         const fixedCode = 'def greet(name):\n    print("Hello " + name)  # Fixed!';
 
-        await page.locator('textarea').fill(fixedCode);
+        // Wait for React hydration before interacting with the textarea
+        const textarea = page.locator('textarea');
+        await expect(textarea).toBeEditable({ timeout: 10000 });
 
-        // Wait for potential React state update / debounce
-        await page.waitForTimeout(500);
+        await textarea.fill(fixedCode);
+
+        // Verify React state updated (auto-retries until value matches)
+        await expect(textarea).toHaveValue(fixedCode);
 
         // Click Run (button text is "Run Protocol")
         // force: true bypasses cookie banner overlay that intercepts pointer events
