@@ -7,68 +7,65 @@
  */
 
 import { test, expect } from '@playwright/test';
-import * as jwt from 'jsonwebtoken';
+import { authenticateDemo } from './helpers/authHelper';
 
 test.describe('IRP Integration Tests (Integrated Architecture)', () => {
 
     // URL base integrada en Next.js (Puerto 3000)
     const BASE_URL = '/api/v1/irp';
 
-    // Generate a valid JWT using the same secret as the CI server
-    const JWT_SECRET = process.env.JWT_SECRET || 'ci-test-secret-minimum-32-chars';
-    const VALID_TOKEN = jwt.sign(
-        {
-            sub: '00000000-0000-0000-0000-000000000001',
-            email: 'demo@aicodementor.com',
-            aud: 'authenticated',
-            role: 'authenticated',
-            v: 1
-        },
-        JWT_SECRET,
-        { expiresIn: '1h' }
-    );
+    /**
+     * Helper: Authenticate via browser and extract the real auth cookie
+     * for use with API requests. This ensures the JWT secret matches.
+     */
+    async function getAuthCookie(page: import('@playwright/test').Page): Promise<string> {
+        await authenticateDemo(page);
+        const cookies = await page.context().cookies();
+        const authCookie = cookies.find(c => c.name === 'ai-code-mentor-auth');
+        if (!authCookie) throw new Error('Auth cookie not found after login');
+        return authCookie.value;
+    }
 
-    test('IRP-001: Health Check del servicio integrado', async ({ request }) => {
+    test('IRP-001: Health Check del servicio integrado', async ({ page, request }) => {
         console.log('[TEST] Verificando /health...');
-        // Server reads auth from cookie, not Authorization header
+        const token = await getAuthCookie(page);
         const response = await request.get(`${BASE_URL}/health`, {
-            headers: { 'Cookie': `ai-code-mentor-auth=${VALID_TOKEN}` }
+            headers: { 'Cookie': `ai-code-mentor-auth=${token}` }
         });
 
         expect(response.status()).toBe(200);
         const body = await response.json();
 
         expect(body.status).toBe('healthy');
-        // Verificar que reporte disponibilidad de IA (true o false, pero presente)
         expect(body.aiAvailable).toBeDefined();
         console.log('[TEST] ✅ Health Check OK:', body);
     });
 
-    test('IRP-002: Historial de Revisiones (Endpoint Migrado)', async ({ request }) => {
+    test('IRP-002: Historial de Revisiones (Endpoint Migrado)', async ({ page, request }) => {
         console.log('[TEST] Verificando /reviews/history...');
+        const token = await getAuthCookie(page);
         const response = await request.get(`${BASE_URL}/reviews/history`, {
-            headers: { 'Cookie': `ai-code-mentor-auth=${VALID_TOKEN}` }
+            headers: { 'Cookie': `ai-code-mentor-auth=${token}` }
         });
 
         expect(response.status()).toBe(200);
         const body = await response.json();
 
-        // Verificar estructura de respuesta
         expect(Array.isArray(body.reviews)).toBe(true);
         expect(typeof body.total).toBe('number');
         console.log(`[TEST] ✅ Historial obtenido: ${body.reviews.length} revisiones`);
     });
 
-    test('IRP-003: Estadísticas de Administrador (Endpoint Migrado)', async ({ request }) => {
+    test('IRP-003: Estadísticas de Administrador (Endpoint Migrado)', async ({ page, request }) => {
         console.log('[TEST] Verificando /admin/stats...');
+        const token = await getAuthCookie(page);
         const response = await request.get(`${BASE_URL}/admin/stats`, {
-            headers: { 'Cookie': `ai-code-mentor-auth=${VALID_TOKEN}` }
+            headers: { 'Cookie': `ai-code-mentor-auth=${token}` }
         });
 
         expect(response.status()).toBe(200);
         const body = await response.json();
 
-        // generateSystemStats returns { total_reviews, pending_reviews }
         expect(body.total_reviews).toBeDefined();
         expect(body.pending_reviews).toBeDefined();
         console.log('[TEST] ✅ Stats obtenidos:', body);

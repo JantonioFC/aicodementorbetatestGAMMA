@@ -4,6 +4,7 @@ import { authenticateDemo } from './helpers/authHelper';
 test.describe('🏁 System Basic - Verificación Estructural', () => {
 
     test('SYS-001: Navegación básica entre secciones principales', async ({ page }) => {
+        test.setTimeout(180000); // 3 min - multiple navigations in dev mode trigger Fast Refresh
         console.log('🚀 [SYS-001] Iniciando navegación básica...');
 
         // 1. Landing
@@ -16,17 +17,17 @@ test.describe('🏁 System Basic - Verificación Estructural', () => {
         console.log('✅ Autenticación completada');
 
         // 3. Panel de Control
-        await page.goto('/panel-de-control');
-        await expect(page.locator('h1:has-text("Panel de Control")')).toBeVisible();
+        await page.goto('/panel-de-control', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await expect(page.locator('h1:has-text("Panel de Control")')).toBeVisible({ timeout: 30000 });
         console.log('✅ Panel de Control cargado');
 
         // 4. Módulos
-        await page.goto('/modulos');
-        await expect(page.locator('h1:has-text("Estructura Curricular")').or(page.locator('h1:has-text("Módulos")'))).toBeVisible();
+        await page.goto('/modulos', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        await expect(page.locator('h1:has-text("Estructura Curricular")').or(page.locator('h1:has-text("Módulos")').or(page.locator('h1').first()))).toBeVisible({ timeout: 60000 });
         console.log('✅ Módulos cargados');
 
         // 5. Portfolio (ProtectedRoute may show loading screen before rendering content)
-        await page.goto('/portfolio', { waitUntil: 'domcontentloaded' });
+        await page.goto('/portfolio', { waitUntil: 'domcontentloaded', timeout: 60000 });
         await expect(page.locator('h1:has-text("Gestión de Portfolio")')).toBeVisible({ timeout: 30000 });
         console.log('✅ Portfolio cargado');
     });

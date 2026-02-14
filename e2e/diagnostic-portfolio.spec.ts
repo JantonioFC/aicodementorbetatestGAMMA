@@ -7,6 +7,7 @@ import { test, expect } from '@playwright/test';
 import { authenticateDemo } from './helpers/authHelper';
 
 test('DIAGNOSTIC - Capturar HTML de portfolio con real auth', async ({ page }) => {
+    test.setTimeout(120000); // 2 min for dev mode Fast Refresh
     const url = '/portfolio';
 
     console.log('\n🔍 === INICIO DIAGNÓSTICO ===\n');
@@ -16,7 +17,7 @@ test('DIAGNOSTIC - Capturar HTML de portfolio con real auth', async ({ page }) =
     await authenticateDemo(page, url);
 
     // Navigate to target page after authentication
-    await page.goto(url);
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 });
     await page.waitForLoadState('domcontentloaded');
 
     // Capturar información de debug
