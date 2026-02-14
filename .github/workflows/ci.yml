@@ -17,6 +17,8 @@ jobs:
   build-and-test:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'mock-key-for-ci' }}
 
     steps:
     - name: Checkout code
@@ -39,7 +41,6 @@ jobs:
       run: npm run build
       env:
         NEXT_PUBLIC_E2E_TEST_MODE: 'true'
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'mock-key-for-ci' }}
 
     - name: Security Audit (Dependencies)
       run: npm audit --audit-level=critical
@@ -60,7 +61,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     needs: build-and-test
-    
+    env:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'mock-key-for-ci' }}
+      JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-minimum-32-chars' }}
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -110,12 +114,10 @@ jobs:
         mkdir -p .next/standalone/database/sqlite
         cp database/sqlite/curriculum.db .next/standalone/database/sqlite/curriculum.db
         echo "✅ Database copied to standalone directory"
-      env:
-        JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-minimum-32-chars' }}
 
     - name: Verify Auth API
       run: |
-        cd .next/standalone && E2E_TEST_MODE=true JWT_SECRET='ci-test-secret-minimum-32-chars' node server.js > /tmp/server.log 2>&1 &
+        cd .next/standalone && E2E_TEST_MODE=true GEMINI_API_KEY=$GEMINI_API_KEY JWT_SECRET=$JWT_SECRET node server.js > /tmp/server.log 2>&1 &
         SERVER_PID=$!
         sleep 5
         echo "=== Login test ==="
@@ -140,9 +142,6 @@ jobs:
         kill $SERVER_PID 2>/dev/null || true
         # Also clean up anything else on 3000 just in case
         npx wait-on -t 5000 http://localhost:3000 && (fuser -k 3000/tcp || pkill -9 -f server.js) || true
-      env:
-        JWT_SECRET: 'ci-test-secret-minimum-32-chars'
-
     - name: Ensure Port 3000 is Free
       run: |
         # Forceful cleanup of any lingering processes
@@ -153,11 +152,8 @@ jobs:
       run: npx playwright test --retries=2
       env:
         CI: true
-        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'mock-key-for-ci' }}
-        JWT_SECRET: ${{ secrets.JWT_SECRET || 'ci-test-secret-minimum-32-chars' }}
         NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.NEXT_PUBLIC_SENTRY_DSN || '' }}
         NEXT_PUBLIC_E2E_TEST_MODE: 'true'
-        # Database for testing
         DATABASE_URL: 'file:./test.db'
 
     - name: Upload Playwright Report
