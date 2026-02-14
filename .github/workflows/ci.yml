@@ -39,6 +39,7 @@ jobs:
       run: npm run build
       env:
         NEXT_PUBLIC_E2E_TEST_MODE: 'true'
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY || 'mock-key-for-ci' }}
 
     - name: Security Audit (Dependencies)
       run: npm audit --audit-level=critical
