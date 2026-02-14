@@ -33,9 +33,9 @@ describe('LessonPrompts', () => {
         const messages = buildLessonPromptMessages(mockContext, false);
         const userContent = messages[1].content;
 
-        expect(userContent).toContain('Temática Semanal: Variables');
-        expect(userContent).toContain('Concepto del Día: Scope');
-        expect(userContent).toContain('Tarea Específica del Pomodoro: Explica el scope global');
+        expect(userContent).toContain('Tematica Semanal: Variables');
+        expect(userContent).toContain('Concepto del Dia: Scope');
+        expect(userContent).toContain('Tarea Especifica del Pomodoro: Explica el scope global');
     });
 
     test('buildLessonPromptMessages handles missing context gracefully', () => {
@@ -45,7 +45,7 @@ describe('LessonPrompts', () => {
 
         // Checks that placeholders are replaced by empty strings or handled, 
         // depending on implementation. The code uses `|| ''`.
-        expect(userContent).toContain('Temática Semanal: '); // Should be empty
+        expect(userContent).toContain('Tematica Semanal: '); // Should be empty
         expect(userContent).not.toContain('undefined');
     });
 });

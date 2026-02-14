@@ -18,6 +18,16 @@ jest.mock('../../../lib/services/LessonService', () => ({
     }
 }));
 jest.mock('../../../lib/ai/ClarityGate');
+jest.mock('../../../lib/agents/AgentOrchestrator', () => ({
+    agentOrchestrator: {
+        orchestrate: jest.fn().mockResolvedValue('Refined Lesson Content')
+    }
+}));
+jest.mock('../../../lib/services/CompetencyService', () => ({
+    competencyService: {
+        suggestDifficulty: jest.fn().mockResolvedValue({ level: 1, reason: 'default' })
+    }
+}));
 
 describe('SmartLessonGenerator (Agentic Logic)', () => {
 
