@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { weekRepository } from '@/lib/repositories/WeekRepository';
 import { contentRetriever } from '@/lib/rag/ContentRetriever';
-import { TEMPLATE_PROMPT_UNIVERSAL, SYSTEM_PROMPT } from '@/lib/prompts/LessonPrompts';
+import { buildLessonPromptMessages } from '@/lib/prompts/LessonPrompts';
+import { modelDiscovery } from '@/lib/ai/discovery/ModelDiscovery';
 
 export const runtime = 'nodejs';
 
@@ -23,17 +24,37 @@ export async function POST(req: NextRequest) {
         };
 
         const ragContext = contentRetriever.buildPromptContext(semanaId, dia - 1, pomodoroIndex);
-        const prompt = `${ragContext}\n\n---\n\n${TEMPLATE_PROMPT_UNIVERSAL
-            .replace(/{tematica_semanal}/g, contexto.tematica_semanal)
-            .replace(/{concepto_del_dia}/g, contexto.concepto_del_dia || '')
-            .replace(/{texto_del_pomodoro}/g, contexto.texto_del_pomodoro || '')}`;
+        const messages = buildLessonPromptMessages({
+            tematica_semanal: contexto.tematica_semanal,
+            concepto_del_dia: contexto.concepto_del_dia || '',
+            texto_del_pomodoro: contexto.texto_del_pomodoro || ''
+        });
+
+        // Convertir mensajes al formato Gemini contents con RAG context inyectado
+        const systemMsg = messages.find(m => m.role === 'system');
+        const nonSystemMsgs = messages.filter(m => m.role !== 'system');
+        const contents = nonSystemMsgs.map(m => ({
+            role: m.role === 'assistant' ? 'model' as const : 'user' as const,
+            parts: [{ text: m.content }]
+        }));
+        // Inyectar RAG context en el último mensaje del usuario
+        const lastUserIdx = contents.findLastIndex(c => c.role === 'user');
+        if (lastUserIdx >= 0) {
+            contents[lastUserIdx].parts[0].text = `${ragContext}\n\n---\n\n${contents[lastUserIdx].parts[0].text}`;
+        }
+
+        const primaryModel = await modelDiscovery.getPrimaryModel();
+        const modelName = primaryModel?.name || 'gemini-2.5-flash';
 
         const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+        const model = genAI.getGenerativeModel({
+            model: modelName,
+            systemInstruction: systemMsg?.content
+        });
 
         const result = await model.generateContentStream({
-            contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 }
+            contents,
+            generationConfig: { temperature: 0.7, maxOutputTokens: 8192 }
         });
 
         const encoder = new TextEncoder();
@@ -48,15 +69,22 @@ export async function POST(req: NextRequest) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'chunk', text, accumulated: fullText.length })}\n\n`));
                     }
 
-                    let parsed: Record<string, unknown> | null = null;
-                    try {
-                        const jsonMatch = fullText.match(/```json\n?([\s\S]*?)\n?```/);
-                        parsed = JSON.parse(jsonMatch ? jsonMatch[1] : fullText);
-                    } catch {
-                        parsed = { rawContent: fullText };
+                    // Parse quiz from ---QUIZ--- separator and send each question as individual event
+                    const sepMatch = fullText.match(/\n*---\s*QUIZ\s*---/i);
+                    if (sepMatch && sepMatch.index !== undefined) {
+                        const quizRaw = fullText.slice(sepMatch.index + sepMatch[0].length).trim();
+                        try {
+                            const cleaned = quizRaw.replace(/^```json?\s*\n?/, '').replace(/\n?```\s*$/, '');
+                            const questions = JSON.parse(cleaned);
+                            if (Array.isArray(questions)) {
+                                for (const q of questions) {
+                                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'quiz', question: q })}\n\n`));
+                                }
+                            }
+                        } catch { /* quiz parse failed, skip */ }
                     }
 
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'end', success: true, data: parsed })}\n\n`));
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'end' })}\n\n`));
                 } catch (error: unknown) {
                     const message = error instanceof Error ? error.message : String(error);
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', error: message })}\n\n`));

@@ -3,7 +3,7 @@
  * Hook de React para consumir el endpoint de streaming.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 interface StreamOptions {
     semanaId: string | number;
@@ -11,27 +11,37 @@ interface StreamOptions {
     pomodoroIndex: string | number;
 }
 
+export interface QuizQuestion {
+    pregunta: string;
+    opciones: string[];
+    respuesta_correcta: string;
+}
+
 interface SSEEvent {
-    type: 'start' | 'chunk' | 'end' | 'error';
+    type: 'start' | 'chunk' | 'quiz' | 'end' | 'error';
     text?: string;
     accumulated?: number;
-    data?: any;
+    question?: QuizQuestion;
     error?: string;
 }
 
 export function useStreamingLesson() {
-    const [isStreaming, setIsStreaming] = useState<boolean>(false);
-    const [content, setContent] = useState<string>('');
-    const [lesson, setLesson] = useState<any | null>(null);
+    const [isStreaming, setIsStreaming] = useState(false);
+    const [content, setContent] = useState('');
+    const [quiz, setQuiz] = useState<QuizQuestion[]>([]);
     const [error, setError] = useState<string | null>(null);
-    const [progress, setProgress] = useState<number>(0);
+    const [progress, setProgress] = useState(0);
+
+    // Use ref to accumulate quiz questions during streaming (avoids stale closure)
+    const quizRef = useRef<QuizQuestion[]>([]);
 
     const streamLesson = useCallback(async ({ semanaId, dia, pomodoroIndex }: StreamOptions) => {
         setIsStreaming(true);
         setContent('');
-        setLesson(null);
+        setQuiz([]);
         setError(null);
         setProgress(0);
+        quizRef.current = [];
 
         try {
             const response = await fetch('/api/v1/lessons/stream', {
@@ -53,6 +63,40 @@ export function useStreamingLesson() {
 
             let buffer = '';
 
+            const processEvents = (raw: string) => {
+                for (const line of raw.split('\n\n')) {
+                    const trimmed = line.trim();
+                    if (!trimmed.startsWith('data: ')) continue;
+                    try {
+                        const event: SSEEvent = JSON.parse(trimmed.slice(6));
+                        switch (event.type) {
+                            case 'chunk':
+                                if (event.text) {
+                                    setContent(prev => prev + event.text);
+                                    if (event.accumulated) {
+                                        setProgress(Math.min(95, Math.floor((event.accumulated / 3000) * 100)));
+                                    }
+                                }
+                                break;
+                            case 'quiz':
+                                if (event.question) {
+                                    quizRef.current = [...quizRef.current, event.question];
+                                    setQuiz([...quizRef.current]);
+                                }
+                                break;
+                            case 'end':
+                                setProgress(100);
+                                break;
+                            case 'error':
+                                setError(event.error || 'Unknown streaming error');
+                                break;
+                        }
+                    } catch (e) {
+                        console.warn('Error parsing SSE event:', e);
+                    }
+                }
+            };
+
             while (true) {
                 const { done, value } = await reader.read();
 
@@ -60,44 +104,16 @@ export function useStreamingLesson() {
 
                 buffer += decoder.decode(value, { stream: true });
 
-                // Procesar eventos SSE
-                const lines = buffer.split('\n\n');
-                buffer = lines.pop() || ''; // Mantener el último fragmento incompleto
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        try {
-                            const event: SSEEvent = JSON.parse(line.slice(6));
-
-                            switch (event.type) {
-                                case 'start':
-                                    // Evento de inicio con contexto
-                                    break;
-
-                                case 'chunk':
-                                    if (event.text) {
-                                        setContent(prev => prev + event.text);
-                                        // Estimar progreso basado en longitud esperada (~3000 chars)
-                                        if (event.accumulated) {
-                                            setProgress(Math.min(95, Math.floor((event.accumulated / 3000) * 100)));
-                                        }
-                                    }
-                                    break;
-
-                                case 'end':
-                                    setLesson(event.data);
-                                    setProgress(100);
-                                    break;
-
-                                case 'error':
-                                    setError(event.error || 'Unknown streaming error');
-                                    break;
-                            }
-                        } catch (e) {
-                            console.warn('Error parsing SSE event:', e);
-                        }
-                    }
+                const lastSep = buffer.lastIndexOf('\n\n');
+                if (lastSep !== -1) {
+                    processEvents(buffer.slice(0, lastSep));
+                    buffer = buffer.slice(lastSep + 2);
                 }
+            }
+
+            // Process remaining buffer after stream ends
+            if (buffer.trim()) {
+                processEvents(buffer);
             }
         } catch (err: any) {
             setError(err.message);
@@ -109,9 +125,10 @@ export function useStreamingLesson() {
     const reset = useCallback(() => {
         setIsStreaming(false);
         setContent('');
-        setLesson(null);
+        setQuiz([]);
         setError(null);
         setProgress(0);
+        quizRef.current = [];
     }, []);
 
     return {
@@ -119,7 +136,7 @@ export function useStreamingLesson() {
         reset,
         isStreaming,
         content,
-        lesson,
+        quiz,
         error,
         progress
     };
