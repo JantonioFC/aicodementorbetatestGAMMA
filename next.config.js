@@ -36,6 +36,9 @@ const nextConfig = {
   // Docker Optimization
   output: 'standalone',
 
+  // Turbopack: silence webpack-only config warning in Next.js 16
+  turbopack: {},
+
   env: {
     // SECURITY: API Keys should NOT be inlined here to avoid leaking to client bundle.
     // They are accessed via process.env on the server side securely.
@@ -99,9 +102,11 @@ const nextConfig = {
     if (!isServer) {
       // ...le decimos a Webpack que cuando encuentre una importación de 'better-sqlite3',
       // la ignore y la reemplace con 'false', evitando el error.
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
+      config.resolve.alias = {
+        ...config.resolve.alias,
         'better-sqlite3': false,
+        fs: false,
+        path: false,
       };
     }
 
