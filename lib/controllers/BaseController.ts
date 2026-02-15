@@ -19,7 +19,7 @@ export abstract class BaseController {
 
         // Map known errors
         if (errorName === 'ZodError') {
-            const details = (error as { errors?: unknown }).errors;
+            const details = (error as { issues?: unknown }).issues;
             res.status(400).json({
                 success: false,
                 error: 'Validation Error',

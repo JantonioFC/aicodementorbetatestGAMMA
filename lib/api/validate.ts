@@ -12,7 +12,7 @@ export function validate(schema: ZodSchema) {
             return true;
         } catch (error) {
             if (error instanceof ZodError) {
-                res.status(400).json({ success: false, error: 'Validation Error', details: error.errors });
+                res.status(400).json({ success: false, error: 'Validation Error', details: error.issues });
                 return false;
             }
             throw error;
@@ -32,7 +32,7 @@ export function withValidation(schema: ZodSchema, handler: (req: NextApiRequest,
             return handler(req, res);
         } catch (error) {
             if (error instanceof ZodError) {
-                return res.status(400).json({ success: false, error: 'Validation Error', details: error.errors });
+                return res.status(400).json({ success: false, error: 'Validation Error', details: error.issues });
             }
             throw error;
         }
