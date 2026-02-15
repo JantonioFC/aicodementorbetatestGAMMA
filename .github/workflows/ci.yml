@@ -134,12 +134,14 @@ jobs:
           -d '{"email":"demo@aicodementor.com","password":"demo123"}' 2>&1
         echo ""
         echo "=== Asset accessibility check ==="
-        # Look for a common CSS file in .next/static/css
-        CSS_FILE=$(find .next/standalone/.next/static/css -name "*.css" | head -n 1 | xargs basename)
-        if [ ! -z "$CSS_FILE" ]; then
-          curl -s -I http://localhost:3000/_next/static/css/$CSS_FILE
+        # Look for a static asset file (CSS or JS) in .next/static
+        ASSET_FILE=$(find .next/standalone/.next/static -name "*.css" -o -name "*.js" 2>/dev/null | head -n 1 || true)
+        if [ -n "$ASSET_FILE" ]; then
+          # Build the URL path relative to .next/standalone/.next/
+          REL_PATH="${ASSET_FILE#.next/standalone/.next/}"
+          curl -s -I "http://localhost:3000/_next/${REL_PATH}"
         else
-          echo "⚠️ No CSS file found for check"
+          echo "⚠️ No static asset found for check"
         fi
         echo ""
         echo "=== Server logs (stdout+stderr) ==="
@@ -148,8 +150,8 @@ jobs:
         echo "=== DB check ==="
         node -e "const D=require('better-sqlite3');const d=new D('database/sqlite/curriculum.db');console.log(d.prepare(\"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('refresh_tokens','user_profiles')\").all());d.close();"
         kill $SERVER_PID 2>/dev/null || true
-        # Also clean up anything else on 3000 just in case
-        npx wait-on -t 5000 http://localhost:3000 && (fuser -k 3000/tcp || pkill -9 -f server.js) || true
+        # Clean up anything else on port 3000
+        lsof -ti:3000 | xargs kill -9 2>/dev/null || true
     - name: Ensure Port 3000 is Free
       run: |
         # Forceful cleanup of any lingering processes
