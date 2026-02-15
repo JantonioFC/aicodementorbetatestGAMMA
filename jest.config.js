@@ -53,6 +53,7 @@ module.exports = {
             ],
             testPathIgnorePatterns: [
                 '/node_modules/',
+                '/\\.next/',
                 '/98_Obsolete_Archive/',
                 '/99_Archive_Temp/'
             ],
@@ -73,6 +74,7 @@ module.exports = {
             ],
             testPathIgnorePatterns: [
                 '/node_modules/',
+                '/\\.next/',
                 '/98_Obsolete_Archive/',
                 '/99_Archive_Temp/'
             ],
@@ -88,6 +90,7 @@ module.exports = {
     // Ignore patterns
     testPathIgnorePatterns: [
         '/node_modules/',
+        '/\\.next/',
         '/98_Obsolete_Archive/',
         '/99_Archive_Temp/'
     ],
