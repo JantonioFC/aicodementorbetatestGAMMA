@@ -6,7 +6,7 @@ import { z } from 'zod';
 const updateProfileSchema = z.object({
     display_name: z.string().min(2).optional(),
     email: z.string().email().optional(),
-    preferences: z.record(z.unknown()).optional(),
+    preferences: z.record(z.string(), z.unknown()).optional(),
     avatar_url: z.string().url().optional()
 });
 
