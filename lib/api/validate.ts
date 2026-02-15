@@ -5,7 +5,7 @@ export function validate(schema: ZodSchema) {
     return (req: NextApiRequest, res: NextApiResponse) => {
         try {
             if (req.method === 'GET') {
-                req.query = schema.parse(req.query);
+                req.query = schema.parse(req.query) as typeof req.query;
             } else {
                 req.body = schema.parse(req.body);
             }
@@ -26,7 +26,7 @@ export function withValidation(schema: ZodSchema, handler: (req: NextApiRequest,
             const data = req.method === 'GET' ? req.query : req.body;
             const parsed = schema.parse(data);
 
-            if (req.method === 'GET') req.query = parsed;
+            if (req.method === 'GET') req.query = parsed as typeof req.query;
             else req.body = parsed;
 
             return handler(req, res);
