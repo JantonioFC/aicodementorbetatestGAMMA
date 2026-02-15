@@ -40,7 +40,7 @@ export default defineConfig({
     webServer: {
         command: isCI ? 'cd .next/standalone && E2E_TEST_MODE=true node server.js' : 'E2E_TEST_MODE=true npm run dev',
         url: 'http://localhost:3000',
-        reuseExistingServer: !isCI || process.env.REUSE_SERVER === 'true',
+        reuseExistingServer: true,
         timeout: 120000,
     },
 });
